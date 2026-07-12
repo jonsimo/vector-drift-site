@@ -1108,6 +1108,10 @@ body.terminal-home {
 
 .terminal-home .prompt-prefix {
   flex: 0 0 auto;
+  /* One monospace char-space between /root and the cursor / first typed
+     character. Structural (not stored in input state) so the parser still
+     receives a clean command. Matches the leading space in the history echo. */
+  margin-right: 1ch;
 }
 
 .terminal-home .terminal-command {
