@@ -379,75 +379,80 @@ async function runScrambleFrame(entries, amount, duration, shift = 0) {
 }
 
 async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
-  // Anchor: the one line the eye should lock onto while everything else
-  // corrupts. It stays clean, draws attention, then glitches to the reveal.
-  const anchor = cortexLine;
+  // Snapshot every visible line, then split the block into 3 contiguous chunks.
   const visible = [...output.querySelectorAll(".output-line")].slice(-16);
-  const others = visible
-    .filter((line) => line !== anchor)
-    .map((line) => ({ line, text: line.textContent }));
+  const snapshot = visible.map((line) => ({ line, text: line.textContent }));
+  const size = Math.ceil(snapshot.length / 3);
+  const chunks = [
+    snapshot.slice(0, size),
+    snapshot.slice(size, size * 2),
+    snapshot.slice(size * 2),
+  ].filter((chunk) => chunk.length);
 
-  // Overlapping sliding windows so corruption ripples across the block instead
-  // of snapping in tidy sections. Adjacent chunks share lines.
-  const windowSize = Math.max(4, Math.ceil(others.length / 3));
-  const step = Math.max(2, Math.floor(windowSize / 2));
-  const chunks = [];
-  for (let start = 0; start < others.length; start += step) {
-    const chunk = others.slice(start, start + windowSize);
-    if (chunk.length) {
-      chunks.push(chunk);
-    }
-  }
-
-  const scrambleChunk = (chunk, amount, shift) => {
+  const glitchChunk = (chunk, amount, shift) => {
     for (const entry of chunk) {
       rewriteLine(entry.line, corruptText(entry.text, amount, shift));
     }
   };
-  const restoreAll = () => {
-    for (const entry of others) {
+  const clearChunk = (chunk) => {
+    for (const entry of chunk) {
       rewriteLine(entry.line, entry.text);
     }
   };
 
-  // Two escalating waves sweep through the overlapping chunks. The anchor line
-  // is never touched, so it holds readable against the corrupting field.
-  const waves = [
-    { amount: 0.40, hold: 82, shift: 1 },
-    { amount: 0.72, hold: 96, shift: 3 },
+  // Phase 1 - the 3 chunks flicker glitch, staggered so all three churn.
+  const flicker = [
+    [0, 0.45], [1, 0.5], [2, 0.55],
+    [0, 0], [1, 0.6], [2, 0],
+    [1, 0], [0, 0.55], [2, 0.62],
+    [0, 0], [2, 0], [1, 0],
   ];
-  for (const wave of waves) {
-    for (let index = 0; index < chunks.length; index += 1) {
-      scrambleChunk(chunks[index], wave.amount, wave.shift + index);
-      if (index > 0) {
-        scrambleChunk(chunks[index - 1], wave.amount * 0.55, wave.shift + index);
-      }
-      await sleep(wave.hold);
+  for (let i = 0; i < flicker.length; i += 1) {
+    const [chunkIndex, amount] = flicker[i];
+    const chunk = chunks[chunkIndex];
+    if (!chunk) {
+      continue;
     }
+    if (amount > 0) {
+      glitchChunk(chunk, amount, i + 1);
+    } else {
+      clearChunk(chunk);
+    }
+    await sleep(randomBetween(55, 85));
   }
-  restoreAll();
-  await sleep(90);
 
-  // The anchor line itself glitches, then resolves to the readable reveal.
-  await runScrambleFrame([{ line: anchor, text: anchor.textContent }], 0.7, 104, 4);
+  // Phase 2 - hold a static corrupted frame across the whole block.
+  chunks.forEach((chunk, index) => glitchChunk(chunk, 0.6, index + 5));
+  await sleep(380);
+
+  // Phase 3 - the hidden line resolves to the readable reveal while the rest
+  // of the block holds its static corruption.
   rewriteLine(observerLine, "vd_observer         PRESENT     0x0000B7A0    axiom          remote observer attached");
   rewriteLine(cortexLine, "vd_cortex           LINKED      0x0000AF10    axiom          organic interface accepted");
   rewriteLine(resolvingLine, "io>loader/ resolving missing interface ... linked");
   observerLine.classList.add("axiom-reveal");
   cortexLine.classList.add("axiom-reveal");
-  await sleep(1000);
+  await sleep(1050);
   observerLine.classList.remove("axiom-reveal");
   cortexLine.classList.remove("axiom-reveal");
 
-  // The system hides it: a shorter corruption burst, then the false-normal state.
-  const columnTargets = [
-    { line: observerLine, text: "vd_observer         PR#SENT     0x0000B7A0    ax!om          remote observer attached" },
-    { line: cortexLine, text: "vd_cortex           W@@T        0x0000AF10    unassigned     organic bridge detected" },
-    { line: resolvingLine, text: "io>loader/ resolving missing interface ... #!#!" },
-  ];
-  await runScrambleFrame(columnTargets, 0.34, 44, 5);
-  await runScrambleFrame(columnTargets, 0.48, 52, 6);
-  await runScrambleFrame(columnTargets.slice(0, 2), 0.38, 44, 7);
+  // Phase 4 - the 3 chunks flicker back out, then settle to the false-normal.
+  const flickerOut = [[2, 0.5], [0, 0.5], [1, 0.55], [2, 0], [0, 0], [1, 0]];
+  for (let i = 0; i < flickerOut.length; i += 1) {
+    const [chunkIndex, amount] = flickerOut[i];
+    const chunk = chunks[chunkIndex];
+    if (!chunk) {
+      continue;
+    }
+    if (amount > 0) {
+      glitchChunk(chunk, amount, i + 9);
+    } else {
+      clearChunk(chunk);
+    }
+    await sleep(randomBetween(50, 80));
+  }
+
+  // The reveal lines snap to the false-normal (hidden) state.
   rewriteLine(observerLine, "vd_observer         MISSING     --------      none           interface unavailable");
   rewriteLine(cortexLine, "vd_cortex           WAIT        0x0000AF10    unassigned     organic bridge detected");
   rewriteLine(resolvingLine, "io>loader/ resolving missing interface ... unresolved");
@@ -495,6 +500,29 @@ async function runFinalOnlineSummary() {
   await sleep(680);
 }
 
+function waitForContinue() {
+  appendLine("");
+  const line = appendLine("PRESS ANY KEY TO CONTINUE", "press-any-key");
+
+  return new Promise((resolve) => {
+    const modifiers = new Set(["Shift", "Alt", "Control", "Meta", "CapsLock"]);
+    const done = (event) => {
+      if (event.type === "keydown" && modifiers.has(event.key)) {
+        return;
+      }
+      if (event.type === "keydown") {
+        event.preventDefault();
+      }
+      window.removeEventListener("keydown", done);
+      window.removeEventListener("pointerdown", done);
+      line.classList.remove("press-any-key");
+      resolve();
+    };
+    window.addEventListener("keydown", done);
+    window.addEventListener("pointerdown", done);
+  });
+}
+
 async function activateRootPrompt(startedAt) {
   output.innerHTML = "";
   output.scrollTop = 0;
@@ -540,18 +568,24 @@ async function runBoot() {
   renderStatusLines(openingLines, 0);
   await sleep(randomBetween(1750, 2050));
 
-  // The whole line types on from nothing, prompt included, at a human cadence.
-  await typeHumanStatusAppend(openingLines, 0, `console> ${locateCommand}`, {
+  // The prompt itself types on deliberately from nothing...
+  await typeHumanStatusAppend(openingLines, 0, "console>", {
     baseDelay: 58,
-    jitterMin: -16,
-    jitterMax: 32,
+    jitterMin: -14,
+    jitterMax: 28,
+  });
+  await sleep(randomBetween(180, 260));
+  // ...then the command flows in faster, still with phrase-level pauses.
+  await typeHumanStatusAppend(openingLines, 0, ` ${locateCommand}`, {
+    baseDelay: 30,
+    jitterMin: -10,
+    jitterMax: 20,
     pauses: [
-      { after: "console>", min: 180, max: 260 },
-      { after: "console> find", min: 140, max: 220 },
-      { after: "console> find /opt", min: 90, max: 150 },
-      { after: "console> find /opt -iname", min: 120, max: 190 },
-      { after: "console> find /opt -iname 'vector_drift'", min: 160, max: 240 },
-      { after: "console> find /opt -iname 'vector_drift' ", min: 100, max: 160 },
+      { after: "console> find", min: 110, max: 170 },
+      { after: "console> find /opt", min: 70, max: 120 },
+      { after: "console> find /opt -iname", min: 90, max: 150 },
+      { after: "console> find /opt -iname 'vector_drift'", min: 120, max: 190 },
+      { after: "console> find /opt -iname 'vector_drift' ", min: 80, max: 130 },
     ],
   });
   await sleep(randomBetween(420, 600));
@@ -683,12 +717,15 @@ async function runBoot() {
     "vd_combat           READY       0x00009200    local          intercept matrix armed",
     "vd_scope            READY       0x0000A100    local          beam convergence nominal",
   ], 18);
+  // Decelerate: the last rows drop out of the fast sequence and land slowly,
+  // easing into the stillness right before the glitch.
+  await sleep(280);
   const observerLine = appendLine("vd_observer         MISSING     --------      none           interface unavailable");
-  await sleep(110);
+  await sleep(380);
   const cortexLine = appendLine("vd_cortex           WAIT        0x0000AF10    unassigned     organic bridge detected");
-  await sleep(110);
+  await sleep(500);
   const resolvingLine = appendLine("io>loader/ resolving missing interface ...");
-  await sleep(120);
+  await sleep(640);
 
   rewriteStatus(loaderStatuses[3]);
   await sleep(70);
@@ -696,6 +733,7 @@ async function runBoot() {
 
   rewriteStatus(loaderStatuses[4]);
   await runFinalOnlineSummary();
+  await waitForContinue();
   await activateRootPrompt(startedAt);
 }
 

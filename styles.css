@@ -1213,6 +1213,10 @@ body.terminal-home {
   }
 }
 
+.terminal-home .press-any-key {
+  animation: cursorBlink 1.06s steps(1, end) infinite;
+}
+
 .terminal-home .terminal-status,
 .terminal-home .terminal-output,
 .terminal-home .terminal-form {
