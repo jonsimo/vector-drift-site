@@ -591,22 +591,33 @@ async function runBoot() {
   await sleep(randomBetween(420, 600));
   terminalHeader.classList.add("status-stack");
   renderStatusLines(openingLines);
-  await sleep(45);
+  await sleep(60);
+  // The 3 scan lines snap on fast...
   openingLines.push("[scan] /opt");
   renderStatusLines(openingLines);
-  await sleep(40);
+  await sleep(66);
   openingLines.push("[scan] /opt/local");
   renderStatusLines(openingLines);
-  await sleep(42);
+  await sleep(66);
   openingLines.push("[scan] /opt/unknown");
   renderStatusLines(openingLines);
-  await sleep(80);
+  await sleep(150);
+  // ...the found result lands and holds so it registers...
   openingLines.push("[found] /opt/unknown/vectordrift.sim");
   renderStatusLines(openingLines);
-  await sleep(120);
+  await sleep(randomBetween(380, 520));
+  // ...then the load command is typed on again, human-paced, before the
+  // fast machine action begins.
   openingLines.push("");
-  await typeStatusLine(openingLines, openingLines.length - 1, `console> ${loadCommand}`, 6);
-  await sleep(55);
+  await typeHumanStatusAppend(openingLines, openingLines.length - 1, `console> ${loadCommand}`, {
+    baseDelay: 46,
+    jitterMin: -12,
+    jitterMax: 24,
+    pauses: [
+      { after: "console>", min: 150, max: 220 },
+    ],
+  });
+  await sleep(randomBetween(240, 360));
 
   terminalHeader.classList.remove("status-stack");
   rewriteStatus(loaderStatuses[1]);
