@@ -40,12 +40,102 @@ const loaderStatuses = [
   "io>loader/ vector programmetry loaded",
 ];
 
+// Dev knobs (no effect in normal use):
+//   ?speed=0.2    fast-forward every delay (0.05-1)
+//   ?scene=glitch render only the Axiom glitch on sample lines, then stop
+const bootParams = new URLSearchParams(location.search);
+const timeScale = Math.min(1, Math.max(0.05, parseFloat(bootParams.get("speed")) || 1));
+
 function sleep(ms) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
+  return new Promise((resolve) => window.setTimeout(resolve, ms * timeScale));
 }
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
+}
+
+// --- Synthesized SFX ---------------------------------------------------------
+// Audio can only start after a user gesture, so initAudio() runs from the
+// connect gate. Until then every cue is a no-op.
+let audioCtx = null;
+let noiseBuffer = null;
+let sfxEnabled = false;
+const sfxVolume = 0.5;
+
+function initAudio() {
+  if (audioCtx) {
+    return;
+  }
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i += 1) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  noiseBuffer = buffer;
+  sfxEnabled = true;
+}
+
+function sfxNoiseHit({ freq, q = 1, type = "bandpass", dur = 0.012, gain = 0.5, rate = 1, lp = 0 }) {
+  if (!sfxEnabled) {
+    return;
+  }
+  const t = audioCtx.currentTime;
+  const n = audioCtx.createBufferSource();
+  n.buffer = noiseBuffer;
+  n.playbackRate.value = rate * randomBetween(0.95, 1.05);
+  const f = audioCtx.createBiquadFilter();
+  f.type = type;
+  f.frequency.value = freq * randomBetween(0.96, 1.04);
+  f.Q.value = q;
+  let node = n.connect(f);
+  if (lp) {
+    const l = audioCtx.createBiquadFilter();
+    l.type = "lowpass";
+    l.frequency.value = lp;
+    node = node.connect(l);
+  }
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(gain * sfxVolume, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  node.connect(g).connect(audioCtx.destination);
+  n.start(t);
+  n.stop(t + dur + 0.02);
+}
+
+function sfxTone({ freq, type = "triangle", dur = 0.05, gain = 0.25, to = 0 }) {
+  if (!sfxEnabled) {
+    return;
+  }
+  const t = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  o.type = type;
+  o.frequency.setValueAtTime(freq * randomBetween(0.97, 1.03), t);
+  if (to) {
+    o.frequency.exponentialRampToValueAtTime(to, t + dur);
+  }
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(gain * sfxVolume, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(t);
+  o.stop(t + dur + 0.02);
+}
+
+// Chosen cues.
+function sfxKey() {
+  // vt220 soft
+  sfxNoiseHit({ freq: 1100, q: 0.7, type: "lowpass", dur: 0.013, gain: 0.3, lp: 1500 });
+  sfxTone({ freq: 175, dur: 0.028, gain: 0.1 });
+}
+function sfxFast() {
+  // noise zip
+  sfxNoiseHit({ freq: 2600, q: 3, dur: 0.03, gain: 0.22, rate: 1.4 });
+}
+function sfxEnter() {
+  // return clunk
+  sfxNoiseHit({ freq: 700, q: 0.7, dur: 0.02, gain: 0.5, lp: 1400 });
+  sfxTone({ freq: 110, dur: 0.07, gain: 0.34, to: 70 });
 }
 
 function setPhosphorText(element, text) {
@@ -220,6 +310,9 @@ async function typeHumanStatusAppend(lines, lineIndex, text, options = {}) {
   for (const character of text) {
     lines[lineIndex] += character;
     renderStatusLines(lines, lineIndex);
+    if (character !== " ") {
+      sfxKey();
+    }
     const isFastGlyph = /[/'">\\.:]/.test(character);
     const hesitate = character === " " && Math.random() > 0.68 ? randomBetween(22, 54) : 0;
     await sleep(Math.max(18, baseDelay + randomBetween(jitterMin, jitterMax) - (isFastGlyph ? 12 : 0) + hesitate));
@@ -336,6 +429,7 @@ async function printBurst(lines, delay = 70) {
 
   for (const line of lines) {
     printed.push(appendLine(line));
+    sfxFast();
     await sleep(delay);
   }
 
@@ -408,6 +502,39 @@ function renderGlitchLine(element, corrupted, embed) {
   }
 }
 
+function oscillateGlitch(text, frame, positions) {
+  if (!positions.length) {
+    return text;
+  }
+
+  // A small fraction of characters oscillate between a few glyphs (including
+  // the original) each frame, giving a broken, unstable feel without churning
+  // the whole line.
+  const glyphs = "!@#$%^&*+=/\\<>[]{}:;?|";
+  const chars = [...text];
+  // Slow clock: each unstable char toggles back and forth between its frozen
+  // glyph and one alternate every few frames, so it drifts rather than churns.
+  const slow = Math.floor(frame / 4);
+  for (const pos of positions) {
+    const original = text[pos];
+    if (original === undefined || original === " ") {
+      continue;
+    }
+    const on = (slow + pos) % 2 === 0;
+    chars[pos] = on ? original : glyphs[(text.charCodeAt(pos) + pos) % glyphs.length];
+  }
+  return chars.join("");
+}
+
+function renderHotLine(element, text) {
+  // Whole line in the bright hot style, same look as the hidden-message words.
+  element.replaceChildren();
+  const hot = document.createElement("span");
+  hot.className = "glitch-hot";
+  hot.textContent = text;
+  element.appendChild(hot);
+}
+
 async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
   // Snapshot every visible line, then split the block into 3 contiguous chunks.
   const visible = [...output.querySelectorAll(".output-line")].slice(-22);
@@ -476,26 +603,110 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
     await sleep(randomBetween(55, 85));
   }
 
-  // Phase 2 - hold a static corrupted frame, with the hidden message glowing
-  // through it, distributed across separate lines.
+  // Phase 2 - a mostly-frozen corrupted frame. A small fraction of characters
+  // oscillate so it has a broken, unstable feel without churning.
+  const frozen = new Map();
+  const unstable = new Map();
   chunks.forEach((chunk, index) => {
     for (const entry of chunk) {
       const corrupted = corruptText(entry.text, 0.6, index + 5);
-      renderGlitchLine(entry.line, corrupted, embeds.get(entry.line));
+      frozen.set(entry.line, corrupted);
+      const positions = [];
+      for (let i = 0; i < corrupted.length; i += 1) {
+        if (corrupted[i] !== " " && Math.random() < 0.05) {
+          positions.push(i);
+        }
+      }
+      unstable.set(entry.line, positions);
+      setPhosphorText(entry.line, corrupted);
     }
   });
-  await sleep(460);
 
-  // Phase 3 - the hidden line resolves to the readable reveal while the rest
-  // of the block holds its static corruption.
-  rewriteLine(observerLine, "vd_observer         PRESENT     0x0000B7A0    axiom          remote observer attached");
-  rewriteLine(cortexLine, "vd_cortex           LINKED      0x0000AF10    axiom          organic interface accepted");
-  rewriteLine(resolvingLine, "io>loader/ resolving missing interface ... linked");
-  observerLine.classList.add("axiom-reveal");
-  cortexLine.classList.add("axiom-reveal");
-  await sleep(1050);
-  observerLine.classList.remove("axiom-reveal");
-  cortexLine.classList.remove("axiom-reveal");
+  // The hidden message flickers in one word at a time against that frame. Active
+  // words keep stuttering (small flicker) so they feel alive, then flicker out
+  // in the same order.
+  const activeWords = new Map();
+  let frame = 0;
+  const renderFrame = () => {
+    frame += 1;
+    for (const entry of snapshot) {
+      const base = oscillateGlitch(frozen.get(entry.line), frame, unstable.get(entry.line) || []);
+      const embed = activeWords.get(entry.line);
+      if (embed && Math.random() > 0.28) {
+        renderGlitchLine(entry.line, base, embed);
+      } else {
+        setPhosphorText(entry.line, base);
+      }
+    }
+  };
+  const liveSleep = async (ms) => {
+    let elapsed = 0;
+    while (elapsed < ms) {
+      const step = Math.min(55, ms - elapsed);
+      await sleep(step);
+      renderFrame();
+      elapsed += step;
+    }
+  };
+
+  await liveSleep(220);
+  const wordOrder = [...embeds.entries()];
+  for (const [line, embed] of wordOrder) {
+    activeWords.set(line, embed);
+    await liveSleep(randomBetween(110, 150));
+  }
+  await liveSleep(randomBetween(160, 220));
+  for (const [line] of wordOrder) {
+    activeWords.delete(line);
+    await liveSleep(randomBetween(100, 140));
+  }
+  await liveSleep(150);
+
+  // Phase 3 - the axiom lines flicker bright (same hot look as the hidden
+  // message) against the still-glitched field: the axiom line first, then the
+  // line below it, then everything returns to normal.
+  const observerText = "vd_observer         PRESENT     0x0000B7A0    axiom          remote observer attached";
+  const cortexText = "vd_cortex           LINKED      0x0000AF10    axiom          organic interface accepted";
+
+  const flashLine = async (line, text) => {
+    // Flicker on.
+    const inSeq = [true, false, true];
+    for (let i = 0; i < inSeq.length; i += 1) {
+      if (inSeq[i]) {
+        renderHotLine(line, text);
+      } else {
+        rewriteLine(line, corruptText(text, 0.6, i + 12));
+      }
+      await sleep(randomBetween(48, 78));
+    }
+    // Subtle-flicker hold ~500ms: mostly bright readable, occasional light dip.
+    let elapsed = 0;
+    while (elapsed < 500) {
+      const step = randomBetween(46, 70);
+      if (Math.random() < 0.22) {
+        rewriteLine(line, corruptText(text, 0.3, 30));
+      } else {
+        renderHotLine(line, text);
+      }
+      await sleep(step);
+      elapsed += step;
+    }
+    // Flicker back out, then leave it glitched; Phase 4 returns to normal.
+    const outSeq = [false, true];
+    for (let i = 0; i < outSeq.length; i += 1) {
+      if (outSeq[i]) {
+        renderHotLine(line, text);
+      } else {
+        rewriteLine(line, corruptText(text, 0.55, i + 20));
+      }
+      await sleep(randomBetween(42, 60));
+    }
+    rewriteLine(line, corruptText(text, 0.5, 21));
+  };
+
+  await flashLine(observerLine, observerText);
+  await flashLine(cortexLine, cortexText);
+  await sleep(120);
 
   // Phase 4 - the 3 chunks flicker back out, then settle to the false-normal.
   const flickerOut = [[2, 0.5], [0, 0.5], [1, 0.55], [2, 0], [0, 0], [1, 0]];
@@ -510,14 +721,14 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
     } else {
       clearChunk(chunk);
     }
-    await sleep(randomBetween(50, 80));
+    await sleep(randomBetween(24, 40));
   }
 
   // The reveal lines snap to the false-normal (hidden) state.
   rewriteLine(observerLine, "vd_observer         MISSING     --------      none           interface unavailable");
   rewriteLine(cortexLine, "vd_cortex           WAIT        0x0000AF10    unassigned     organic bridge detected");
   rewriteLine(resolvingLine, "io>loader/ resolving missing interface ... unresolved");
-  await sleep(90);
+  await sleep(60);
 
   const mismatchLine = appendLine("io>loader/ integrity mismatch detected");
   await sleep(150);
@@ -539,26 +750,48 @@ async function runFinalOnlineSummary() {
   // Ceremonial summary: each line lands slower than the last so every system
   // is felt coming online.
   appendLine("SYSTEMS ONLINE");
-  await sleep(340);
+  await sleep(240);
   appendLine("render lattice ............................ ONLINE");
-  await sleep(300);
+  await sleep(190);
   appendLine("combat matrix ............................. ONLINE");
-  await sleep(330);
+  await sleep(210);
   appendLine("motion field .............................. ONLINE");
-  await sleep(370);
+  await sleep(230);
   appendLine("observer interface ........................ ONLINE");
-  await sleep(420);
+  await sleep(260);
   appendLine("cortex bridge ............................. ONLINE");
-  await sleep(480);
+  await sleep(300);
   appendLine("root context .............................. vector_drift");
-  await sleep(600);
+  await sleep(420);
 
   appendLine("10.0.1.00> all local systems nominal");
-  await sleep(540);
+  await sleep(380);
   appendLine("10.0.1.00> command channel transferred");
-  await sleep(620);
+  await sleep(440);
   appendLine("10.0.1.00> entering vector_drift root");
-  await sleep(680);
+  await sleep(520);
+}
+
+function waitForConnect() {
+  // Blinking connect prompt; the first key/tap unlocks audio and begins boot.
+  renderStatusLines(["PRESS ANY KEY TO ESTABLISH COMMUNICATION LINK"], 0);
+  return new Promise((resolve) => {
+    const modifiers = new Set(["Shift", "Alt", "Control", "Meta", "CapsLock"]);
+    const done = (event) => {
+      if (event.type === "keydown" && modifiers.has(event.key)) {
+        return;
+      }
+      if (event.type === "keydown") {
+        event.preventDefault();
+      }
+      window.removeEventListener("keydown", done);
+      window.removeEventListener("pointerdown", done);
+      initAudio();
+      resolve();
+    };
+    window.addEventListener("keydown", done);
+    window.addEventListener("pointerdown", done);
+  });
 }
 
 function waitForContinue() {
@@ -624,10 +857,13 @@ async function runBoot() {
   status.hidden = false;
   terminalHeader.classList.remove("status-stack");
 
-  // A lone cursor blinks by itself (~2 blinks) before anything is typed.
+  // Connect gate: a blinking prompt whose first key/tap unlocks audio.
+  await waitForConnect();
+
+  // A lone cursor blinks by itself before anything is typed.
   const openingLines = [""];
   renderStatusLines(openingLines, 0);
-  await sleep(randomBetween(1750, 2050));
+  await sleep(randomBetween(600, 800));
 
   // The prompt itself types on deliberately from nothing...
   await typeHumanStatusAppend(openingLines, 0, "console>", {
@@ -1387,6 +1623,8 @@ async function submitCurrentCommand() {
     return;
   }
 
+  sfxEnter();
+
   if (terminalState === "handoffReady" && !input.value.trim()) {
     activateFallbackDownload();
     return;
@@ -1422,6 +1660,10 @@ form.addEventListener("submit", (event) => {
 input.addEventListener("input", updateCursor);
 
 input.addEventListener("keydown", (event) => {
+  if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    sfxKey();
+  }
+
   if (event.key === "Enter") {
     event.preventDefault();
     submitCurrentCommand();
@@ -1457,4 +1699,39 @@ document.querySelector(".terminal-content").addEventListener("pointerdown", () =
 });
 
 window.addEventListener("resize", updateCursor);
-window.addEventListener("load", runBoot, { once: true });
+async function runGlitchPreview() {
+  status.hidden = true;
+  form.classList.add("loading");
+  const sample = [
+    "[ OK ] COMBAT.MOD ............. intercept matrix allocated / protocol INTERCEPT",
+    "[ OK ] THREAT.SYS ............. mass sorter active / six priority bands",
+    "[ OK ] LEADCOMP.DAT ........... target lead table warmed / error below threshold",
+    "[ OK ] PROXFUSE.SYS ........... proximity channel isolated / safing active",
+    "[ OK ] WEAPONBUS.MOD .......... emitter lanes synchronized / discharge inhibited",
+    "[ OK ] HOSTILE.IDX ............ known signatures loaded / unknown signatures 5",
+    "[ OK ] WORLD.MOD .............. simulation space allocated / root read-only",
+    "[ OK ] COHORT.DAT ............. population groups indexed / owner field blank",
+    "MODULE              STATE       ADDRESS       OWNER          DETAIL",
+    "----------------------------------------------------------------------------",
+    "vd_world            READY       0x00007F00    local          signatures: 5",
+    "vd_motion           READY       0x00008120    local          ghost samples: 1187",
+    "vd_combat           READY       0x00009200    local          intercept matrix armed",
+    "vd_scope            READY       0x0000A100    local          beam convergence nominal",
+  ];
+  for (const line of sample) {
+    appendLine(line);
+  }
+  const observerLine = appendLine("vd_observer         MISSING     --------      none           interface unavailable");
+  const cortexLine = appendLine("vd_cortex           WAIT        0x0000AF10    unassigned     organic bridge detected");
+  const resolvingLine = appendLine("io>loader/ resolving missing interface ...");
+  await sleep(400);
+  await runAxiomReveal(observerLine, cortexLine, resolvingLine);
+}
+
+window.addEventListener("load", () => {
+  if (bootParams.get("scene") === "glitch") {
+    runGlitchPreview();
+    return;
+  }
+  runBoot();
+}, { once: true });

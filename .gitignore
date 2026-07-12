@@ -2,3 +2,5 @@
 
 # wrangler local state
 worker/.wrangler/
+
+sfx-demo.html

@@ -1220,12 +1220,12 @@ body.terminal-home {
 /* Hidden message glowing through the glitch: brighter than the surrounding
    corruption so the eye can subtly catch it. */
 .terminal-home .glitch-hot {
-  color: #d2fff4;
+  color: #6cf0d6;
   opacity: 1;
   text-shadow:
-    0 0 4px rgba(200, 255, 242, 0.95),
-    0 0 12px rgba(17, 202, 165, 0.9),
-    0 0 26px rgba(17, 202, 165, 0.6);
+    0 0 4px rgba(140, 255, 235, 0.95),
+    0 0 14px rgba(40, 220, 190, 0.9),
+    0 0 30px rgba(17, 202, 165, 0.6);
   filter: none;
 }
 
