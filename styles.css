@@ -1262,40 +1262,51 @@ body.terminal-home {
   text-shadow: 0 0 2px rgba(17, 202, 165, 0.72), 0 0 13px rgba(17, 202, 165, 0.38), 0 0 30px rgba(17, 202, 165, 0.14);
 }
 
+/* Dedicated mobile (portrait) layout: top-anchored, full width, crisp (no blur
+   but keeps glow), slightly larger text, uses the tall vertical screen. */
 @media (max-width: 720px) {
+  body.terminal-home {
+    --terminal-origin-x: 20px;
+  }
+
   .terminal-home .terminal-stage {
-    place-items: start center;
-    padding-top: 20vh;
+    display: block;
+    min-height: 100vh;
+    place-items: initial;
+    padding: 7vh 20px 0 20px;
   }
 
   .terminal-home .terminal-window,
   .terminal-home .terminal-screen {
-    width: min(92vw, 430px);
-    height: 54vh;
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
   }
 
   .terminal-home .terminal-content {
-    padding: 0 4vw;
+    padding: 0;
   }
 
   .terminal-home .terminal-status,
   .terminal-home .terminal-output,
   .terminal-home .terminal-form {
-    font-size: 13px;
-    line-height: 1.36;
-    letter-spacing: 0.015em;
-    color: #16e0b8;
-    text-shadow: 0 0 1px rgba(22, 224, 184, 0.88), 0 0 7px rgba(22, 224, 184, 0.5), 0 0 16px rgba(22, 224, 184, 0.2);
-    filter: blur(0.08px);
+    font-size: 17px;
+    line-height: 1.42;
+    letter-spacing: 0.01em;
+    padding-left: 0;
+    filter: none;
+    text-shadow: 0 0 2px rgba(17, 202, 165, 0.72), 0 0 9px rgba(17, 202, 165, 0.42), 0 0 20px rgba(17, 202, 165, 0.16);
   }
 
   .terminal-home .terminal-status {
-    padding-left: 0;
-    margin-bottom: 1.1em;
+    min-height: 1.42em;
+    margin-bottom: 1.42em;
   }
 
   .terminal-home .terminal-output {
-    max-height: 19em;
+    height: 68vh;
+    max-height: 68vh;
     padding-left: 0;
   }
 
@@ -1307,7 +1318,11 @@ body.terminal-home {
   .terminal-home .terminal-input,
   .terminal-home .prompt-prefix,
   .terminal-home .phosphor-block {
-    text-shadow: 0 0 1px rgba(22, 224, 184, 0.88), 0 0 7px rgba(22, 224, 184, 0.5), 0 0 16px rgba(22, 224, 184, 0.2);
-    filter: blur(0.08px);
+    filter: none;
+    text-shadow: 0 0 2px rgba(17, 202, 165, 0.72), 0 0 9px rgba(17, 202, 165, 0.42), 0 0 18px rgba(17, 202, 165, 0.16);
+  }
+
+  .terminal-home .glitch-hot {
+    filter: none;
   }
 }

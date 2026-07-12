@@ -45,6 +45,9 @@ const loaderStatuses = [
 //   ?scene=glitch render only the Axiom glitch on sample lines, then stop
 const bootParams = new URLSearchParams(location.search);
 const timeScale = Math.min(1, Math.max(0.05, parseFloat(bootParams.get("speed")) || 1));
+// Dev: ?auto skips the connect/continue gates so a headless render can advance.
+const autoAdvance = bootParams.has("auto");
+let mobileMode = false;
 
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms * timeScale));
@@ -535,7 +538,13 @@ function renderHotLine(element, text) {
   element.appendChild(hot);
 }
 
-async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
+async function runAxiomReveal(observerLine, cortexLine, resolvingLine, reveal = {}) {
+  const observerText = reveal.observer ?? "vd_observer         PRESENT     0x0000B7A0    axiom          remote observer attached";
+  const cortexText = reveal.cortex ?? "vd_cortex           LINKED      0x0000AF10    axiom          organic interface accepted";
+  const observerFalse = reveal.observerFalse ?? "vd_observer         MISSING     --------      none           interface unavailable";
+  const cortexFalse = reveal.cortexFalse ?? "vd_cortex           WAIT        0x0000AF10    unassigned     organic bridge detected";
+  const resolvingFalse = reveal.resolvingFalse ?? "io>loader/ resolving missing interface ... unresolved";
+
   // Snapshot every visible line, then split the block into 3 contiguous chunks.
   const visible = [...output.querySelectorAll(".output-line")].slice(-22);
   const snapshot = visible.map((line) => ({ line, text: line.textContent }));
@@ -567,7 +576,7 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
   const wordSpots = [0.12, 0.4, 0.62, 0.86];
   const wordCols = [10, 46, 24, 62];
   const candidates = snapshot.filter(
-    (entry) => !revealSet.has(entry.line) && entry.text.trim().length > 18,
+    (entry) => !revealSet.has(entry.line) && entry.text.trim().length > 14,
   );
   const embeds = new Map();
   hiddenWords.forEach((word, i) => {
@@ -665,9 +674,6 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
   // Phase 3 - the axiom lines flicker bright (same hot look as the hidden
   // message) against the still-glitched field: the axiom line first, then the
   // line below it, then everything returns to normal.
-  const observerText = "vd_observer         PRESENT     0x0000B7A0    axiom          remote observer attached";
-  const cortexText = "vd_cortex           LINKED      0x0000AF10    axiom          organic interface accepted";
-
   const flashLine = async (line, text) => {
     // Flicker on.
     const inSeq = [true, false, true];
@@ -725,14 +731,14 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
   }
 
   // The reveal lines snap to the false-normal (hidden) state.
-  rewriteLine(observerLine, "vd_observer         MISSING     --------      none           interface unavailable");
-  rewriteLine(cortexLine, "vd_cortex           WAIT        0x0000AF10    unassigned     organic bridge detected");
-  rewriteLine(resolvingLine, "io>loader/ resolving missing interface ... unresolved");
+  rewriteLine(observerLine, observerFalse);
+  rewriteLine(cortexLine, cortexFalse);
+  rewriteLine(resolvingLine, resolvingFalse);
   await sleep(60);
 
-  const mismatchLine = appendLine("io>loader/ integrity mismatch detected");
+  const mismatchLine = appendLine(reveal.mismatchDetected ?? "io>loader/ integrity mismatch detected");
   await sleep(150);
-  rewriteLine(mismatchLine, "io>loader/ integrity mismatch ignored");
+  rewriteLine(mismatchLine, reveal.mismatchIgnored ?? "io>loader/ integrity mismatch ignored");
   await sleep(200);
 }
 
@@ -773,7 +779,9 @@ async function runFinalOnlineSummary() {
 }
 
 async function waitForConnect() {
-  const text = "PRESS ANY KEY TO ESTABLISH COMMUNICATION LINK";
+  const text = mobileMode
+    ? "TAP TO ESTABLISH LINK"
+    : "PRESS ANY KEY TO ESTABLISH COMMUNICATION LINK";
 
   // The words flicker in one at a time from black, with random variance and
   // overlap (next word starts before the previous settles). Hidden words hold
@@ -809,6 +817,11 @@ async function waitForConnect() {
   await sleep(randomBetween(650, 850));
   renderStatusLines([text], 0);
 
+  if (autoAdvance) {
+    await sleep(300);
+    return;
+  }
+
   return new Promise((resolve) => {
     const modifiers = new Set(["Shift", "Alt", "Control", "Meta", "CapsLock"]);
     const done = (event) => {
@@ -828,9 +841,15 @@ async function waitForConnect() {
   });
 }
 
-function waitForContinue() {
+async function waitForContinue() {
   appendLine("");
-  const line = appendLine("PRESS ANY KEY TO CONTINUE", "press-any-key");
+  const line = appendLine(mobileMode ? "TAP TO CONTINUE" : "PRESS ANY KEY TO CONTINUE", "press-any-key");
+
+  if (autoAdvance) {
+    await sleep(300);
+    line.classList.remove("press-any-key");
+    return;
+  }
 
   return new Promise((resolve) => {
     const modifiers = new Set(["Shift", "Alt", "Control", "Meta", "CapsLock"]);
@@ -1079,6 +1098,172 @@ async function runBoot() {
   await activateRootPrompt(startedAt);
 }
 
+async function runFinalOnlineSummaryMobile() {
+  await printBurst([
+    "[OK] runtime .... accepted",
+    "[OK] renderer ... synced",
+    "[OK] sim root ... mounted",
+    "[OK] input ...... ready",
+    "[OK] download.exe ready",
+  ], 62);
+  await sleep(300);
+
+  appendLine("SYSTEMS ONLINE");
+  await sleep(240);
+  appendLine("render lattice . ONLINE");
+  await sleep(190);
+  appendLine("combat matrix .. ONLINE");
+  await sleep(210);
+  appendLine("motion field ... ONLINE");
+  await sleep(230);
+  appendLine("observer iface . ONLINE");
+  await sleep(260);
+  appendLine("cortex bridge .. ONLINE");
+  await sleep(300);
+  appendLine("root ..... vector_drift");
+  await sleep(420);
+
+  appendLine("10.0.1.00> nominal");
+  await sleep(380);
+  appendLine("10.0.1.00> channel set");
+  await sleep(440);
+  appendLine("10.0.1.00> entering root");
+  await sleep(520);
+}
+
+async function runBootMobile() {
+  if (bootStarted) {
+    return;
+  }
+  bootStarted = true;
+  const startedAt = performance.now();
+  input.disabled = true;
+  promptPrefix.textContent = "";
+  input.value = "";
+  form.classList.add("loading");
+  status.hidden = false;
+  terminalHeader.classList.remove("status-stack");
+
+  // Connect gate.
+  await waitForConnect();
+
+  // Lone cursor, then the search command types on (narrow).
+  const openingLines = [""];
+  renderStatusLines(openingLines, 0);
+  await sleep(randomBetween(600, 800));
+  await typeHumanStatusAppend(openingLines, 0, "console> find vector_drift", {
+    baseDelay: 54,
+    jitterMin: -14,
+    jitterMax: 28,
+    pauses: [{ after: "console>", min: 160, max: 240 }],
+  });
+  await sleep(randomBetween(360, 520));
+
+  terminalHeader.classList.add("status-stack");
+  renderStatusLines(openingLines);
+  await sleep(60);
+  openingLines.push("[scan] /opt");
+  renderStatusLines(openingLines);
+  await sleep(66);
+  openingLines.push("[scan] /opt/local");
+  renderStatusLines(openingLines);
+  await sleep(66);
+  openingLines.push("[scan] /opt/unknown");
+  renderStatusLines(openingLines);
+  await sleep(150);
+  openingLines.push("[found] vectordrift.sim");
+  renderStatusLines(openingLines);
+  await sleep(randomBetween(380, 520));
+  openingLines.push("");
+  await typeHumanStatusAppend(openingLines, openingLines.length - 1, "console> load vectordrift.sim", {
+    baseDelay: 44,
+    jitterMin: -12,
+    jitterMax: 22,
+    pauses: [{ after: "console>", min: 150, max: 220 }],
+  });
+  await sleep(randomBetween(240, 360));
+
+  terminalHeader.classList.remove("status-stack");
+  rewriteStatus("io>loader/ loading . . .");
+
+  await printLines([
+    "VD RELAY BIOS 2.13",
+    "NODE ....... 10.0.1.00",
+    "MEM 640K / 8192K VP",
+    "HOST ABI ...... ELF64",
+  ], 60);
+  appendLine("KERNEL FAMILY UNRESOLVED");
+  await sleep(150);
+
+  await printCommand("A:\\>probe /bus", 40);
+  await printBurst([
+    "[BUS00] DISPLAY .... OK",
+    "[BUS01] SWEEP ...... OK",
+    "[BUS02] COMBAT ..... OK",
+    "[BUS03] MOTION ..... OK",
+    "[BUS04] GHOST .. 1187",
+    "[BUS05] OBSERVER ABSENT",
+    "[BUS06] CORTEX .. WAIT",
+    "[BUS07] REMOTE  CLOSED",
+  ], 46);
+  appendLine("8 dev / 6 up / 1 def");
+  await sleep(90);
+
+  await printCommand("A:\\>loadhigh vdstack", 40);
+  await printBurst([
+    "[OK] VDRENDER pipeline",
+    "[OK] VDSCOPE  sweep",
+    "[OK] PHOSPHOR curves",
+    "[OK] LATTICE  grid",
+    "[OK] ENDPOINT calib",
+    "[OK] VDMOTION field",
+  ], 42);
+  await sleep(40);
+  await printBurst([
+    "[OK] COMBAT   intercept",
+    "[OK] THREAT   sorter",
+    "[OK] GHOSTBUF 1187 idx",
+    "[OK] WORLD    root ro",
+    "[--] PILOT    none",
+    "[WAIT] CORTEX organic",
+  ], 42);
+  await sleep(100);
+
+  await printBurst([
+    "MODULE       STATE",
+    "-------------------",
+  ], 44);
+  await printLines([
+    "vd_world     READY",
+    "vd_motion    READY",
+    "vd_combat    READY",
+    "vd_scope     READY",
+  ], 60);
+  await sleep(280);
+  const observerLine = appendLine("vd_observer  MISSING");
+  await sleep(380);
+  const cortexLine = appendLine("vd_cortex    WAIT");
+  await sleep(500);
+  const resolvingLine = appendLine("io> resolving iface ..");
+  await sleep(640);
+
+  rewriteStatus("io>loader/ resolving");
+  await runAxiomReveal(observerLine, cortexLine, resolvingLine, {
+    observer: "vd_observer  LINKED axiom",
+    cortex: "vd_cortex    axiom bound",
+    observerFalse: "vd_observer  MISSING",
+    cortexFalse: "vd_cortex    WAIT",
+    resolvingFalse: "io> resolving iface ..",
+    mismatchDetected: "io> integrity mismatch !",
+    mismatchIgnored: "io> integrity ignored",
+  });
+
+  rewriteStatus("io>loader/ ready");
+  await runFinalOnlineSummaryMobile();
+  await waitForContinue();
+  await activateRootPrompt(startedAt);
+}
+
 function normalizeCommand(command) {
   const trimmed = command.trim().replace(/\s+/g, " ");
   const withoutDotSlash = trimmed.startsWith("./") ? trimmed.slice(2) : trimmed;
@@ -1133,6 +1318,17 @@ function filenameFromDisposition(disposition) {
   }
 
   return disposition.match(/filename="?([^";]+)"?/i)?.[1] || "";
+}
+
+function isMobileDevice() {
+  const ua = navigator.userAgent || "";
+  const uaMobile = /Android|iPhone|iPad|iPod|IEMobile|Opera Mini|Mobile|Silk/i.test(ua);
+  // iPadOS reports a Mac UA but exposes touch points.
+  const iPadOS = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+  const coarseSmall = window.matchMedia
+    && window.matchMedia("(pointer: coarse)").matches
+    && window.matchMedia("(max-width: 820px)").matches;
+  return uaMobile || iPadOS || coarseSmall;
 }
 
 function detectPlatform() {
@@ -1281,6 +1477,24 @@ function appendFallbackAction(label = "[ open latest os package ]") {
 async function downloadPackage() {
   if (activeTransfer) {
     appendResponse("transfer already active", "terminal-error");
+    return;
+  }
+
+  if (mobileMode || isMobileDevice()) {
+    appendResponse("executing download.exe");
+    await sleep(260);
+    if (mobileMode) {
+      appendResponse("target platform . unsupported", "terminal-error");
+      await sleep(200);
+      appendResponse("beta needs a desktop system", "terminal-meta");
+      appendResponse("open on macOS or Windows", "terminal-meta");
+      appendResponse("to retrieve download.exe", "terminal-meta");
+    } else {
+      appendResponse("target platform ......................... unsupported", "terminal-error");
+      await sleep(200);
+      appendResponse("beta package requires a desktop system", "terminal-meta");
+      appendResponse("open this relay on macOS or Windows to retrieve download.exe", "terminal-meta");
+    }
     return;
   }
 
@@ -1763,8 +1977,16 @@ async function runGlitchPreview() {
 }
 
 window.addEventListener("load", () => {
+  mobileMode = isMobileDevice() || bootParams.get("view") === "mobile";
+  if (mobileMode) {
+    document.body.classList.add("mobile");
+  }
   if (bootParams.get("scene") === "glitch") {
     runGlitchPreview();
+    return;
+  }
+  if (mobileMode) {
+    runBootMobile();
     return;
   }
   runBoot();
