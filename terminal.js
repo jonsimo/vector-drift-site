@@ -379,85 +379,120 @@ async function runScrambleFrame(entries, amount, duration, shift = 0) {
 }
 
 async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
-  const visibleLines = [...output.querySelectorAll(".output-line")];
-  const observerIndex = visibleLines.indexOf(observerLine);
-  const localTargets = [
-    visibleLines[observerIndex - 1],
-    observerLine,
-    cortexLine,
-    resolvingLine,
-  ].filter(Boolean).map((line) => ({
-    line,
-    text: line.textContent,
-  }));
+  // Anchor: the one line the eye should lock onto while everything else
+  // corrupts. It stays clean, draws attention, then glitches to the reveal.
+  const anchor = cortexLine;
+  const visible = [...output.querySelectorAll(".output-line")].slice(-16);
+  const others = visible
+    .filter((line) => line !== anchor)
+    .map((line) => ({ line, text: line.textContent }));
 
-  await runScrambleFrame(localTargets.slice(1), 0.28, 52, 1);
-  await runScrambleFrame(localTargets, 0.5, 64, 2);
-  await runScrambleFrame(localTargets, 0.72, 78, 3);
-  for (const entry of localTargets) {
-    rewriteLine(entry.line, entry.text);
+  // Overlapping sliding windows so corruption ripples across the block instead
+  // of snapping in tidy sections. Adjacent chunks share lines.
+  const windowSize = Math.max(4, Math.ceil(others.length / 3));
+  const step = Math.max(2, Math.floor(windowSize / 2));
+  const chunks = [];
+  for (let start = 0; start < others.length; start += step) {
+    const chunk = others.slice(start, start + windowSize);
+    if (chunk.length) {
+      chunks.push(chunk);
+    }
   }
-  await sleep(80);
 
+  const scrambleChunk = (chunk, amount, shift) => {
+    for (const entry of chunk) {
+      rewriteLine(entry.line, corruptText(entry.text, amount, shift));
+    }
+  };
+  const restoreAll = () => {
+    for (const entry of others) {
+      rewriteLine(entry.line, entry.text);
+    }
+  };
+
+  // Two escalating waves sweep through the overlapping chunks. The anchor line
+  // is never touched, so it holds readable against the corrupting field.
+  const waves = [
+    { amount: 0.40, hold: 82, shift: 1 },
+    { amount: 0.72, hold: 96, shift: 3 },
+  ];
+  for (const wave of waves) {
+    for (let index = 0; index < chunks.length; index += 1) {
+      scrambleChunk(chunks[index], wave.amount, wave.shift + index);
+      if (index > 0) {
+        scrambleChunk(chunks[index - 1], wave.amount * 0.55, wave.shift + index);
+      }
+      await sleep(wave.hold);
+    }
+  }
+  restoreAll();
+  await sleep(90);
+
+  // The anchor line itself glitches, then resolves to the readable reveal.
+  await runScrambleFrame([{ line: anchor, text: anchor.textContent }], 0.7, 104, 4);
   rewriteLine(observerLine, "vd_observer         PRESENT     0x0000B7A0    axiom          remote observer attached");
   rewriteLine(cortexLine, "vd_cortex           LINKED      0x0000AF10    axiom          organic interface accepted");
   rewriteLine(resolvingLine, "io>loader/ resolving missing interface ... linked");
   observerLine.classList.add("axiom-reveal");
   cortexLine.classList.add("axiom-reveal");
-  await sleep(860);
+  await sleep(1000);
   observerLine.classList.remove("axiom-reveal");
   cortexLine.classList.remove("axiom-reveal");
 
+  // The system hides it: a shorter corruption burst, then the false-normal state.
   const columnTargets = [
     { line: observerLine, text: "vd_observer         PR#SENT     0x0000B7A0    ax!om          remote observer attached" },
     { line: cortexLine, text: "vd_cortex           W@@T        0x0000AF10    unassigned     organic bridge detected" },
     { line: resolvingLine, text: "io>loader/ resolving missing interface ... #!#!" },
   ];
-  await runScrambleFrame(columnTargets, 0.34, 42, 4);
-  await runScrambleFrame(columnTargets, 0.48, 50, 5);
-  await runScrambleFrame(columnTargets.slice(0, 2), 0.38, 42, 6);
+  await runScrambleFrame(columnTargets, 0.34, 44, 5);
+  await runScrambleFrame(columnTargets, 0.48, 52, 6);
+  await runScrambleFrame(columnTargets.slice(0, 2), 0.38, 44, 7);
   rewriteLine(observerLine, "vd_observer         MISSING     --------      none           interface unavailable");
   rewriteLine(cortexLine, "vd_cortex           WAIT        0x0000AF10    unassigned     organic bridge detected");
   rewriteLine(resolvingLine, "io>loader/ resolving missing interface ... unresolved");
-  await sleep(80);
+  await sleep(90);
 
   const mismatchLine = appendLine("io>loader/ integrity mismatch detected");
-  await sleep(135);
+  await sleep(150);
   rewriteLine(mismatchLine, "io>loader/ integrity mismatch ignored");
-  await sleep(180);
+  await sleep(200);
 }
 
 async function runFinalOnlineSummary() {
+  // Final fast completion burst.
   await printBurst([
     "[ OK ] runtime checksum ...................... accepted",
     "[ OK ] renderer lattice ..................... synchronized",
     "[ OK ] simulation root ...................... mounted",
     "[ OK ] local input channel .................. available",
     "[ OK ] transfer executable .................. download.exe",
-  ], 52);
-  await sleep(120);
+  ], 60);
+  await sleep(300);
 
+  // Ceremonial summary: each line lands slower than the last so every system
+  // is felt coming online.
   appendLine("SYSTEMS ONLINE");
-  await sleep(105);
+  await sleep(340);
   appendLine("render lattice ............................ ONLINE");
-  await sleep(82);
+  await sleep(300);
   appendLine("combat matrix ............................. ONLINE");
-  await sleep(82);
+  await sleep(330);
   appendLine("motion field .............................. ONLINE");
-  await sleep(82);
+  await sleep(370);
   appendLine("observer interface ........................ ONLINE");
-  await sleep(120);
+  await sleep(420);
   appendLine("cortex bridge ............................. ONLINE");
-  await sleep(170);
+  await sleep(480);
   appendLine("root context .............................. vector_drift");
-  await sleep(210);
+  await sleep(600);
 
   appendLine("10.0.1.00> all local systems nominal");
-  await sleep(180);
+  await sleep(540);
   appendLine("10.0.1.00> command channel transferred");
-  await sleep(220);
+  await sleep(620);
   appendLine("10.0.1.00> entering vector_drift root");
-  await sleep(230);
+  await sleep(680);
 }
 
 async function activateRootPrompt(startedAt) {
@@ -473,10 +508,13 @@ async function activateRootPrompt(startedAt) {
   input.value = "";
   form.classList.remove("loading");
   setTerminalState("booting");
-  await sleep(115);
+  input.disabled = true;
+  // Hard clear -> short black-screen hold.
+  await sleep(randomBetween(180, 240));
+  // Root prompt appears; cursor blinks alone before input is accepted.
   setPromptPrefix();
   updateCursor();
-  await sleep(70);
+  await sleep(randomBetween(150, 190));
   input.disabled = false;
   input.focus();
   setTerminalState("ready");
@@ -497,23 +535,28 @@ async function runBoot() {
   status.hidden = false;
   terminalHeader.classList.remove("status-stack");
 
-  const openingLines = ["console>"];
+  // A lone cursor blinks by itself before anything is typed.
+  const openingLines = [""];
   renderStatusLines(openingLines, 0);
+  await sleep(randomBetween(1100, 1500));
 
-  await sleep(randomBetween(180, 260));
+  // The shell prompt appears, holds a beat, then a human types the command.
+  openingLines[0] = "console>";
+  renderStatusLines(openingLines, 0);
+  await sleep(randomBetween(300, 440));
   await typeHumanStatusAppend(openingLines, 0, ` ${locateCommand}`, {
-    baseDelay: 26,
-    jitterMin: -6,
-    jitterMax: 12,
+    baseDelay: 58,
+    jitterMin: -16,
+    jitterMax: 32,
     pauses: [
-      { after: "console> find", min: 70, max: 110 },
-      { after: "console> find /opt", min: 45, max: 70 },
-      { after: "console> find /opt -iname", min: 60, max: 90 },
-      { after: "console> find /opt -iname 'vector_drift'", min: 75, max: 110 },
-      { after: "console> find /opt -iname 'vector_drift' ", min: 45, max: 75 },
+      { after: "console> find", min: 140, max: 220 },
+      { after: "console> find /opt", min: 90, max: 150 },
+      { after: "console> find /opt -iname", min: 120, max: 190 },
+      { after: "console> find /opt -iname 'vector_drift'", min: 160, max: 240 },
+      { after: "console> find /opt -iname 'vector_drift' ", min: 100, max: 160 },
     ],
   });
-  await sleep(randomBetween(220, 310));
+  await sleep(randomBetween(420, 600));
   terminalHeader.classList.add("status-stack");
   renderStatusLines(openingLines);
   await sleep(45);
