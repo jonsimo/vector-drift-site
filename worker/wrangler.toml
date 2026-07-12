@@ -1,0 +1,22 @@
+# Cloudflare Worker: Vector Drift download proxy.
+#
+# Deploy:
+#   1. npm i -g wrangler   (or: npx wrangler ...)
+#   2. cd worker && wrangler login
+#   3. wrangler deploy
+#
+# After first deploy Wrangler prints a URL like:
+#   https://vd-dl-proxy.<your-subdomain>.workers.dev
+# Put that value in terminal.js -> packageProxyUrl.
+#
+# Optional custom domain (dl.vectordrift.io): requires the vectordrift.io zone
+# to live on Cloudflare. If it does, uncomment the [[routes]] block below and
+# redeploy, then set packageProxyUrl = "https://dl.vectordrift.io/".
+
+name = "vd-dl-proxy"
+main = "dl-proxy.js"
+compatibility_date = "2024-11-01"
+
+# [[routes]]
+# pattern = "dl.vectordrift.io"
+# custom_domain = true

@@ -3,20 +3,58 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vector Drift</title>
-  <meta name="description" content="Vector Drift terminal access node. Boot the shell, inspect the build, and trigger beta actions later.">
+  <title>Vector Drift — Retro Vector Space Shooter</title>
+  <meta name="description" content="Vector Drift is a fast, neon vector space shooter inspired by classic arcade hardware, 90s shmups, and a simulation that may be learning from you.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://vectordrift.io/">
   <meta property="og:title" content="Vector Drift">
-  <meta property="og:description" content="A cyan-phosphor terminal landing page for the Vector Drift beta.">
-  <meta property="og:type" content="website">
+  <meta property="og:description" content="Enter a hostile vector simulation. Drift, survive, upgrade, and uncover what is operating behind the system.">
+  <meta property="og:image" content="https://vectordrift.io/og-image.jpg">
   <meta property="og:url" content="https://vectordrift.io/">
-  <meta property="og:image" content="https://vectordrift.io/icon.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Vector Drift">
+  <meta name="twitter:description" content="Enter a hostile vector simulation. Drift, survive, upgrade, and uncover what is operating behind the system.">
+  <meta name="twitter:image" content="https://vectordrift.io/og-image.jpg">
   <link rel="icon" href="icon.png">
   <link rel="stylesheet" href="styles.css">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "Vector Drift",
+      "url": "https://vectordrift.io/",
+      "description": "A high-speed retro vector space shooter built around precision, momentum, escalating enemy formations, and a hostile simulation that may be watching how you play.",
+      "genre": ["Arcade", "Shoot 'em up", "Space shooter"],
+      "gamePlatform": "PC"
+    }
+  </script>
 </head>
 <body class="terminal-home">
   <div class="terminal-stage">
     <div class="terminal-window">
-      <main class="terminal-screen" aria-label="Vector Drift system terminal">
+      <main id="game" class="terminal-screen" aria-label="Vector Drift system terminal">
+        <section class="crawler-summary" aria-labelledby="site-title">
+          <h1 id="site-title">VECTOR DRIFT</h1>
+          <p>
+            A high-speed retro vector space shooter built around precision,
+            momentum, escalating enemy formations, and a hostile simulation
+            that may be watching how you play.
+          </p>
+          <a href="#game">View transmission</a>
+        </section>
+
+        <noscript>
+          <section class="noscript-summary">
+            <h1>VECTOR DRIFT</h1>
+            <p>
+              A high-speed retro vector space shooter built around precision,
+              momentum, escalating enemy formations, and a hostile simulation
+              that may be watching how you play.
+            </p>
+          </section>
+        </noscript>
+
         <div class="screen-glow"></div>
         <div class="screen-vignette"></div>
         <div class="screen-scanlines"></div>
@@ -31,7 +69,8 @@
               <div class="prompt-line">
                 <span class="prompt-prefix"></span>
                 <div class="input-shell">
-                  <input id="terminal-input" class="terminal-input" type="text" spellcheck="false" autocapitalize="off" autocomplete="off">
+                  <span id="terminal-command" class="terminal-command" aria-hidden="true"></span>
+                  <input id="terminal-input" class="terminal-input" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="go">
                   <span class="block-cursor" aria-hidden="true"></span>
                 </div>
               </div>
