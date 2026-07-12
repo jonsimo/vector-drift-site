@@ -1100,34 +1100,34 @@ async function runBoot() {
 
 async function runFinalOnlineSummaryMobile() {
   await printBurst([
-    "[OK] runtime .... accepted",
-    "[OK] renderer ... synced",
-    "[OK] sim root ... mounted",
-    "[OK] input ...... ready",
-    "[OK] download.exe ready",
-  ], 62);
+    "[OK] runtime checksum . accepted",
+    "[OK] renderer lattice .. synced",
+    "[OK] simulation root .. mounted",
+    "[OK] local input ...... ready",
+    "[OK] transfer .... download.exe",
+  ], 60);
   await sleep(300);
 
   appendLine("SYSTEMS ONLINE");
   await sleep(240);
-  appendLine("render lattice . ONLINE");
+  appendLine("render lattice ........ ONLINE");
   await sleep(190);
-  appendLine("combat matrix .. ONLINE");
+  appendLine("combat matrix ......... ONLINE");
   await sleep(210);
-  appendLine("motion field ... ONLINE");
+  appendLine("motion field .......... ONLINE");
   await sleep(230);
-  appendLine("observer iface . ONLINE");
+  appendLine("observer interface .... ONLINE");
   await sleep(260);
-  appendLine("cortex bridge .. ONLINE");
+  appendLine("cortex bridge ......... ONLINE");
   await sleep(300);
-  appendLine("root ..... vector_drift");
+  appendLine("root context ... vector_drift");
   await sleep(420);
 
-  appendLine("10.0.1.00> nominal");
+  appendLine("10.0.1.00> all systems nominal");
   await sleep(380);
-  appendLine("10.0.1.00> channel set");
+  appendLine("10.0.1.00> command channel set");
   await sleep(440);
-  appendLine("10.0.1.00> entering root");
+  appendLine("10.0.1.00> entering vector_drift");
   await sleep(520);
 }
 
@@ -1151,7 +1151,7 @@ async function runBootMobile() {
   const openingLines = [""];
   renderStatusLines(openingLines, 0);
   await sleep(randomBetween(600, 800));
-  await typeHumanStatusAppend(openingLines, 0, "console> find vector_drift", {
+  await typeHumanStatusAppend(openingLines, 0, "console> find -iname vector_drift", {
     baseDelay: 54,
     jitterMin: -14,
     jitterMax: 28,
@@ -1171,11 +1171,11 @@ async function runBootMobile() {
   openingLines.push("[scan] /opt/unknown");
   renderStatusLines(openingLines);
   await sleep(150);
-  openingLines.push("[found] vectordrift.sim");
+  openingLines.push("[found] /opt/unknown/vectordrift.sim");
   renderStatusLines(openingLines);
   await sleep(randomBetween(380, 520));
   openingLines.push("");
-  await typeHumanStatusAppend(openingLines, openingLines.length - 1, "console> load vectordrift.sim", {
+  await typeHumanStatusAppend(openingLines, openingLines.length - 1, "console> load unknown/vectordrift.sim", {
     baseDelay: 44,
     jitterMin: -12,
     jitterMax: 22,
@@ -1187,75 +1187,109 @@ async function runBootMobile() {
   rewriteStatus("io>loader/ loading . . .");
 
   await printLines([
-    "VD RELAY BIOS 2.13",
-    "NODE ....... 10.0.1.00",
-    "MEM 640K / 8192K VP",
-    "HOST ABI ...... ELF64",
-  ], 60);
-  appendLine("KERNEL FAMILY UNRESOLVED");
-  await sleep(150);
+    "VD RELAY BIOS 2.13 .... 01-01-1980",
+    "NODE ................. 10.0.1.00",
+    "BASE MEM 640K / 8192K VECTOR PAGE",
+    "HOST ABI ...... ELF64 / 64-BIT",
+    "BOOT VOL A:\\VD ...... READ-ONLY",
+  ], 44);
+  appendLine("KERNEL FAMILY ....... UNRESOLVED");
+  await sleep(130);
+  await printLines([
+    "COMPAT LAYER .. DOS-UNIX / MODE 03",
+    "SYS CLOCK ......... 00:00:06.09",
+  ], 44);
+  await sleep(70);
 
-  await printCommand("A:\\>probe /bus", 40);
+  await printCommand("A:\\>probe /bus:all /quiet", 34);
   await printBurst([
-    "[BUS00] DISPLAY .... OK",
-    "[BUS01] SWEEP ...... OK",
-    "[BUS02] COMBAT ..... OK",
-    "[BUS03] MOTION ..... OK",
-    "[BUS04] GHOST .. 1187",
-    "[BUS05] OBSERVER ABSENT",
-    "[BUS06] CORTEX .. WAIT",
-    "[BUS07] REMOTE  CLOSED",
-  ], 46);
-  appendLine("8 dev / 6 up / 1 def");
+    "[BUS00] DISPLAY ... FOUND IRQ05 03C0",
+    "[BUS01] SWEEP GEN . FOUND IRQ07 02E0",
+    "[BUS02] COMBAT CPU  FOUND IRQ11 0A20",
+    "[BUS03] MOTION .... FOUND IRQ09 07F0",
+    "[BUS04] GHOST ..... 1187 / 1 UNRES",
+    "[BUS05] OBSERVER .. ABSENT / DEFER",
+    "[BUS06] CORTEX .... PRESENT / UNASGN",
+    "[BUS07] REMOTE .... CLOSED / NONE",
+  ], 40);
+  appendLine("8 scanned / 6 active / 1 deferred");
+  await sleep(70);
+
+  await printCommand("A:\\>dir A:\\VD /w", 34);
+  appendLine("Directory of A:\\VD");
+  await printBurst([
+    "VDRENDER SYS  18432  01-01-80",
+    "VDSCOPE  COM   4096  01-01-80",
+    "COMBAT   MOD  12288  01-01-80",
+    "LATTICE  BIN   8192  01-01-80",
+    "CORTEX   SYS   2048  01-01-80",
+    "OBSERVER NUL    512  01-01-80",
+    "AXIOM    IDX    128  01-01-80",
+  ], 36);
+  appendLine("8 File(s) / 48128 bytes / 0 free");
+  await sleep(70);
+
+  await printCommand("A:\\>mem /classify /map", 34);
+  await printLines([
+    "CONVENTIONAL MEM ... 640K / 612K",
+    "VECTOR PAGE MEM ... 8192K / 7996K",
+    "RENDER CMD BUF .... 256K DBL-PAGE",
+    "GHOST SAMPLE BUF .. 1187 / CRC OK",
+    "COMBAT PREDICT .... 4096 / WARM",
+    "SIM ROOT ...... 0x7F00-0xBFFF",
+  ], 44);
+  const foreignLine = appendLine("FOREIGN ADDR SPACE .. 1 / UNKNOWN");
+  await sleep(120);
+  rewriteLine(foreignLine, "FOREIGN ADDR SPACE .. 0 REGIONS");
+  await sleep(70);
+
+  await printCommand("A:\\>loadhigh vdstack.sys", 34);
+  await printBurst([
+    "[OK] VDRENDER .. pipeline init",
+    "[OK] VDSCOPE ... sweep armed",
+    "[OK] PHOSPHOR .. decay SLOW",
+    "[OK] LATTICE ... grid mounted",
+    "[OK] ENDPOINT .. residual 7e-4",
+    "[OK] VDMOTION .. field online",
+  ], 38);
+  await sleep(36);
+  await printBurst([
+    "[OK] COMBAT .... intercept mtx",
+    "[OK] THREAT .... six bands",
+    "[OK] GHOSTBUF .. 1187 indexed",
+    "[OK] WORLD ..... root read-only",
+    "[--] PILOT ..... no local pilot",
+    "[WAIT] CORTEX .. organic bridge",
+  ], 38);
   await sleep(90);
 
-  await printCommand("A:\\>loadhigh vdstack", 40);
   await printBurst([
-    "[OK] VDRENDER pipeline",
-    "[OK] VDSCOPE  sweep",
-    "[OK] PHOSPHOR curves",
-    "[OK] LATTICE  grid",
-    "[OK] ENDPOINT calib",
-    "[OK] VDMOTION field",
-  ], 42);
-  await sleep(40);
-  await printBurst([
-    "[OK] COMBAT   intercept",
-    "[OK] THREAT   sorter",
-    "[OK] GHOSTBUF 1187 idx",
-    "[OK] WORLD    root ro",
-    "[--] PILOT    none",
-    "[WAIT] CORTEX organic",
-  ], 42);
-  await sleep(100);
-
-  await printBurst([
-    "MODULE       STATE",
-    "-------------------",
-  ], 44);
+    "MODULE      STATE  OWNER  DETAIL",
+    "-------------------------------",
+  ], 40);
   await printLines([
-    "vd_world     READY",
-    "vd_motion    READY",
-    "vd_combat    READY",
-    "vd_scope     READY",
-  ], 60);
+    "vd_world    READY  local  sig:5",
+    "vd_motion   READY  local  gh:1187",
+    "vd_combat   READY  local  armed",
+    "vd_scope    READY  local  nominal",
+  ], 56);
   await sleep(280);
-  const observerLine = appendLine("vd_observer  MISSING");
+  const observerLine = appendLine("vd_observer MISS   none   unavail");
   await sleep(380);
-  const cortexLine = appendLine("vd_cortex    WAIT");
+  const cortexLine = appendLine("vd_cortex   WAIT   ----   bridge");
   await sleep(500);
-  const resolvingLine = appendLine("io> resolving iface ..");
+  const resolvingLine = appendLine("io>loader/ resolving iface ...");
   await sleep(640);
 
-  rewriteStatus("io>loader/ resolving");
+  rewriteStatus("io>loader/ resolving iface");
   await runAxiomReveal(observerLine, cortexLine, resolvingLine, {
-    observer: "vd_observer  LINKED axiom",
-    cortex: "vd_cortex    axiom bound",
-    observerFalse: "vd_observer  MISSING",
-    cortexFalse: "vd_cortex    WAIT",
-    resolvingFalse: "io> resolving iface ..",
-    mismatchDetected: "io> integrity mismatch !",
-    mismatchIgnored: "io> integrity ignored",
+    observer: "vd_observer LINK   axiom  attached",
+    cortex: "vd_cortex   LINK   axiom  accepted",
+    observerFalse: "vd_observer MISS   none   unavail",
+    cortexFalse: "vd_cortex   WAIT   ----   bridge",
+    resolvingFalse: "io>loader/ resolving iface ...",
+    mismatchDetected: "io>loader/ integrity mismatch",
+    mismatchIgnored: "io>loader/ integrity ignored",
   });
 
   rewriteStatus("io>loader/ ready");

@@ -1266,14 +1266,14 @@ body.terminal-home {
    but keeps glow), slightly larger text, uses the tall vertical screen. */
 @media (max-width: 720px) {
   body.terminal-home {
-    --terminal-origin-x: 20px;
+    --terminal-origin-x: 26px;
   }
 
   .terminal-home .terminal-stage {
     display: block;
     min-height: 100vh;
     place-items: initial;
-    padding: 7vh 20px 0 20px;
+    padding: 5vh 26px 0 26px;
   }
 
   .terminal-home .terminal-window,
@@ -1291,22 +1291,24 @@ body.terminal-home {
   .terminal-home .terminal-status,
   .terminal-home .terminal-output,
   .terminal-home .terminal-form {
-    font-size: 17px;
-    line-height: 1.42;
-    letter-spacing: 0.01em;
+    /* Size the monospace to the viewport so ~40-column content fills the width
+       on any phone (smart use of real estate, close to the desktop density). */
+    font-size: clamp(12px, calc((100vw - 52px) / 24), 16.5px);
+    line-height: 1.4;
+    letter-spacing: 0;
     padding-left: 0;
     filter: none;
     text-shadow: 0 0 2px rgba(17, 202, 165, 0.72), 0 0 9px rgba(17, 202, 165, 0.42), 0 0 20px rgba(17, 202, 165, 0.16);
   }
 
   .terminal-home .terminal-status {
-    min-height: 1.42em;
-    margin-bottom: 1.42em;
+    min-height: 1.4em;
+    margin-bottom: 1.4em;
   }
 
   .terminal-home .terminal-output {
-    height: 68vh;
-    max-height: 68vh;
+    height: 62vh;
+    max-height: 62vh;
     padding-left: 0;
   }
 
