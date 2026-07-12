@@ -378,6 +378,36 @@ async function runScrambleFrame(entries, amount, duration, shift = 0) {
   await sleep(duration);
 }
 
+function renderGlitchLine(element, corrupted, embed) {
+  if (!embed) {
+    setPhosphorText(element, corrupted);
+    return;
+  }
+
+  // Overlay a readable word into the corruption, rendered in a bright hot span.
+  const start = Math.max(0, Math.min(embed.col, corrupted.length - embed.word.length));
+  const before = corrupted.slice(0, start);
+  const after = corrupted.slice(start + embed.word.length);
+  element.replaceChildren();
+
+  if (before) {
+    const beforeSpan = document.createElement("span");
+    beforeSpan.textContent = before;
+    element.appendChild(beforeSpan);
+  }
+
+  const hot = document.createElement("span");
+  hot.className = "glitch-hot";
+  hot.textContent = embed.word;
+  element.appendChild(hot);
+
+  if (after) {
+    const afterSpan = document.createElement("span");
+    afterSpan.textContent = after;
+    element.appendChild(afterSpan);
+  }
+}
+
 async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
   // Snapshot every visible line, then split the block into 3 contiguous chunks.
   const visible = [...output.querySelectorAll(".output-line")].slice(-16);
@@ -400,6 +430,28 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
     }
   };
 
+  // Hidden message, one word per line, spread evenly across separate lines so
+  // it glows through the static corruption without ever being fully spelled out
+  // on a single row. Never lands on the reveal lines.
+  const revealSet = new Set([observerLine, cortexLine, resolvingLine]);
+  const hiddenWords = ["YOU", "ARE", "BEING", "WATCHED"];
+  const wordCols = [12, 30, 18, 26];
+  const candidates = snapshot.filter(
+    (entry) => !revealSet.has(entry.line) && entry.text.trim().length > 26,
+  );
+  const embeds = new Map();
+  hiddenWords.forEach((word, i) => {
+    if (!candidates.length) {
+      return;
+    }
+    const spot = Math.floor(((i + 0.5) / hiddenWords.length) * candidates.length);
+    const pick = candidates[Math.min(spot, candidates.length - 1)];
+    if (pick && !embeds.has(pick.line)) {
+      const col = Math.min(wordCols[i], Math.max(0, pick.text.length - word.length - 2));
+      embeds.set(pick.line, { word, col });
+    }
+  });
+
   // Phase 1 - the 3 chunks flicker glitch, staggered so all three churn.
   const flicker = [
     [0, 0.45], [1, 0.5], [2, 0.55],
@@ -421,9 +473,15 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
     await sleep(randomBetween(55, 85));
   }
 
-  // Phase 2 - hold a static corrupted frame across the whole block.
-  chunks.forEach((chunk, index) => glitchChunk(chunk, 0.6, index + 5));
-  await sleep(380);
+  // Phase 2 - hold a static corrupted frame, with the hidden message glowing
+  // through it, distributed across separate lines.
+  chunks.forEach((chunk, index) => {
+    for (const entry of chunk) {
+      const corrupted = corruptText(entry.text, 0.6, index + 5);
+      renderGlitchLine(entry.line, corrupted, embeds.get(entry.line));
+    }
+  });
+  await sleep(460);
 
   // Phase 3 - the hidden line resolves to the readable reveal while the rest
   // of the block holds its static corruption.
