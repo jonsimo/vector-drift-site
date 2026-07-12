@@ -772,9 +772,43 @@ async function runFinalOnlineSummary() {
   await sleep(520);
 }
 
-function waitForConnect() {
-  // Blinking connect prompt; the first key/tap unlocks audio and begins boot.
-  renderStatusLines(["PRESS ANY KEY TO ESTABLISH COMMUNICATION LINK"], 0);
+async function waitForConnect() {
+  const text = "PRESS ANY KEY TO ESTABLISH COMMUNICATION LINK";
+
+  // The words flicker in one at a time from black, with random variance and
+  // overlap (next word starts before the previous settles). Hidden words hold
+  // their space so nothing reflows.
+  const words = text.split(" ");
+  const visible = new Array(words.length).fill(false);
+  const render = () => {
+    setPhosphorText(status, words.map((word, i) => (visible[i] ? word : " ".repeat(word.length))).join(" "));
+  };
+  render();
+
+  const flickerWord = async (i) => {
+    for (const on of [true, false, true]) {
+      visible[i] = on;
+      render();
+      await sleep(randomBetween(42, 78));
+    }
+    visible[i] = true;
+    render();
+  };
+
+  const tasks = [];
+  for (let i = 0; i < words.length; i += 1) {
+    const delay = randomBetween(0, 780);
+    tasks.push((async () => {
+      await sleep(delay);
+      await flickerWord(i);
+    })());
+  }
+  await Promise.all(tasks);
+
+  // ...the line settles and holds, then the cursor appears and blinks.
+  await sleep(randomBetween(650, 850));
+  renderStatusLines([text], 0);
+
   return new Promise((resolve) => {
     const modifiers = new Set(["Shift", "Alt", "Control", "Meta", "CapsLock"]);
     const done = (event) => {
