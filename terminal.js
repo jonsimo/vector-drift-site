@@ -410,7 +410,7 @@ function renderGlitchLine(element, corrupted, embed) {
 
 async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
   // Snapshot every visible line, then split the block into 3 contiguous chunks.
-  const visible = [...output.querySelectorAll(".output-line")].slice(-16);
+  const visible = [...output.querySelectorAll(".output-line")].slice(-22);
   const snapshot = visible.map((line) => ({ line, text: line.textContent }));
   const size = Math.ceil(snapshot.length / 3);
   const chunks = [
@@ -435,16 +435,19 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine) {
   // on a single row. Never lands on the reveal lines.
   const revealSet = new Set([observerLine, cortexLine, resolvingLine]);
   const hiddenWords = ["YOU", "ARE", "BEING", "WATCHED"];
-  const wordCols = [12, 30, 18, 26];
+  // Vertical spots spread top-to-bottom; columns scatter left/right so the
+  // message is distributed across the whole section, not stacked.
+  const wordSpots = [0.12, 0.4, 0.62, 0.86];
+  const wordCols = [10, 46, 24, 62];
   const candidates = snapshot.filter(
-    (entry) => !revealSet.has(entry.line) && entry.text.trim().length > 26,
+    (entry) => !revealSet.has(entry.line) && entry.text.trim().length > 18,
   );
   const embeds = new Map();
   hiddenWords.forEach((word, i) => {
     if (!candidates.length) {
       return;
     }
-    const spot = Math.floor(((i + 0.5) / hiddenWords.length) * candidates.length);
+    const spot = Math.floor(wordSpots[i] * candidates.length);
     const pick = candidates[Math.min(spot, candidates.length - 1)];
     if (pick && !embeds.has(pick.line)) {
       const col = Math.min(wordCols[i], Math.max(0, pick.text.length - word.length - 2));
