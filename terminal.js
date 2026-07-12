@@ -535,20 +535,18 @@ async function runBoot() {
   status.hidden = false;
   terminalHeader.classList.remove("status-stack");
 
-  // A lone cursor blinks by itself before anything is typed.
+  // A lone cursor blinks by itself (~2 blinks) before anything is typed.
   const openingLines = [""];
   renderStatusLines(openingLines, 0);
-  await sleep(randomBetween(1100, 1500));
+  await sleep(randomBetween(1750, 2050));
 
-  // The shell prompt appears, holds a beat, then a human types the command.
-  openingLines[0] = "console>";
-  renderStatusLines(openingLines, 0);
-  await sleep(randomBetween(300, 440));
-  await typeHumanStatusAppend(openingLines, 0, ` ${locateCommand}`, {
+  // The whole line types on from nothing, prompt included, at a human cadence.
+  await typeHumanStatusAppend(openingLines, 0, `console> ${locateCommand}`, {
     baseDelay: 58,
     jitterMin: -16,
     jitterMax: 32,
     pauses: [
+      { after: "console>", min: 180, max: 260 },
       { after: "console> find", min: 140, max: 220 },
       { after: "console> find /opt", min: 90, max: 150 },
       { after: "console> find /opt -iname", min: 120, max: 190 },
