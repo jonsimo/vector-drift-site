@@ -48,9 +48,6 @@ const timeScale = Math.min(1, Math.max(0.05, parseFloat(bootParams.get("speed"))
 // Dev: ?auto skips the connect/continue gates so a headless render can advance.
 const autoAdvance = bootParams.has("auto");
 let mobileMode = false;
-// The main boot audio starts on the key press; hold the visuals this long so
-// they line up with the track (without trimming the audio's intro).
-const mainBootLeadMs = 500;
 
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms * timeScale));
@@ -189,7 +186,7 @@ function setupBootAudio() {
   }
   const initial = new Audio("assets/initial_boot_sound.mp3");
   const hum = new Audio(humUrl);
-  const main = new Audio("assets/main_boot_sequence_v2.mp3");
+  const main = new Audio("assets/main_boot_sequence_v3.mp3");
   const beep = new Audio("assets/console_beep_v2.mp3");
   hum.loop = true;
   initial.volume = 0.75;
@@ -1018,7 +1015,6 @@ async function runBoot() {
 
   // Connect gate: a blinking prompt whose first key/tap unlocks audio.
   await waitForConnect();
-  await sleep(mainBootLeadMs);
 
   // A lone cursor blinks by itself before anything is typed.
   const openingLines = [""];
@@ -1275,7 +1271,6 @@ async function runBootMobile() {
 
   // Connect gate.
   await waitForConnect();
-  await sleep(mainBootLeadMs);
 
   // Lone cursor, then the search command types on (narrow).
   const openingLines = [""];
