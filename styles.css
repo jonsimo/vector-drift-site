@@ -1266,14 +1266,14 @@ body.terminal-home {
    but keeps glow), slightly larger text, uses the tall vertical screen. */
 @media (max-width: 720px) {
   body.terminal-home {
-    --terminal-origin-x: 26px;
+    --terminal-origin-x: 30px;
   }
 
   .terminal-home .terminal-stage {
     display: block;
     min-height: 100vh;
     place-items: initial;
-    padding: 5vh 26px 0 26px;
+    padding: 5vh 30px 0 30px;
   }
 
   .terminal-home .terminal-window,
@@ -1291,9 +1291,9 @@ body.terminal-home {
   .terminal-home .terminal-status,
   .terminal-home .terminal-output,
   .terminal-home .terminal-form {
-    /* Size the monospace to the viewport so ~40-column content fills the width
-       on any phone (smart use of real estate, close to the desktop density). */
-    font-size: clamp(12px, calc((100vw - 52px) / 24), 16.5px);
+    /* JS (fitMobileFont) measures the real char width and sets --mobile-font so
+       ~40 columns fill the width exactly on any device/font. Fallback below. */
+    font-size: var(--mobile-font, clamp(13px, calc((100vw - 64px) / 20), 22px));
     line-height: 1.4;
     letter-spacing: 0;
     padding-left: 0;

@@ -131,6 +131,53 @@ function sfxKey() {
   sfxNoiseHit({ freq: 1100, q: 0.7, type: "lowpass", dur: 0.013, gain: 0.3, lp: 1500 });
   sfxTone({ freq: 175, dur: 0.028, gain: 0.1 });
 }
+
+// --- Boot music/ambience (real mp3 tracks) -----------------------------------
+// initial -> (no key) hum loop; key press -> main sequence -> hum loop.
+let bootAudio = null;
+let linkEstablished = false;
+
+function setupBootAudio() {
+  if (bootAudio || autoAdvance) {
+    return;
+  }
+  const initial = new Audio("assets/initial_boot_sound.mp3");
+  const hum = new Audio("assets/computer_hum_looping.mp3");
+  const main = new Audio("assets/main_boot_sequence.mp3");
+  hum.loop = true;
+  initial.volume = 0.75;
+  hum.volume = 0.5;
+  main.volume = 0.85;
+  const startHum = () => hum.play().catch(() => {});
+  initial.addEventListener("ended", () => {
+    if (!linkEstablished) {
+      startHum();
+    }
+  });
+  main.addEventListener("ended", startHum);
+  bootAudio = { initial, hum, main, startHum };
+}
+
+function playInitialAmbience() {
+  if (!bootAudio) {
+    return;
+  }
+  // Best-effort: may be blocked until a gesture, in which case it stays silent
+  // and the key press (a gesture) starts the main sequence instead.
+  bootAudio.initial.play().catch(() => {});
+}
+
+function establishLinkAudio() {
+  if (!bootAudio) {
+    return;
+  }
+  linkEstablished = true;
+  bootAudio.initial.pause();
+  bootAudio.hum.pause();
+  bootAudio.hum.currentTime = 0;
+  bootAudio.main.currentTime = 0;
+  bootAudio.main.play().catch(() => {});
+}
 function sfxFast() {
   // noise zip
   sfxNoiseHit({ freq: 2600, q: 3, dur: 0.03, gain: 0.22, rate: 1.4 });
@@ -432,7 +479,6 @@ async function printBurst(lines, delay = 70) {
 
   for (const line of lines) {
     printed.push(appendLine(line));
-    sfxFast();
     await sleep(delay);
   }
 
@@ -783,6 +829,10 @@ async function waitForConnect() {
     ? "TAP TO ESTABLISH LINK"
     : "PRESS ANY KEY TO ESTABLISH COMMUNICATION LINK";
 
+  // The gate appears -> attract audio starts (best-effort until a gesture).
+  setupBootAudio();
+  playInitialAmbience();
+
   // The words flicker in one at a time from black, with random variance and
   // overlap (next word starts before the previous settles). Hidden words hold
   // their space so nothing reflows.
@@ -834,6 +884,7 @@ async function waitForConnect() {
       window.removeEventListener("keydown", done);
       window.removeEventListener("pointerdown", done);
       initAudio();
+      establishLinkAudio();
       resolve();
     };
     window.addEventListener("keydown", done);
@@ -1131,10 +1182,32 @@ async function runFinalOnlineSummaryMobile() {
   await sleep(520);
 }
 
+function fitMobileFont() {
+  if (!mobileMode) {
+    return;
+  }
+  // Measure the real monospace char width, then size the font so TARGET_COLS
+  // columns fill the available width exactly (independent of device/font).
+  const TARGET_COLS = 41;
+  const SIDE_PADDING = 30; // must match the mobile CSS left/right padding
+  const probe = document.createElement("span");
+  probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre;font-size:100px;font-family:inherit;letter-spacing:0;";
+  probe.textContent = "0".repeat(20);
+  output.appendChild(probe);
+  const charWidthPerPx = probe.getBoundingClientRect().width / 20 / 100;
+  probe.remove();
+  const avail = window.innerWidth - SIDE_PADDING * 2;
+  let size = avail / (TARGET_COLS * charWidthPerPx);
+  size = Math.max(13, Math.min(24, size));
+  document.documentElement.style.setProperty("--mobile-font", `${size.toFixed(2)}px`);
+}
+
 async function runBootMobile() {
   if (bootStarted) {
     return;
   }
+  fitMobileFont();
+  window.addEventListener("resize", fitMobileFont);
   bootStarted = true;
   const startedAt = performance.now();
   input.disabled = true;
