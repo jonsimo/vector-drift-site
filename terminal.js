@@ -50,7 +50,7 @@ const autoAdvance = bootParams.has("auto");
 let mobileMode = false;
 // The main boot audio starts on the key press; hold the visuals this long so
 // they line up with the track (without trimming the audio's intro).
-const mainBootLeadMs = 500;
+const mainBootLeadMs = 250;
 
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms * timeScale));
