@@ -144,10 +144,12 @@ function setupBootAudio() {
   const initial = new Audio("assets/initial_boot_sound.mp3");
   const hum = new Audio("assets/computer_hum_looping.mp3");
   const main = new Audio("assets/main_boot_sequence.mp3");
+  const beep = new Audio("assets/console_beep.mp3");
   hum.loop = true;
   initial.volume = 0.75;
   hum.volume = 0.5;
   main.volume = 0.85;
+  beep.volume = 0.8;
   const startHum = () => hum.play().catch(() => {});
   initial.addEventListener("ended", () => {
     if (!linkEstablished) {
@@ -155,7 +157,15 @@ function setupBootAudio() {
     }
   });
   main.addEventListener("ended", startHum);
-  bootAudio = { initial, hum, main, startHum };
+  bootAudio = { initial, hum, main, beep, startHum };
+}
+
+function playConsoleBeep() {
+  if (!bootAudio) {
+    return;
+  }
+  bootAudio.beep.currentTime = 0;
+  bootAudio.beep.play().catch(() => {});
 }
 
 function playInitialAmbience() {
@@ -937,9 +947,10 @@ async function activateRootPrompt(startedAt) {
   input.disabled = true;
   // Hard clear -> short black-screen hold.
   await sleep(randomBetween(180, 240));
-  // Root prompt appears; cursor blinks alone before input is accepted.
+  // Root prompt appears (beep over the hum); cursor blinks before input.
   setPromptPrefix();
   updateCursor();
+  playConsoleBeep();
   await sleep(randomBetween(150, 190));
   input.disabled = false;
   input.focus();
