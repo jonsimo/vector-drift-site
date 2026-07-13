@@ -67,9 +67,27 @@ let mobileMode = false;
 // The main boot audio starts on the key press; hold the visuals this long so
 // they line up with the track (without trimming the audio's intro).
 const mainBootLeadMs = 250;
+// Absolute time (ms from audio start) of the glitch-sound onset in
+// main_boot_sequence. The visual glitch is anchored to this so it fires exactly
+// on the waveform onset every run, regardless of typing jitter.
+const glitchAudioMs = 13580;
+let bootAudioT0 = 0;
 
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms * timeScale));
+}
+
+// Wait until `targetMs` (from audio start) has elapsed. Scales with timeScale so
+// dev fast-forward still works; a no-op if the audio clock isn't set.
+function waitUntilFromAudio(targetMs) {
+  if (!bootAudioT0) {
+    return Promise.resolve();
+  }
+  const remaining = bootAudioT0 + targetMs * timeScale - performance.now();
+  if (remaining <= 0) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => window.setTimeout(resolve, remaining));
 }
 
 function randomBetween(min, max) {
@@ -1129,6 +1147,7 @@ async function runBoot() {
 
   // Connect gate: a blinking prompt whose first key/tap unlocks audio.
   await waitForConnect();
+  bootAudioT0 = performance.now();
   await sleep(mainBootLeadMs);
 
   // A lone cursor blinks by itself before anything is typed.
@@ -1308,6 +1327,8 @@ async function runBoot() {
 
   rewriteStatus(loaderStatuses[3]);
   await sleep(70);
+  // Anchor the glitch onset to the audio glitch onset.
+  await waitUntilFromAudio(glitchAudioMs);
   await runAxiomReveal(observerLine, cortexLine, resolvingLine);
 
   rewriteStatus(loaderStatuses[4]);
@@ -1386,6 +1407,7 @@ async function runBootMobile() {
 
   // Connect gate.
   await waitForConnect();
+  bootAudioT0 = performance.now();
   await sleep(mainBootLeadMs);
 
   // Lone cursor, then the search command types on (narrow).
@@ -1528,6 +1550,8 @@ async function runBootMobile() {
   await sleep(640);
 
   rewriteStatus("io>loader/ resolving iface");
+  // Anchor the glitch onset to the audio glitch onset.
+  await waitUntilFromAudio(glitchAudioMs);
   await runAxiomReveal(observerLine, cortexLine, resolvingLine, {
     observer: "vd_observer LINK   axiom  attached",
     cortex: "vd_cortex   LINK   axiom  accepted",
