@@ -48,6 +48,9 @@ const timeScale = Math.min(1, Math.max(0.05, parseFloat(bootParams.get("speed"))
 // Dev: ?auto skips the connect/continue gates so a headless render can advance.
 const autoAdvance = bootParams.has("auto");
 let mobileMode = false;
+// The main boot audio starts on the key press; hold the visuals this long so
+// they line up with the track (without trimming the audio's intro).
+const mainBootLeadMs = 500;
 
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms * timeScale));
@@ -65,8 +68,15 @@ let noiseBuffer = null;
 let sfxEnabled = false;
 const sfxVolume = 0.5;
 
+function resumeAudio() {
+  if (audioCtx && audioCtx.state === "suspended") {
+    audioCtx.resume().catch(() => {});
+  }
+}
+
 function initAudio() {
   if (audioCtx) {
+    resumeAudio();
     return;
   }
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -77,6 +87,7 @@ function initAudio() {
   }
   noiseBuffer = buffer;
   sfxEnabled = true;
+  resumeAudio();
 
   // Decode the hum for a gapless Web Audio loop (ready before the main track ends).
   if (!humBuffer) {
@@ -1015,6 +1026,7 @@ async function runBoot() {
 
   // Connect gate: a blinking prompt whose first key/tap unlocks audio.
   await waitForConnect();
+  await sleep(mainBootLeadMs);
 
   // A lone cursor blinks by itself before anything is typed.
   const openingLines = [""];
@@ -1271,6 +1283,7 @@ async function runBootMobile() {
 
   // Connect gate.
   await waitForConnect();
+  await sleep(mainBootLeadMs);
 
   // Lone cursor, then the search command types on (narrow).
   const openingLines = [""];
@@ -2030,6 +2043,7 @@ async function submitCurrentCommand() {
     return;
   }
 
+  resumeAudio();
   sfxEnter();
 
   if (terminalState === "handoffReady" && !input.value.trim()) {
@@ -2067,6 +2081,7 @@ form.addEventListener("submit", (event) => {
 input.addEventListener("input", updateCursor);
 
 input.addEventListener("keydown", (event) => {
+  resumeAudio();
   if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
     sfxKey();
   }
