@@ -144,7 +144,7 @@ function setupBootAudio() {
   const initial = new Audio("assets/initial_boot_sound.mp3");
   const hum = new Audio("assets/computer_hum_looping2.mp3");
   const main = new Audio("assets/main_boot_sequence_v2.mp3");
-  const beep = new Audio("assets/console_beep.mp3");
+  const beep = new Audio("assets/console_beep_v2.mp3");
   hum.loop = true;
   initial.volume = 0.75;
   hum.volume = 0.5;
