@@ -159,7 +159,9 @@
     state.view = "root";
     state.debugCommandHistory.length = 0;
     api.setPrompt("operator");
-    printLines(["operator channel opened", "", "permission:", "LOCAL DEVELOPMENT"]);
+    printLines(["operator channel opened", "", "permission:", "LOCAL DEVELOPMENT", ""]);
+    printLines(MAIN_MENU);
+    printLines(["", "type a number or name  ·  menu to return  ·  exit debug to leave"]);
   }
 
   async function handle(raw) {

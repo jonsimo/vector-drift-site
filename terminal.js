@@ -100,7 +100,7 @@ function randomBetween(min, max) {
 let audioCtx = null;
 let noiseBuffer = null;
 let sfxEnabled = false;
-const sfxVolume = 0.5;
+const sfxVolume = 0.625;
 
 function resumeAudio() {
   if (audioCtx && audioCtx.state === "suspended") {
