@@ -51,6 +51,9 @@ let mobileMode = false;
 // The main boot audio starts on the key press; hold the visuals this long so
 // they line up with the track (without trimming the audio's intro).
 const mainBootLeadMs = 250;
+// The mobile boot is shorter than the desktop one the audio was timed to, so it
+// runs ahead of the track. Pad it before the glitch to re-align (tunable).
+const mobileGlitchPadMs = 500;
 
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms * timeScale));
@@ -1417,7 +1420,7 @@ async function runBootMobile() {
   const cortexLine = appendLine("vd_cortex   WAIT   ----   bridge");
   await sleep(500);
   const resolvingLine = appendLine("io>loader/ resolving iface ...");
-  await sleep(640);
+  await sleep(640 + mobileGlitchPadMs);
 
   rewriteStatus("io>loader/ resolving iface");
   await runAxiomReveal(observerLine, cortexLine, resolvingLine, {
