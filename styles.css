@@ -1327,4 +1327,21 @@ body.terminal-home {
   .terminal-home .glitch-hot {
     filter: none;
   }
+
+  /* Mobile flowing prompt: live input line + frozen command echoes. */
+  .terminal-home .output-line.mobile-prompt,
+  .terminal-home .output-line.mobile-prompt-done {
+    display: flex;
+    align-items: baseline;
+    white-space: pre;
+  }
+
+  .terminal-home .prompt-root,
+  .terminal-home .mobile-sep {
+    flex: 0 0 auto;
+  }
+
+  .terminal-home .output-line.mobile-prompt .input-shell {
+    flex: 1 1 auto;
+  }
 }

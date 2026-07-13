@@ -6,8 +6,10 @@ const input = document.getElementById("terminal-input");
 const cursor = document.querySelector(".block-cursor");
 const promptPrefix = document.querySelector(".prompt-prefix");
 const commandText = document.getElementById("terminal-command");
+const inputShell = document.querySelector(".input-shell");
 
 let bootStarted = false;
+let mobileLive = null;
 let terminalState = "booting";
 let activeTransfer = null;
 let fallbackDownload = null;
@@ -15,8 +17,22 @@ let commandHistory = [];
 let historyCursor = 0;
 let axiomUseCount = 0;
 let sudoUseCount = 0;
-let unknownCount = 0;
-let specialUnknownStep = 0;
+
+// Intent layer (terminal-intents.js, loaded before this script). Pure, DOM-free:
+// it owns normalization, the intent registry, command resolution, session state,
+// and response *selection*; this file interprets the returned step data.
+const VDI = window.VDIntents;
+const session = VDI.createSession();
+const rng = Math.random;
+// True while a response sequence is running; blocks a second submit so async
+// sequences can never overlap. Input stays editable, only Enter is a no-op.
+let responseActive = false;
+
+// Hidden operator/debug console (terminal-debug.js, loaded before this script).
+// Optional — every use is guarded so the site still works if it is absent.
+const DEBUG = typeof window !== "undefined" ? window.VDDebug : null;
+// Wall-clock of the last player response, surfaced by the debug timing inspector.
+let lastResponseMs = 0;
 
 const locateCommand = "find /opt -iname 'vector_drift' $>/dev/null";
 const loadCommand = "load /opt/unknown/vectordrift.sim";
@@ -347,6 +363,45 @@ function appendResponse(text, className = "terminal-response") {
   return appendLine(text, className);
 }
 
+// --- Mobile flowing prompt ---------------------------------------------------
+// The live input line sits at the end of the output flow and moves down as
+// commands are entered, anchored around 2/3 of the way down the screen.
+function scrollMobileToPrompt(line) {
+  const target = line.offsetTop - output.clientHeight * 0.66;
+  output.scrollTop = Math.max(0, target);
+}
+
+function appendMobilePrompt(prefixText) {
+  const line = appendRawLine("output-line mobile-prompt");
+  const prefix = document.createElement("span");
+  prefix.className = "prompt-root";
+  prefix.textContent = prefixText;
+  const sep = document.createElement("span");
+  sep.className = "mobile-sep";
+  sep.textContent = " ";
+  line.append(prefix, sep, inputShell);
+  mobileLive = { line };
+  updateCursor();
+  scrollMobileToPrompt(line);
+  return line;
+}
+
+function freezeMobilePrompt(commandValue) {
+  if (!mobileLive) {
+    return;
+  }
+  const line = mobileLive.line;
+  line.classList.remove("mobile-prompt");
+  line.classList.add("mobile-prompt-done");
+  if (inputShell.parentNode === line) {
+    line.removeChild(inputShell);
+  }
+  const done = document.createElement("span");
+  done.textContent = commandValue;
+  line.appendChild(done);
+  mobileLive = null;
+}
+
 function setPromptPrefix() {
   promptPrefix.replaceChildren();
   const consolePart = document.createElement("span");
@@ -356,6 +411,40 @@ function setPromptPrefix() {
   pathPart.className = "prompt-path";
   pathPart.textContent = "vector_drift:/root";
   promptPrefix.append(consolePart, pathPart);
+}
+
+// Desktop prompt switch for the operator channel. Reuses the same renderer/DOM;
+// "console" restores the normal player prompt. No effect on the mobile flow,
+// whose prefix text is passed to appendMobilePrompt directly.
+function setActivePromptPrefix(mode) {
+  if (mode === "operator") {
+    promptPrefix.replaceChildren();
+    const op = document.createElement("span");
+    op.className = "prompt-console";
+    op.textContent = "operator>";
+    promptPrefix.append(op);
+    return;
+  }
+  setPromptPrefix();
+}
+
+// Echo a just-submitted command under whichever prompt is active.
+function echoActivePrompt(command) {
+  if (mobileMode) {
+    freezeMobilePrompt(command);
+    return;
+  }
+  if (DEBUG && DEBUG.isActive()) {
+    const line = appendRawLine("command prompt-history");
+    const op = document.createElement("span");
+    op.className = "prompt-console";
+    op.textContent = "operator>";
+    const commandPart = document.createElement("span");
+    commandPart.textContent = ` ${command}`;
+    line.append(op, commandPart);
+    return;
+  }
+  appendCommandLine(command);
 }
 
 function setTerminalState(nextState) {
@@ -999,6 +1088,20 @@ async function activateRootPrompt(startedAt) {
   input.disabled = true;
   // Hard clear -> short black-screen hold.
   await sleep(randomBetween(180, 240));
+
+  if (mobileMode) {
+    // Mobile: the prompt flows in the output and moves down with each command.
+    form.style.display = "none";
+    appendMobilePrompt("console>vector_drift:/root");
+    playConsoleBeep();
+    await sleep(randomBetween(150, 190));
+    input.disabled = false;
+    input.focus();
+    setTerminalState("ready");
+    document.documentElement.dataset.bootDuration = String(Math.round(performance.now() - startedAt));
+    return;
+  }
+
   // Root prompt appears (beep over the hum); cursor blinks before input.
   setPromptPrefix();
   updateCursor();
@@ -1442,9 +1545,7 @@ async function runBootMobile() {
 }
 
 function normalizeCommand(command) {
-  const trimmed = command.trim().replace(/\s+/g, " ");
-  const withoutDotSlash = trimmed.startsWith("./") ? trimmed.slice(2) : trimmed;
-  return withoutDotSlash.toLowerCase();
+  return VDI.normalizeTerminalInput(command).normalized;
 }
 
 function formatBytes(bytes) {
@@ -1852,110 +1953,82 @@ function responseLines(lines, className = "terminal-response") {
   }
 }
 
+// Interpret the structured step data returned by the intent layer. Response
+// text is chosen once (at commit, in VDIntents.selectResponse) — this only
+// renders. Steps: print / hold / rewrite / historyRender / returnPrompt.
+async function runResponse(steps) {
+  const lines = {};
+  for (const step of steps) {
+    if (step.type === "print") {
+      const el = appendResponse(step.text || "", step.className || "terminal-response");
+      if (step.id) {
+        lines[step.id] = el;
+      }
+    } else if (step.type === "hold") {
+      await sleep(step.durationMs || 0);
+    } else if (step.type === "rewrite") {
+      const el = lines[step.targetId];
+      if (el) {
+        rewriteLine(el, step.text || "");
+        if (step.className) {
+          el.className = `output-line ${step.className}`.trim();
+        }
+      }
+    } else if (step.type === "historyRender") {
+      renderHistoryDisplay();
+    }
+    // "returnPrompt" is a no-op marker; the prompt returns after runCommand.
+  }
+}
+
+// History shows the real session commands, with exactly one subtle fictional
+// entry inserted for display only (never into commandHistory, so Up/Down recall
+// stays honest). The insertion is a pure helper in the intent layer.
+function renderHistoryDisplay() {
+  const display = VDI.insertFictionalHistory(commandHistory, session);
+  display.forEach((entry, index) => {
+    appendResponse(`${String(index + 1).padStart(2, "0")}  ${entry}`);
+  });
+}
+
 async function runCommand(command, normalized) {
-  if (!normalized) {
+  const resolution = VDI.resolveCommand(normalized);
+
+  if (resolution.kind === "empty") {
     appendLine("");
     return;
   }
 
-  if (normalized === "download.exe") {
+  // Protected: only the exact normalized "download.exe" ever reaches the real
+  // transfer. No fuzzy path can land here.
+  if (resolution.kind === "protected") {
+    session.downloadStarted = true;
     await downloadPackage();
     return;
   }
 
-  if (normalized === "download") {
-    responseLines(["executable extension required", "try: download.exe"], "terminal-error");
-    return;
-  }
-
-  if (normalized === "help") {
-    responseLines([
-      "AVAILABLE COMMANDS",
-      "",
-      "download.exe     retrieve authorized beta package",
-      "status           inspect simulation state",
-      "ls               list mounted system objects",
-      "whoami           resolve active observer",
-      "history          display command history",
-      "version          display relay build information",
-      "clear            clear terminal output",
-      "exit             terminate current session",
-    ]);
-    return;
-  }
-
-  if (normalized === "status") {
-    responseLines([
-      "SIMULATION STATUS",
-      "",
-      "vector runtime .............. active",
-      "render lattice .............. synchronized",
-      "combat matrix ............... idle",
-      "observer interface .......... unresolved",
-    ]);
-    const remoteLine = appendResponse("remote process .............. none");
-    appendResponse("integrity state ............. nominal");
-    await sleep(220);
-    rewriteLine(remoteLine, "remote process .............. present");
-    await sleep(180);
-    rewriteLine(remoteLine, "remote process .............. none");
-    return;
-  }
-
-  if (normalized === "ls" || normalized === "dir") {
-    responseLines(["world/", "motion/", "cortex/", "combat.mod", "vectordrift.sim", "observer.nul", "download.exe"]);
-    const axiomLine = appendResponse("axiom/", "terminal-meta");
-    await sleep(120);
-    rewriteLine(axiomLine, "a#iom/");
-    await sleep(70);
-    rewriteLine(axiomLine, "axiom/");
-    return;
-  }
-
-  if (normalized === "whoami") {
-    responseLines([
-      "operator ................. local",
-      "identity ................. observer",
-      "authority ................ inherited",
-    ]);
-    const consentLine = appendResponse("consent token ............ absent");
-    await sleep(260);
-    rewriteLine(consentLine, "consent token ............ assumed");
-    await sleep(500);
-    return;
-  }
-
-  if (normalized === "version" || normalized === "ver") {
-    responseLines([
-      "VECTOR DRIFT RELAY",
-      "",
-      "loader ................... 2.13",
-      "simulation ............... beta preview",
-      "renderer drift ........... 0.0003",
-      "observer protocol ........ active",
-      "build origin ............. unknown",
-    ]);
-    return;
-  }
-
-  if (normalized === "history") {
-    const visibleHistory = [...commandHistory];
-    const insertAt = Math.min(visibleHistory.length, 1);
-    if (!visibleHistory.includes("bind cortex --organic")) {
-      visibleHistory.splice(insertAt, 0, "bind cortex --organic");
+  // Utilities with DOM side-effects stay in this file.
+  if (resolution.kind === "utility") {
+    if (resolution.id === "clear") {
+      output.innerHTML = "";
+      output.scrollTop = 0;
+      return;
     }
-    visibleHistory.forEach((entry, index) => appendResponse(`${index + 1}  ${entry}`));
+    if (resolution.id === "downloadHint") {
+      await runResponse(VDI.downloadHintSteps());
+      return;
+    }
+    if (resolution.id === "downloadBetaHint") {
+      await runResponse(VDI.downloadBetaHintSteps());
+      return;
+    }
     return;
   }
 
-  if (normalized === "clear" || normalized === "cls") {
-    output.innerHTML = "";
-    output.scrollTop = 0;
-    return;
-  }
-
-  if (normalized === "exit") {
-    responseLines(["termination request denied", "observer session remains active"], "terminal-error");
+  // Natural-language intent groups, resolved after protected/utility.
+  if (resolution.kind === "intent") {
+    const { steps } = VDI.selectResponse(resolution, session, rng);
+    await runResponse(steps);
     return;
   }
 
@@ -2010,41 +2083,20 @@ async function runLoreOrUnknown(normalized) {
     return;
   }
 
-  if (normalized === "hello") {
-    const line = appendResponse("no response");
-    await sleep(500);
-    rewriteLine(line, "hello, observer");
-    return;
-  }
-
-  if (normalized === "is anyone there") {
-    appendResponse("no");
-    await sleep(700);
-    return;
-  }
-
   if (staticLore[normalized]) {
     responseLines(staticLore[normalized]);
     return;
   }
 
-  const unknownResponses = ["command not found", "unknown instruction", "parser could not resolve token", "no executable object matches that request"];
-  unknownCount += 1;
-  if (unknownCount >= 4 && specialUnknownStep === 0) {
-    specialUnknownStep = 1;
-    appendResponse("the interface is not designed for conversation", "terminal-error");
-    return;
-  }
-  if (specialUnknownStep === 1) {
-    specialUnknownStep = 2;
-    appendResponse("yet", "terminal-error");
-    return;
-  }
-  appendResponse(unknownResponses[(unknownCount - 1) % unknownResponses.length], "terminal-error");
+  // Unknown-command bank + the one-per-session "...not designed for
+  // conversation" / "yet" beat live in the intent layer (session owns the
+  // counters). Lore hits above never reach here, so they never count as unknown.
+  const { steps } = VDI.selectUnknown(session, rng);
+  await runResponse(steps);
 }
 
 async function submitCurrentCommand() {
-  if (terminalState === "downloading" || terminalState === "executing") {
+  if (terminalState === "downloading" || terminalState === "executing" || responseActive) {
     return;
   }
 
@@ -2062,18 +2114,65 @@ async function submitCurrentCommand() {
   updateCursor();
 
   if (!normalized) {
-    appendLine("");
+    if (mobileMode) {
+      freezeMobilePrompt("");
+      appendMobilePrompt("root:/");
+      input.focus();
+    } else {
+      appendLine("");
+    }
     return;
   }
 
-  appendCommandLine(command.trim());
+  // Hidden operator channel — intercept before ANY player handling. Entry only on
+  // exact `debug`; while active, ALL input routes here (player commands, intents,
+  // and download.exe never run). Leaves no player history / session artifacts.
+  if (DEBUG && (DEBUG.isActive() || normalized === "debug")) {
+    const entering = !DEBUG.isActive();
+    echoActivePrompt(command.trim());
+    responseActive = true;
+    try {
+      if (entering) {
+        await DEBUG.enter();
+      } else {
+        await DEBUG.handle(command.trim());
+      }
+    } finally {
+      responseActive = false;
+    }
+    input.disabled = false;
+    if (mobileMode) {
+      appendMobilePrompt(DEBUG.isActive() ? "operator>" : "root:/");
+    }
+    input.focus();
+    return;
+  }
+
+  if (mobileMode) {
+    freezeMobilePrompt(command.trim());
+  } else {
+    appendCommandLine(command.trim());
+  }
   commandHistory.push(command.trim());
   historyCursor = commandHistory.length;
+  session.commandCount += 1;
+  session.rawCommandHistory.push(command.trim());
+  session.normalizedCommandHistory.push(normalized);
   setTerminalState("ready");
-  await runCommand(command, normalized);
+  responseActive = true;
+  const responseStart = performance.now();
+  try {
+    await runCommand(command, normalized);
+  } finally {
+    responseActive = false;
+    lastResponseMs = Math.round(performance.now() - responseStart);
+  }
   if (terminalState !== "downloading" && terminalState !== "executing") {
     setTerminalState(terminalState === "handoffReady" ? "handoffReady" : "ready");
     input.disabled = false;
+    if (mobileMode) {
+      appendMobilePrompt("root:/");
+    }
     input.focus();
   }
 }
@@ -2091,6 +2190,12 @@ input.addEventListener("keydown", (event) => {
     sfxKey();
   }
 
+  // Operator channel gets first refusal on navigation keys (audio browser).
+  if (DEBUG && DEBUG.isActive() && DEBUG.handleKey(event)) {
+    event.preventDefault();
+    return;
+  }
+
   if (event.key === "Enter") {
     event.preventDefault();
     submitCurrentCommand();
@@ -2103,7 +2208,7 @@ input.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (event.key === "ArrowUp" && commandHistory.length > 0 && terminalState !== "downloading" && terminalState !== "executing") {
+  if (event.key === "ArrowUp" && commandHistory.length > 0 && terminalState !== "downloading" && terminalState !== "executing" && !(DEBUG && DEBUG.isActive())) {
     event.preventDefault();
     historyCursor = Math.max(0, historyCursor - 1);
     input.value = commandHistory[historyCursor] || "";
@@ -2111,7 +2216,7 @@ input.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (event.key === "ArrowDown" && commandHistory.length > 0 && terminalState !== "downloading" && terminalState !== "executing") {
+  if (event.key === "ArrowDown" && commandHistory.length > 0 && terminalState !== "downloading" && terminalState !== "executing" && !(DEBUG && DEBUG.isActive())) {
     event.preventDefault();
     historyCursor = Math.min(commandHistory.length, historyCursor + 1);
     input.value = commandHistory[historyCursor] || "";
@@ -2126,6 +2231,87 @@ document.querySelector(".terminal-content").addEventListener("pointerdown", () =
 });
 
 window.addEventListener("resize", updateCursor);
+
+// --- Operator/debug console wiring -------------------------------------------
+// terminal-debug.js is a self-contained controller; this is the ONLY surface it
+// touches. Every DOM/audio/boot side-effect it needs is exposed here explicitly,
+// so no debug logic leaks into the player path or terminal-intents.js.
+if (DEBUG) {
+  DEBUG.init({
+    // rendering — reuses the existing renderer only
+    print: (text, className) => appendResponse(text, className),
+    appendLine: (text, className) => appendLine(text, className),
+    rewrite: (line, text) => rewriteLine(line, text),
+    runResponse: (steps) => runResponse(steps),
+    sleep: (ms) => sleep(ms),
+    scramble: (text) => scrambleText(text),
+    corrupt: (text, amount, shift) => corruptText(text, amount, shift),
+    runAxiomReveal: (observer, cortex, resolving) => runAxiomReveal(observer, cortex, resolving),
+    setPrompt: (mode) => setActivePromptPrefix(mode),
+    // read-only live inspection
+    vdi: VDI,
+    session: () => session,
+    terminalState: () => terminalState,
+    lastCommand: () => session.rawCommandHistory[session.rawCommandHistory.length - 1] || "",
+    lastResponseMs: () => lastResponseMs,
+    mobileMode: () => mobileMode,
+    // command inventories for `list commands`
+    playerCommands: ["download.exe", "help", "status", "inspect", "whoami", "history", "version", "clear", "exit"],
+    loreCommands: ["observer", "cortex", "pilot", "root", "sudo", "ghost", "consent", "organic", "axiom", "1980", "1187", "0x00007f00"],
+    // audio sampler — real project assets + synthesized cues only
+    audioBank: {
+      boot: [
+        { name: "initial_boot_sound.mp3", url: "assets/initial_boot_sound.mp3" },
+        { name: "main_boot_sequence_v3.mp3", url: "assets/main_boot_sequence_v3.mp3" },
+      ],
+      terminal: [{ name: "computer_hum_looping2.mp3", url: "assets/computer_hum_looping2.mp3" }],
+      ui: [
+        { name: "console_beep_v2.mp3", url: "assets/console_beep_v2.mp3" },
+        { name: "sfx: key", sfx: "key" },
+        { name: "sfx: enter", sfx: "enter" },
+      ],
+      glitch: [{ name: "sfx: fast", sfx: "fast" }],
+      download: [],
+    },
+    playAudio: (item) => {
+      if (item.sfx) {
+        if (item.sfx === "key") { sfxKey(); }
+        else if (item.sfx === "enter") { sfxEnter(); }
+        else if (item.sfx === "fast") { sfxFast(); }
+        return { duration: null };
+      }
+      try {
+        const clip = new Audio(item.url);
+        clip.loop = false;
+        clip.volume = 0.6;
+        const played = clip.play();
+        if (played && played.catch) { played.catch(() => {}); }
+        return { duration: null };
+      } catch (error) {
+        return { unavailable: true };
+      }
+    },
+    // reuse existing systems — no alternate logic
+    resolveLatestPackage: () => resolveLatestPackage(),
+    restartInteractive: () => {
+      input.value = "";
+      updateCursor();
+      setTerminalState("ready");
+    },
+    restartBoot: () => { location.reload(); },
+    resetSession: () => {
+      const fresh = VDI.createSession();
+      Object.keys(session).forEach((key) => { delete session[key]; });
+      Object.assign(session, fresh);
+      commandHistory.length = 0;
+      historyCursor = 0;
+    },
+    setViewportOverride: (mode) => {
+      document.documentElement.dataset.viewportOverride = mode;
+    },
+  });
+}
+
 async function runGlitchPreview() {
   status.hidden = true;
   form.classList.add("loading");
