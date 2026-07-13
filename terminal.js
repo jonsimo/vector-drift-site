@@ -48,6 +48,9 @@ const timeScale = Math.min(1, Math.max(0.05, parseFloat(bootParams.get("speed"))
 // Dev: ?auto skips the connect/continue gates so a headless render can advance.
 const autoAdvance = bootParams.has("auto");
 let mobileMode = false;
+// The main boot audio starts on the key press; hold the visuals this long so
+// they line up with the track (without trimming the audio's intro).
+const mainBootLeadMs = 500;
 
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms * timeScale));
@@ -77,6 +80,15 @@ function initAudio() {
   }
   noiseBuffer = buffer;
   sfxEnabled = true;
+
+  // Decode the hum for a gapless Web Audio loop (ready before the main track ends).
+  if (!humBuffer) {
+    fetch(humUrl)
+      .then((response) => response.arrayBuffer())
+      .then((data) => audioCtx.decodeAudioData(data))
+      .then((decoded) => { humBuffer = decoded; })
+      .catch(() => {});
+  }
 }
 
 function sfxNoiseHit({ freq, q = 1, type = "bandpass", dur = 0.012, gain = 0.5, rate = 1, lp = 0 }) {
@@ -136,28 +148,61 @@ function sfxKey() {
 // initial -> (no key) hum loop; key press -> main sequence -> hum loop.
 let bootAudio = null;
 let linkEstablished = false;
+const humUrl = "assets/computer_hum_looping2.mp3";
+let humBuffer = null;
+let humSource = null;
+
+function stopHum() {
+  if (humSource) {
+    try {
+      humSource.stop();
+    } catch (error) {
+      // already stopped
+    }
+    humSource = null;
+  }
+  if (bootAudio) {
+    bootAudio.hum.pause();
+  }
+}
+
+function startHum() {
+  // Gapless sample-accurate loop via Web Audio when the buffer is decoded;
+  // HTMLAudio (which has an mp3 loop gap) is only the pre-gesture fallback.
+  if (audioCtx && humBuffer) {
+    stopHum();
+    humSource = audioCtx.createBufferSource();
+    humSource.buffer = humBuffer;
+    humSource.loop = true;
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.5;
+    humSource.connect(gain).connect(audioCtx.destination);
+    humSource.start();
+  } else if (bootAudio) {
+    bootAudio.hum.play().catch(() => {});
+  }
+}
 
 function setupBootAudio() {
   if (bootAudio || autoAdvance) {
     return;
   }
   const initial = new Audio("assets/initial_boot_sound.mp3");
-  const hum = new Audio("assets/computer_hum_looping2.mp3");
+  const hum = new Audio(humUrl);
   const main = new Audio("assets/main_boot_sequence_v2.mp3");
   const beep = new Audio("assets/console_beep_v2.mp3");
   hum.loop = true;
   initial.volume = 0.75;
   hum.volume = 0.5;
   main.volume = 0.85;
-  beep.volume = 0.8;
-  const startHum = () => hum.play().catch(() => {});
+  beep.volume = 0.6;
   initial.addEventListener("ended", () => {
     if (!linkEstablished) {
       startHum();
     }
   });
-  main.addEventListener("ended", startHum);
-  bootAudio = { initial, hum, main, beep, startHum };
+  main.addEventListener("ended", () => startHum());
+  bootAudio = { initial, hum, main, beep };
 }
 
 function playConsoleBeep() {
@@ -183,8 +228,7 @@ function establishLinkAudio() {
   }
   linkEstablished = true;
   bootAudio.initial.pause();
-  bootAudio.hum.pause();
-  bootAudio.hum.currentTime = 0;
+  stopHum();
   bootAudio.main.currentTime = 0;
   bootAudio.main.play().catch(() => {});
 }
@@ -974,6 +1018,7 @@ async function runBoot() {
 
   // Connect gate: a blinking prompt whose first key/tap unlocks audio.
   await waitForConnect();
+  await sleep(mainBootLeadMs);
 
   // A lone cursor blinks by itself before anything is typed.
   const openingLines = [""];
@@ -1230,6 +1275,7 @@ async function runBootMobile() {
 
   // Connect gate.
   await waitForConnect();
+  await sleep(mainBootLeadMs);
 
   // Lone cursor, then the search command types on (narrow).
   const openingLines = [""];
