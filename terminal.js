@@ -1093,11 +1093,14 @@ async function waitForContinue() {
   });
 }
 
-async function activateRootPrompt(startedAt) {
-  output.innerHTML = "";
-  output.scrollTop = 0;
-  output.scrollLeft = 0;
-  output.style.transform = "none";
+async function activateRootPrompt(startedAt, opts) {
+  opts = opts || {};
+  if (!opts.keepOutput) {
+    output.innerHTML = "";
+    output.scrollTop = 0;
+    output.scrollLeft = 0;
+    output.style.transform = "none";
+  }
   status.replaceChildren();
   status.hidden = true;
   terminalHeader.hidden = false;
@@ -1107,8 +1110,10 @@ async function activateRootPrompt(startedAt) {
   form.classList.remove("loading");
   setTerminalState("booting");
   input.disabled = true;
-  // Hard clear -> short black-screen hold.
-  await sleep(randomBetween(180, 240));
+  // Console rests on the ambient computer-hum loop.
+  if (bootAudio) { try { bootAudio.main.pause(); } catch (e) {} startHum(); }
+  // Hard clear -> short black-screen hold (skipped when keeping the logo on screen).
+  if (!opts.keepOutput) { await sleep(randomBetween(180, 240)); }
 
   if (mobileMode) {
     // Mobile: the prompt flows in the output and moves down with each command.
@@ -1153,7 +1158,9 @@ async function runBoot() {
   // Connect gate: a blinking prompt whose first key/tap unlocks audio.
   await waitForConnect();
   bootAudioT0 = performance.now();
-  await sleep(mainBootLeadMs);
+  // Desktop: hold the visuals 200ms longer so the main boot SFX starts 200ms
+  // earlier relative to the visual boot.
+  await sleep(mainBootLeadMs + (mobileMode ? 0 : 200));
 
   // A lone cursor blinks by itself before anything is typed.
   const openingLines = [""];
@@ -1337,9 +1344,12 @@ async function runBoot() {
   await runAxiomReveal(observerLine, cortexLine, resolvingLine);
 
   rewriteStatus(loaderStatuses[4]);
-  await runFinalOnlineSummary();
+  // BETA sequence: gauges (end of boot) -> press any key -> logo animates on
+  // -> console prompt + beep only after the logo is done.
+  if (window.renderBootGauges) await window.renderBootGauges();
   await waitForContinue();
-  await activateRootPrompt(startedAt);
+  if (window.renderLogoBanner) await window.renderLogoBanner();
+  await activateRootPrompt(startedAt, { keepOutput: true });
 }
 
 async function runFinalOnlineSummaryMobile() {
@@ -1568,9 +1578,12 @@ async function runBootMobile() {
   });
 
   rewriteStatus("io>loader/ ready");
-  await runFinalOnlineSummaryMobile();
+  // BETA sequence: gauges (end of boot) -> press any key -> logo animates on
+  // -> console prompt + beep only after the logo is done.
+  if (window.renderBootGauges) await window.renderBootGauges();
   await waitForContinue();
-  await activateRootPrompt(startedAt);
+  if (window.renderLogoBanner) await window.renderLogoBanner({ mobile: true });
+  await activateRootPrompt(startedAt, { keepOutput: true });
 }
 
 function normalizeCommand(command) {
@@ -2370,10 +2383,31 @@ async function runGlitchPreview() {
   await runAxiomReveal(observerLine, cortexLine, resolvingLine);
 }
 
+// DEV: ?end skips the boot and plays only the end sequence (gauges -> logo ->
+// console) so the banner can be reviewed without watching the full boot.
+// Combine with ?noanim (instant), ?gaugehold (freeze on gauges), ?drift=.
+async function runEndSequence() {
+  bootStarted = true;
+  const startedAt = performance.now();
+  input.disabled = true;
+  form.classList.add("loading");
+  status.hidden = true;
+  if (window.renderBootGauges) await window.renderBootGauges();
+  await waitForContinue();
+  if (window.renderLogoBanner) {
+    await window.renderLogoBanner(mobileMode ? { mobile: true } : undefined);
+  }
+  await activateRootPrompt(startedAt, { keepOutput: true });
+}
+
 window.addEventListener("load", () => {
   mobileMode = isMobileDevice() || bootParams.get("view") === "mobile";
   if (mobileMode) {
     document.body.classList.add("mobile");
+  }
+  if (bootParams.has("end")) {
+    runEndSequence();
+    return;
   }
   if (bootParams.get("scene") === "glitch") {
     runGlitchPreview();

@@ -1,0 +1,154 @@
+/* Vector Drift — scratch logo-reveal beta styles (BANNER model).
+   The VECTOR DRIFT logo is an in-flow banner at the TOP of the console output;
+   the prompt is reordered BELOW the output so typed commands push everything up
+   and the banner scrolls off the top. Font lives in vd-font.css.
+   Phosphor hue matches the live site (cyan #11cab8 / 17,202,184). */
+
+/* ---- console reorder: prompt sits BELOW the output (banner on top) ---- */
+/* Top-anchor the terminal (logo near the top of the page) with a bit of padding,
+   and let the box hug its content so the prompt sits right under the banner. */
+body.vd-banner-active .terminal-stage { align-items: flex-start; padding-top: 6vh; }
+body.vd-banner-active .terminal-window,
+body.vd-banner-active .terminal-screen,
+body.vd-banner-active .terminal-content { height: auto; }
+
+.terminal-content.vd-console { justify-content: flex-start; }
+.terminal-content.vd-console .terminal-output {
+  order: 1;
+  flex: none;          /* hug content so the prompt follows right after the divider */
+  height: auto;        /* override the live boot's fixed 29.82em output height */
+  max-height: 62vh;    /* cap + scroll once command history fills in */
+  overflow: hidden;
+}
+.terminal-content.vd-console .terminal-header {
+  order: 2;
+  flex: none;
+  height: auto;
+  margin: 2.44em 0 0;   /* ~2 line breaks between the divider and the prompt */
+}
+
+/* ---- banner ---- */
+.vd-banner {
+  --phos: #11cab8;
+  --hot: #aef9e6;
+  --glitch: #24f5cf;
+  --dim: rgba(17, 202, 184, 0.45);
+  --lf: clamp(6px, 2.15vw, 20px);
+  --glow: 0 0 3px rgba(17, 202, 184, 0.92), 0 0 10px rgba(17, 202, 184, 0.52), 0 0 20px rgba(17, 202, 184, 0.2);
+  --glow-hot: 0 0 4px rgba(174, 249, 230, 0.95), 0 0 14px rgba(36, 245, 207, 0.6), 0 0 34px rgba(36, 245, 207, 0.28);
+  display: block;
+  text-align: left;
+  padding: 0.6em 0 0.4em;
+}
+
+/* loading gauges (progress bars) shown before the logo */
+.vd-banner .vd-loading {
+  font-family: "Glass TTY VT220", "Courier New", monospace;
+  color: var(--dim);
+  text-shadow: var(--glow);
+}
+.vd-banner .vd-gauge-line { white-space: pre; line-height: 1.42; }
+
+/* logo */
+.vd-banner #stage { display: block; width: max-content; max-width: 100%; }
+.vd-banner #logo { text-align: left; opacity: 0; }
+.vd-banner #logo pre {
+  margin: 0;
+  font-family: "VD Logo Mono", "DejaVu Sans Mono", "Menlo", "Consolas", "Courier New", monospace;
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  text-align: left;
+  text-shadow: var(--glow);
+}
+.vd-banner #vec { font-size: var(--lf, 12px); line-height: 1.02; }
+.vd-banner #driftrow {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  margin: 0.12em 0 0 -3.8em;   /* shift word + gauge lines left (D under E) */
+  font-size: var(--lf, 12px);
+}
+.vd-banner #speed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.72em;
+  align-items: flex-end;
+  margin-right: 0.7em;
+  transform: translateY(0.05em);
+}
+.vd-banner #speed i {
+  display: block;
+  height: 0.28em;
+  background: var(--phos);
+  box-shadow: var(--glow);
+  border-radius: 1px;
+  transform: scaleX(0);
+  transform-origin: right center;
+}
+.vd-banner #speed i:nth-child(1) { width: 9em;   margin-right: 0;     opacity: 0.95; }
+.vd-banner #speed i:nth-child(2) { width: 7.3em; margin-right: 0.5em; opacity: 0.85; }
+.vd-banner #speed i:nth-child(3) { width: 5.6em; margin-right: 1em;   opacity: 0.7; }
+.vd-banner #speed i:nth-child(4) { width: 3.8em; margin-right: 1.5em; opacity: 0.55; }
+.vd-banner #logo.reveal #speed i { transform: scaleX(1); transition: transform 0.45s ease-out 0.6s; }
+
+/* Option 1: solid DRIFT (still skewed italic). */
+.vd-banner #dft {
+  font-size: 1em;
+  line-height: 1.02;
+  margin: 0;
+  color: var(--phos);
+  text-shadow: var(--glow);
+  transform: skewX(-15deg);
+  transform-origin: left center;
+}
+.vd-banner #logo .g { color: var(--glitch); text-shadow: 0 0 2px rgba(36, 245, 207, 0.7); opacity: 0.9; }
+.vd-banner #logo .hot { color: var(--hot); text-shadow: var(--glow-hot); }
+.vd-banner #logo.flash { animation: vdlflash 0.5s ease-out; }
+@keyframes vdlflash {
+  0%   { filter: brightness(2.3) drop-shadow(0 0 14px rgba(174, 249, 230, 0.85)); }
+  100% { filter: brightness(1); }
+}
+
+/* Option 2 (.drift-outline): hollow DRIFT — bigger + tracking. */
+.vd-banner.drift-outline #dft {
+  font-size: 1.1em;
+  letter-spacing: 0.1em;
+  color: #020604;
+  text-shadow:
+    0.05em 0 0 var(--phos), -0.05em 0 0 var(--phos), 0 0.05em 0 var(--phos), 0 -0.05em 0 var(--phos),
+    0.05em 0.05em 0 var(--phos), -0.05em -0.05em 0 var(--phos), 0.05em -0.05em 0 var(--phos), -0.05em 0.05em 0 var(--phos),
+    0 0 0.3em rgba(36, 245, 207, 0.5);
+}
+.vd-banner.drift-outline #dft .g,
+.vd-banner.drift-outline #dft .hot { text-shadow: 0 0 2px rgba(36, 245, 207, 0.7); }
+
+/* version line + solid divider beneath the logo (>=2 line breaks of space above) */
+.vd-banner .vd-meta {
+  margin-top: 1.2em;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.vd-banner .vd-meta.show { opacity: 1; }
+.vd-banner .vd-version {
+  display: block;
+  font-family: "Glass TTY VT220", "Courier New", monospace;
+  font-size: 0.82em;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  text-shadow: var(--glow);
+}
+.vd-banner .vd-divider {
+  border: 0;
+  border-top: 1px solid rgba(17, 202, 184, 0.55);
+  box-shadow: 0 0 6px rgba(17, 202, 184, 0.4);
+  margin: 0.45em 0 0;
+}
+
+@media (max-width: 600px) { .vd-banner #dft { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .vd-banner #logo.reveal #speed i { transition: none; }
+  .vd-banner #logo.flash { animation: none; }
+  .vd-banner .vd-meta { transition: none; }
+}
