@@ -67,6 +67,9 @@ let mobileMode = false;
 // The main boot audio starts on the key press; hold the visuals this long so
 // they line up with the track (without trimming the audio's intro).
 const mainBootLeadMs = 250;
+// The console beep plays, then the root prompt appears this much later so the
+// prompt lands on the beep rather than before it.
+const consoleBeepLeadMs = 250;
 // Absolute time (ms from audio start) of the glitch-sound onset in
 // main_boot_sequence. The visual glitch is anchored to this so it fires exactly
 // on the waveform onset every run, regardless of typing jitter.
@@ -1110,8 +1113,9 @@ async function activateRootPrompt(startedAt) {
   if (mobileMode) {
     // Mobile: the prompt flows in the output and moves down with each command.
     form.style.display = "none";
-    appendMobilePrompt("console>vector_drift:/root");
     playConsoleBeep();
+    await sleep(consoleBeepLeadMs);
+    appendMobilePrompt("console>vector_drift:/root");
     await sleep(randomBetween(150, 190));
     input.disabled = false;
     input.focus();
@@ -1120,10 +1124,11 @@ async function activateRootPrompt(startedAt) {
     return;
   }
 
-  // Root prompt appears (beep over the hum); cursor blinks before input.
+  // Beep plays, then the root prompt appears on the beep; cursor blinks before input.
+  playConsoleBeep();
+  await sleep(consoleBeepLeadMs);
   setPromptPrefix();
   updateCursor();
-  playConsoleBeep();
   await sleep(randomBetween(150, 190));
   input.disabled = false;
   input.focus();
