@@ -379,7 +379,7 @@ a {
   z-index: 2;
   max-width: 680px;
   padding: 8vh 8vw;
-  color: #11caa5;
+  color: #11cab8;
   font-family: "Courier New", monospace;
 }
 
@@ -598,7 +598,7 @@ a {
 .terminal-home .terminal-status,
 .terminal-home .terminal-output,
 .terminal-home .terminal-form {
-  text-shadow: 0 0 2.3px rgba(17, 202, 165, 0.82), 0 0 8px rgba(17, 202, 165, 0.42), 0 0 16px rgba(17, 202, 165, 0.14);
+  text-shadow: 0 0 2.3px rgba(17, 202, 184, 0.82), 0 0 8px rgba(17, 202, 184, 0.42), 0 0 16px rgba(17, 202, 184, 0.14);
   filter: blur(0.242px);
 }
 
@@ -611,7 +611,7 @@ a {
 /* Vector Drift boot console. */
 body.terminal-home {
   background: #000;
-  color: #11caa5;
+  color: #11cab8;
   font-family: "Glass TTY VT220", "Courier New", monospace;
 }
 
@@ -652,8 +652,8 @@ body.terminal-home {
   font-weight: 400;
   line-height: 1.42;
   letter-spacing: 0.035em;
-  color: #11caa5;
-  text-shadow: 0 0 3px rgba(17, 202, 165, 0.92), 0 0 10px rgba(17, 202, 165, 0.52), 0 0 20px rgba(17, 202, 165, 0.2);
+  color: #11cab8;
+  text-shadow: 0 0 3px rgba(17, 202, 184, 0.92), 0 0 10px rgba(17, 202, 184, 0.52), 0 0 20px rgba(17, 202, 184, 0.2);
   filter: blur(0.22px);
 }
 
@@ -740,7 +740,7 @@ body.terminal-home {
 .terminal-home .terminal-input,
 .terminal-home .output-line.command,
 .terminal-home .output-line.error {
-  color: #11caa5;
+  color: #11cab8;
   font: inherit;
   text-shadow: inherit;
 }
@@ -749,19 +749,19 @@ body.terminal-home {
   top: 0.18em;
   width: 0.42em;
   height: 0.92em;
-  background: #11caa5;
-  box-shadow: 0 0 5px rgba(17, 202, 165, 0.86), 0 0 13px rgba(17, 202, 165, 0.42);
+  background: #11cab8;
+  box-shadow: 0 0 5px rgba(17, 202, 184, 0.86), 0 0 13px rgba(17, 202, 184, 0.42);
   animation-duration: 0.815s;
 }
 
 .terminal-home .terminal-status,
 .terminal-home .terminal-output,
 .terminal-home .terminal-form {
-  text-shadow: 0 0 2px rgba(17, 202, 165, 0.82), 0 0 7px rgba(17, 202, 165, 0.42), 0 0 14px rgba(17, 202, 165, 0.14);
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.82), 0 0 7px rgba(17, 202, 184, 0.42), 0 0 14px rgba(17, 202, 184, 0.14);
 }
 
 .terminal-home .phosphor-block {
-  text-shadow: 0 0 2px rgba(17, 202, 165, 0.84), 0 0 6px rgba(17, 202, 165, 0.34);
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.84), 0 0 6px rgba(17, 202, 184, 0.34);
 }
 
 .terminal-home .phosphor-block-0 {
@@ -945,7 +945,7 @@ body.terminal-home::after {
 /* Final mock-specific overrides: deliberately unframed terminal material. */
 body.terminal-home {
   background: #010604;
-  color: #11caa5;
+  color: #11cab8;
   font-family: "Glass TTY VT220", "Courier New", monospace;
   --terminal-frame-height: min(78vh, 900px);
   --terminal-origin-y: calc((100vh - var(--terminal-frame-height)) / 2);
@@ -996,7 +996,7 @@ body.terminal-home {
   inset: 0;
   pointer-events: none;
   z-index: 40;
-  background: radial-gradient(ellipse at 50% 42%, rgba(17, 202, 165, 0.05), rgba(0, 0, 0, 0) 60%);
+  background: radial-gradient(ellipse at 50% 42%, rgba(17, 202, 184, 0.022), rgba(0, 0, 0, 0) 72%);
 }
 
 .terminal-home .screen-scanlines {
@@ -1005,15 +1005,15 @@ body.terminal-home {
   inset: 0;
   pointer-events: none;
   z-index: 60;
+  /* Faint green lines so the scanlines read even over black background. */
   background: repeating-linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.16) 0,
-    rgba(0, 0, 0, 0.16) 1px,
+    rgba(17, 202, 184, 0.055) 0,
+    rgba(17, 202, 184, 0.055) 1px,
     rgba(0, 0, 0, 0) 1px,
     rgba(0, 0, 0, 0) 3px
   );
-  opacity: 0.5;
-  animation: crtStrobe 5.5s ease-in-out infinite;
+  opacity: 0.75;
 }
 
 .terminal-home .screen-scanlines::after {
@@ -1022,38 +1022,69 @@ body.terminal-home {
   left: 0;
   right: 0;
   top: 0;
-  height: 34vh;
-  background: linear-gradient(to bottom, rgba(17, 202, 165, 0), rgba(17, 202, 165, 0.045) 50%, rgba(17, 202, 165, 0));
-  animation: crtRoll 9s linear infinite;
-}
-
-@keyframes crtStrobe {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.6; }
+  height: 64vh;
+  background: linear-gradient(to bottom, rgba(17, 202, 184, 0), rgba(17, 202, 184, 0.02) 50%, rgba(17, 202, 184, 0));
+  filter: blur(10px);
+  animation: crtRoll 24s linear infinite;
 }
 
 @keyframes crtRoll {
-  0% { transform: translateY(-34vh); }
-  100% { transform: translateY(100vh); }
+  0% { transform: translateY(-70vh); }
+  100% { transform: translateY(115vh); }
 }
 
-@keyframes textFlicker {
-  0%, 87%, 100% { opacity: 1; }
-  89% { opacity: 0.9; }
+/* Authentic CRT flicker: fast, irregular luminance grain on the text (mirrors the
+   canonical 0.15s many-step technique) so the eye reads noise, not a loop. Acts on
+   text opacity, so it modulates the glowing phosphor, not the black background. A
+   slow coprime drift on the container multiplies in, breaking any perceived repeat. */
+@keyframes phosphorFlicker {
+  0% { opacity: 1; }
+  5% { opacity: 0.93; }
+  10% { opacity: 1; }
+  15% { opacity: 0.84; }
+  20% { opacity: 1; }
+  25% { opacity: 0.9; }
+  30% { opacity: 1; }
+  35% { opacity: 0.8; }
+  40% { opacity: 0.98; }
+  45% { opacity: 1; }
+  50% { opacity: 0.86; }
+  55% { opacity: 1; }
+  60% { opacity: 0.95; }
+  65% { opacity: 0.78; }
+  70% { opacity: 1; }
+  75% { opacity: 0.92; }
+  80% { opacity: 1; }
+  85% { opacity: 0.85; }
   90% { opacity: 1; }
-  95% { opacity: 0.94; }
-  96% { opacity: 1; }
+  95% { opacity: 0.9; }
+  100% { opacity: 1; }
+}
+
+@keyframes phosphorDrift {
+  0% { opacity: 1; }
+  17% { opacity: 0.97; }
+  34% { opacity: 1; }
+  53% { opacity: 0.95; }
+  71% { opacity: 1; }
+  88% { opacity: 0.98; }
+  100% { opacity: 1; }
+}
+
+.terminal-home .terminal-content {
+  animation: phosphorDrift 2.1s linear infinite;
 }
 
 .terminal-home .terminal-status,
 .terminal-home .terminal-output,
 .terminal-home .terminal-form {
-  animation: textFlicker 6.5s linear infinite;
+  animation: phosphorFlicker 0.15s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .terminal-home .screen-scanlines,
   .terminal-home .screen-scanlines::after,
+  .terminal-home .terminal-content,
   .terminal-home .terminal-status,
   .terminal-home .terminal-output,
   .terminal-home .terminal-form {
@@ -1070,8 +1101,8 @@ body.terminal-home {
   font-weight: 400;
   line-height: var(--terminal-line-height);
   letter-spacing: 0.035em;
-  color: #11caa5;
-  text-shadow: 0 0 2px rgba(17, 202, 165, 0.74), 0 0 12px rgba(17, 202, 165, 0.42), 0 0 28px rgba(17, 202, 165, 0.16);
+  color: #11cab8;
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.74), 0 0 12px rgba(17, 202, 184, 0.42), 0 0 28px rgba(17, 202, 184, 0.16);
   filter: blur(0.28px);
   padding-left: 0.18em;
 }
@@ -1213,14 +1244,14 @@ body.terminal-home {
 @keyframes errorPulse {
   50% {
     opacity: 1;
-    text-shadow: 0 0 4px rgba(17, 202, 165, 0.94), 0 0 18px rgba(17, 202, 165, 0.5), 0 0 34px rgba(17, 202, 165, 0.18);
+    text-shadow: 0 0 4px rgba(17, 202, 184, 0.94), 0 0 18px rgba(17, 202, 184, 0.5), 0 0 34px rgba(17, 202, 184, 0.18);
   }
 }
 
 .terminal-home .terminal-input,
 .terminal-home .output-line.command,
 .terminal-home .output-line.error {
-  color: #11caa5;
+  color: #11cab8;
   font: inherit;
   text-shadow: inherit;
   filter: inherit;
@@ -1229,7 +1260,7 @@ body.terminal-home {
 .terminal-home .terminal-input,
 .terminal-home .prompt-prefix {
   font-variant-ligatures: none;
-  text-shadow: 0 0 2px rgba(17, 202, 165, 0.74), 0 0 12px rgba(17, 202, 165, 0.42), 0 0 28px rgba(17, 202, 165, 0.16);
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.74), 0 0 12px rgba(17, 202, 184, 0.42), 0 0 28px rgba(17, 202, 184, 0.16);
   filter: blur(0.28px);
 }
 
@@ -1241,8 +1272,8 @@ body.terminal-home {
   height: 0.92em;
   margin-left: 0.04em;
   transform: translateY(0.12em);
-  background: #11caa5;
-  box-shadow: 0 0 5px rgba(17, 202, 165, 0.86), 0 0 13px rgba(17, 202, 165, 0.42);
+  background: #11cab8;
+  box-shadow: 0 0 5px rgba(17, 202, 184, 0.86), 0 0 13px rgba(17, 202, 184, 0.42);
   animation-duration: 0.815s;
 }
 
@@ -1258,7 +1289,7 @@ body.terminal-home {
 }
 
 .terminal-home .terminal-action:focus-visible {
-  outline: 1px solid rgba(17, 202, 165, 0.55);
+  outline: 1px solid rgba(17, 202, 184, 0.55);
   outline-offset: 2px;
 }
 
@@ -1268,8 +1299,8 @@ body.terminal-home {
   height: 0.92em;
   margin-left: 0.04em;
   transform: translateY(0.12em);
-  background: #11caa5;
-  box-shadow: 0 0 5px rgba(17, 202, 165, 0.78), 0 0 13px rgba(17, 202, 165, 0.36);
+  background: #11cab8;
+  box-shadow: 0 0 5px rgba(17, 202, 184, 0.78), 0 0 13px rgba(17, 202, 184, 0.36);
   animation: cursorBlink 0.815s steps(1, end) infinite;
 }
 
@@ -1296,14 +1327,14 @@ body.terminal-home {
   text-shadow:
     0 0 4px rgba(140, 255, 235, 0.95),
     0 0 14px rgba(40, 220, 190, 0.9),
-    0 0 30px rgba(17, 202, 165, 0.6);
+    0 0 30px rgba(17, 202, 184, 0.6);
   filter: none;
 }
 
 .terminal-home .terminal-status,
 .terminal-home .terminal-output,
 .terminal-home .terminal-form {
-  text-shadow: 0 0 2px rgba(17, 202, 165, 0.72), 0 0 12px rgba(17, 202, 165, 0.4), 0 0 28px rgba(17, 202, 165, 0.16);
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.72), 0 0 12px rgba(17, 202, 184, 0.4), 0 0 28px rgba(17, 202, 184, 0.16);
 }
 
 .terminal-home .phosphor-block-0 {
@@ -1330,7 +1361,7 @@ body.terminal-home {
   display: inline;
   white-space: pre;
   font-variant-ligatures: none;
-  text-shadow: 0 0 2px rgba(17, 202, 165, 0.72), 0 0 13px rgba(17, 202, 165, 0.38), 0 0 30px rgba(17, 202, 165, 0.14);
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.72), 0 0 13px rgba(17, 202, 184, 0.38), 0 0 30px rgba(17, 202, 184, 0.14);
 }
 
 /* Dedicated mobile (portrait) layout: top-anchored, full width, crisp (no blur
@@ -1369,7 +1400,7 @@ body.terminal-home {
     letter-spacing: 0;
     padding-left: 0;
     filter: none;
-    text-shadow: 0 0 2px rgba(17, 202, 165, 0.72), 0 0 9px rgba(17, 202, 165, 0.42), 0 0 20px rgba(17, 202, 165, 0.16);
+    text-shadow: 0 0 2px rgba(17, 202, 184, 0.72), 0 0 9px rgba(17, 202, 184, 0.42), 0 0 20px rgba(17, 202, 184, 0.16);
   }
 
   .terminal-home .terminal-status {
@@ -1392,7 +1423,7 @@ body.terminal-home {
   .terminal-home .prompt-prefix,
   .terminal-home .phosphor-block {
     filter: none;
-    text-shadow: 0 0 2px rgba(17, 202, 165, 0.72), 0 0 9px rgba(17, 202, 165, 0.42), 0 0 18px rgba(17, 202, 165, 0.16);
+    text-shadow: 0 0 2px rgba(17, 202, 184, 0.72), 0 0 9px rgba(17, 202, 184, 0.42), 0 0 18px rgba(17, 202, 184, 0.16);
   }
 
   .terminal-home .glitch-hot {
