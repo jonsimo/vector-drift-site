@@ -457,6 +457,7 @@
       P("AVAILABLE COMMANDS"),
       P(""),
       P("download.exe     retrieve authorized beta package"),
+      P("snake.exe        load ascii snake   (arrows / WASD, Q quits)"),
       P("status           inspect current runtime state"),
       P("inspect          inspect mounted system objects"),
       P("whoami           resolve local session identity"),
@@ -465,7 +466,7 @@
       P("clear            clear terminal output"),
       P("exit             request session termination"),
       P(""),
-      P("additional interfaces unavailable"),
+      P("the parser also answers plain language — try asking it things"),
     ];
   }
 

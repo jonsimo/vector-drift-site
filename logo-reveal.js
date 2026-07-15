@@ -109,6 +109,7 @@ async function gaugeBar(host, file, totalMs) {
 window.renderBootGauges = async function () {
   const out = OUT();
   if (!out) return;
+  if (window.__vdSkip) return;   // 3-Enter skip: no gauges
   const host = document.createElement("div");
   host.className = "vd-loading";
   out.appendChild(host);
@@ -166,7 +167,7 @@ window.renderLogoBanner = async function (opts) {
   // 2) Reveal the logo (engine timing is already 25% slower than the demo).
   const id = ++runId;
   const params = new URLSearchParams(location.search);
-  const noAnim = params.has("noanim") ||
+  const noAnim = window.__vdSkip || params.has("noanim") ||
     (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   logo.style.opacity = "1";
   setTimeout(function () { playSfx(writeOnSfx); }, 150);   // write-on, delayed 150ms

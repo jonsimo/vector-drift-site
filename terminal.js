@@ -9,6 +9,8 @@ const commandText = document.getElementById("terminal-command");
 const inputShell = document.querySelector(".input-shell");
 
 let bootStarted = false;
+let bootActive = false;   // true during the boot; gates the 3-Enter skip
+let bootSkip = false;     // 3 quick Enters -> fast-cut to logo + prompt
 let mobileLive = null;
 let terminalState = "booting";
 let activeTransfer = null;
@@ -23,6 +25,7 @@ let sudoUseCount = 0;
 // and response *selection*; this file interprets the returned step data.
 const VDI = window.VDIntents;
 const session = VDI.createSession();
+const SNAKE_CMDS = new Set(["snake", "snake.exe", "play snake", "run snake", "snake game"]);
 const rng = Math.random;
 // True while a response sequence is running; blocks a second submit so async
 // sequences can never overlap. Input stays editable, only Enter is a no-op.
@@ -77,13 +80,35 @@ const glitchAudioMs = 13580;
 let bootAudioT0 = 0;
 
 function sleep(ms) {
+  if (bootSkip) return Promise.resolve();
   return new Promise((resolve) => window.setTimeout(resolve, ms * timeScale));
+}
+
+// 3 quick Enter presses during the boot -> fast-cut to the logo + prompt.
+let bootEnterStamps = [];
+function triggerBootSkip() {
+  if (bootSkip) return;
+  bootSkip = true;
+  window.__vdSkip = true;
+  if (bootAudio) { try { bootAudio.main.pause(); bootAudio.initial.pause(); } catch (e) {} }
+}
+function bootEnterWatch(e) {
+  if (!bootActive || bootSkip || e.key !== "Enter") return;
+  const now = performance.now();
+  bootEnterStamps.push(now);
+  bootEnterStamps = bootEnterStamps.filter((t) => now - t < 900);
+  if (bootEnterStamps.length >= 3) triggerBootSkip();
+}
+window.addEventListener("keydown", bootEnterWatch, true);
+// Dev: ?bootskip triggers the skip shortly after load (headless test of the path).
+if (bootParams.has("bootskip")) {
+  window.addEventListener("load", function () { setTimeout(triggerBootSkip, 150); });
 }
 
 // Wait until `targetMs` (from audio start) has elapsed. Scales with timeScale so
 // dev fast-forward still works; a no-op if the audio clock isn't set.
 function waitUntilFromAudio(targetMs) {
-  if (!bootAudioT0) {
+  if (bootSkip || !bootAudioT0) {
     return Promise.resolve();
   }
   const remaining = bootAudioT0 + targetMs * timeScale - performance.now();
@@ -1036,6 +1061,7 @@ async function runFinalOnlineSummary() {
 }
 
 async function waitForConnect() {
+  if (bootSkip) return;
   const text = mobileMode
     ? "TAP TO ESTABLISH LINK"
     : "PRESS ANY KEY TO ESTABLISH COMMUNICATION LINK";
@@ -1107,7 +1133,7 @@ async function waitForContinue() {
   appendLine("");
   const line = appendLine(mobileMode ? "TAP TO CONTINUE" : "PRESS ANY KEY TO CONTINUE", "press-any-key");
 
-  if (autoAdvance) {
+  if (autoAdvance || bootSkip) {
     await sleep(300);
     line.classList.remove("press-any-key");
     return;
@@ -1134,6 +1160,7 @@ async function waitForContinue() {
 
 async function activateRootPrompt(startedAt, opts) {
   opts = opts || {};
+  bootActive = false;   // console reached -> close the 3-Enter skip window
   if (!opts.keepOutput) {
     output.innerHTML = "";
     output.scrollTop = 0;
@@ -1186,6 +1213,7 @@ async function runBoot() {
   }
 
   bootStarted = true;
+  bootActive = true;
   const startedAt = performance.now();
   input.disabled = true;
   promptPrefix.textContent = "";
@@ -1449,6 +1477,7 @@ async function runBootMobile() {
   fitMobileFont();
   window.addEventListener("resize", fitMobileFont);
   bootStarted = true;
+  bootActive = true;
   const startedAt = performance.now();
   input.disabled = true;
   promptPrefix.textContent = "";
@@ -2071,6 +2100,14 @@ function renderHistoryDisplay() {
 }
 
 async function runCommand(command, normalized) {
+  // Loadable ASCII game — intercept before the intent system.
+  if (window.VDSnake && SNAKE_CMDS.has(normalized)) {
+    appendResponse("loading snake.exe ...", "terminal-meta");
+    await window.VDSnake.launch({ output: output, onEat: playConsoleBeep });
+    appendResponse("snake.exe // session ended", "terminal-meta");
+    return;
+  }
+
   const resolution = VDI.resolveCommand(normalized);
 
   if (resolution.kind === "empty") {
@@ -2425,6 +2462,7 @@ async function runGlitchPreview() {
 // Combine with ?noanim (instant), ?gaugehold (freeze on gauges), ?drift=.
 async function runEndSequence() {
   bootStarted = true;
+  bootActive = true;
   const startedAt = performance.now();
   input.disabled = true;
   form.classList.add("loading");
