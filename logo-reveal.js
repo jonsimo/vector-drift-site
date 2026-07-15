@@ -98,8 +98,8 @@ async function gaugeBar(host, file, totalMs) {
   for (let i = 1; i <= N; i++) {
     const p = (i === N) ? 1 : Math.max(0, Math.min(0.96, i / N + (Math.random() - 0.5) * 0.18));
     const fl = Math.round(p * W);
-    const bar = '<span class="g-fill">' + "#".repeat(fl) + "</span>" + "-".repeat(W - fl);
-    el.innerHTML = "LOADING:/ " + item + "  [" + bar + "]  " + String(Math.round(p * 100)).padStart(3) + "%";
+    const bar = "#".repeat(fl) + "-".repeat(W - fl);
+    el.textContent = "LOADING:/ " + item + "  [" + bar + "]  " + String(Math.round(p * 100)).padStart(3) + "%";
     const out = OUT(); if (out) out.scrollTop = out.scrollHeight;
     await sleep(totalMs / N);
   }
