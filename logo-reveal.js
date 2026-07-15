@@ -98,8 +98,8 @@ async function gaugeBar(host, file, totalMs) {
   for (let i = 1; i <= N; i++) {
     const p = (i === N) ? 1 : Math.max(0, Math.min(0.96, i / N + (Math.random() - 0.5) * 0.18));
     const fl = Math.round(p * W);
-    const bar = "#".repeat(fl) + "-".repeat(W - fl);
-    el.textContent = "LOADING:/ " + item + "  [" + bar + "]  " + String(Math.round(p * 100)).padStart(3) + "%";
+    const bar = '<span class="g-fill">' + "#".repeat(fl) + "</span>" + "-".repeat(W - fl);
+    el.innerHTML = "LOADING:/ " + item + "  [" + bar + "]  " + String(Math.round(p * 100)).padStart(3) + "%";
     const out = OUT(); if (out) out.scrollTop = out.scrollHeight;
     await sleep(totalMs / N);
   }
@@ -169,7 +169,7 @@ window.renderLogoBanner = async function (opts) {
   const noAnim = params.has("noanim") ||
     (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   logo.style.opacity = "1";
-  playSfx(writeOnSfx);   // write-on sound as the logo animates in
+  setTimeout(function () { playSfx(writeOnSfx); }, 150);   // write-on, delayed 150ms
   const showStatic = function () {
     const vP = makePanel(vec, "VECTOR", 0), dP = makePanel(dft, "DRIFT", 0);
     curPanels = [vP, dP];
@@ -241,7 +241,7 @@ function mountDither() {
   d.id = "vd-dither";
   document.body.appendChild(d);
 }
-function onReady() { mountDither(); mountDriftToggle(); mountWriteOnToggle(); }
+function onReady() { mountDither(); }   // A/B chips removed (choices locked)
 if (document.body) onReady();
 else document.addEventListener("DOMContentLoaded", onReady);
 })();

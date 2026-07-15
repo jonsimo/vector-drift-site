@@ -66,7 +66,7 @@ const autoAdvance = bootParams.has("auto");
 let mobileMode = false;
 // Hold the visuals this long after the key press so they line up with the main
 // boot track (v5).
-const mainBootLeadMs = 200;
+const mainBootLeadMs = 400;
 // The console beep plays, then the root prompt appears this much later so the
 // prompt lands on the beep rather than before it.
 const consoleBeepLeadMs = 250;

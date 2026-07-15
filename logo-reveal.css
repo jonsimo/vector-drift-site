@@ -42,16 +42,15 @@ body.vd-banner-active .terminal-content { height: auto; }
 }
 
 /* loading gauges (progress bars) shown before the logo */
-/* Gauges render in #terminal-output during the boot (NOT inside .vd-banner), so
-   these are scoped to .terminal-home, not .vd-banner. Strict monospace so the
-   LOADING:/ columns align (Glass TTY's space width doesn't). */
-.terminal-home .vd-loading {
-  font-family: "Courier New", "Courier", monospace;
-  font-weight: 700;
-  color: rgba(17, 202, 184, 0.66);
-  text-shadow: 0 0 2px rgba(17, 202, 184, 0.5);
+/* Gauges render in #terminal-output during the boot (NOT inside .vd-banner).
+   They inherit the boot's Glass TTY look; the ONLY thing needed for alignment is
+   white-space:pre so the padding spaces don't collapse (that was the bug). */
+.terminal-home .vd-gauge-line { white-space: pre; line-height: 1.42; }
+/* gauge fill slightly brighter + glowier than the surrounding text */
+.terminal-home .vd-gauge-line .g-fill {
+  color: #7ffce8;
+  text-shadow: 0 0 3px rgba(126, 252, 232, 0.85), 0 0 7px rgba(17, 202, 184, 0.55);
 }
-.terminal-home .vd-gauge-line { white-space: pre; line-height: 1.42; letter-spacing: 0; }
 
 /* logo */
 .vd-banner #stage { display: block; width: max-content; max-width: 100%; }
@@ -163,7 +162,7 @@ body.vd-banner-active .terminal-content { height: auto; }
   inset: 0;
   z-index: 40;
   pointer-events: none;
-  opacity: 0.06;
+  opacity: 0.13;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
