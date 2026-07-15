@@ -42,12 +42,16 @@ body.vd-banner-active .terminal-content { height: auto; }
 }
 
 /* loading gauges (progress bars) shown before the logo */
-.vd-banner .vd-loading {
-  font-family: "Glass TTY VT220", "Courier New", monospace;
-  color: var(--dim);
-  text-shadow: var(--glow);
+/* Gauges render in #terminal-output during the boot (NOT inside .vd-banner), so
+   these are scoped to .terminal-home, not .vd-banner. Strict monospace so the
+   LOADING:/ columns align (Glass TTY's space width doesn't). */
+.terminal-home .vd-loading {
+  font-family: "Courier New", "Courier", monospace;
+  font-weight: 700;
+  color: rgba(17, 202, 184, 0.66);
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.5);
 }
-.vd-banner .vd-gauge-line { white-space: pre; line-height: 1.42; }
+.terminal-home .vd-gauge-line { white-space: pre; line-height: 1.42; letter-spacing: 0; }
 
 /* logo */
 .vd-banner #stage { display: block; width: max-content; max-width: 100%; }
@@ -73,24 +77,24 @@ body.vd-banner-active .terminal-content { height: auto; }
 .vd-banner #speed {
   display: flex;
   flex-direction: column;
-  gap: 0.72em;
-  align-items: flex-end;
+  gap: 0.85em;
+  align-items: center;   /* centered -> both ends step in evenly (symmetric funnel) */
   margin-right: 0.7em;
   transform: translateY(0.05em);
 }
 .vd-banner #speed i {
   display: block;
-  height: 0.28em;
+  height: 0.16em;
   background: var(--phos);
   box-shadow: var(--glow);
   border-radius: 1px;
   transform: scaleX(0);
-  transform-origin: right center;
+  transform-origin: center center;
 }
-.vd-banner #speed i:nth-child(1) { width: 9em;   margin-right: 0;     opacity: 0.95; }
-.vd-banner #speed i:nth-child(2) { width: 7.3em; margin-right: 0.5em; opacity: 0.85; }
-.vd-banner #speed i:nth-child(3) { width: 5.6em; margin-right: 1em;   opacity: 0.7; }
-.vd-banner #speed i:nth-child(4) { width: 3.8em; margin-right: 1.5em; opacity: 0.55; }
+.vd-banner #speed i:nth-child(1) { width: 10em;  opacity: 0.95; }
+.vd-banner #speed i:nth-child(2) { width: 7.5em; opacity: 0.82; }
+.vd-banner #speed i:nth-child(3) { width: 5em;   opacity: 0.68; }
+.vd-banner #speed i:nth-child(4) { width: 2.5em; opacity: 0.54; }
 .vd-banner #logo.reveal #speed i { transform: scaleX(1); transition: transform 0.45s ease-out 0.6s; }
 
 /* Option 1: solid DRIFT (still skewed italic). */
@@ -134,10 +138,10 @@ body.vd-banner-active .terminal-content { height: auto; }
 .vd-banner .vd-version {
   display: block;
   font-family: "Glass TTY VT220", "Courier New", monospace;
-  font-size: 0.82em;
+  font-size: 0.85em;
   letter-spacing: 0.06em;
-  color: var(--dim);
-  text-shadow: var(--glow);
+  color: rgba(17, 202, 184, 0.66);
+  text-shadow: 0 0 1px rgba(17, 202, 184, 0.45);   /* tight glow -> crisp small text */
 }
 .vd-banner .vd-divider {
   border: 0;
@@ -151,4 +155,15 @@ body.vd-banner-active .terminal-content { height: auto; }
   .vd-banner #logo.reveal #speed i { transition: none; }
   .vd-banner #logo.flash { animation: none; }
   .vd-banner .vd-meta { transition: none; }
+}
+
+/* Noise-dither overlay: breaks up 8-bit banding in the glow halos / dark bg. */
+#vd-dither {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }

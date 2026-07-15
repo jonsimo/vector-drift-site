@@ -64,9 +64,9 @@ const timeScale = Math.min(1, Math.max(0.05, parseFloat(bootParams.get("speed"))
 // Dev: ?auto skips the connect/continue gates so a headless render can advance.
 const autoAdvance = bootParams.has("auto");
 let mobileMode = false;
-// The main boot audio starts on the key press; hold the visuals this long so
-// they line up with the track (without trimming the audio's intro).
-const mainBootLeadMs = 250;
+// Hold the visuals this long after the key press so they line up with the main
+// boot track (v5).
+const mainBootLeadMs = 200;
 // The console beep plays, then the root prompt appears this much later so the
 // prompt lands on the beep rather than before it.
 const consoleBeepLeadMs = 250;
@@ -184,18 +184,20 @@ function sfxTone({ freq, type = "triangle", dur = 0.05, gain = 0.25, to = 0 }) {
 
 // Chosen cues.
 function sfxKey() {
-  // vt220 soft
-  sfxNoiseHit({ freq: 1100, q: 0.7, type: "lowpass", dur: 0.013, gain: 0.3, lp: 1500 });
-  sfxTone({ freq: 175, dur: 0.028, gain: 0.1 });
+  // vt220 soft (louder type-on)
+  sfxNoiseHit({ freq: 1100, q: 0.7, type: "lowpass", dur: 0.013, gain: 0.5, lp: 1500 });
+  sfxTone({ freq: 175, dur: 0.028, gain: 0.17 });
 }
 
 // --- Boot music/ambience (real mp3 tracks) -----------------------------------
 // initial -> (no key) hum loop; key press -> main sequence -> hum loop.
 let bootAudio = null;
 let linkEstablished = false;
-const humUrl = "assets/computer_hum_looping2.mp3";
+const humUrl = "assets/computer_hum_looping_v3.mp3";
 let humBuffer = null;
 let humSource = null;
+let humGain = null;
+let humBedStarted = false;
 
 function stopHum() {
   if (humSource) {
@@ -206,12 +208,15 @@ function stopHum() {
     }
     humSource = null;
   }
+  humGain = null;
   if (bootAudio) {
     bootAudio.hum.pause();
   }
 }
 
-function startHum() {
+const HUM_VOLUME = 0.5;
+function startHum(startVol) {
+  const vol = startVol === undefined ? HUM_VOLUME : startVol;
   // Gapless sample-accurate loop via Web Audio when the buffer is decoded;
   // HTMLAudio (which has an mp3 loop gap) is only the pre-gesture fallback.
   if (audioCtx && humBuffer) {
@@ -219,13 +224,46 @@ function startHum() {
     humSource = audioCtx.createBufferSource();
     humSource.buffer = humBuffer;
     humSource.loop = true;
-    const gain = audioCtx.createGain();
-    gain.gain.value = 0.5;
-    humSource.connect(gain).connect(audioCtx.destination);
+    humGain = audioCtx.createGain();
+    humGain.gain.value = vol;
+    humSource.connect(humGain).connect(audioCtx.destination);
     humSource.start();
   } else if (bootAudio) {
+    bootAudio.hum.volume = vol;
     bootAudio.hum.play().catch(() => {});
   }
+}
+
+function setHumVolume(v) {
+  v = Math.max(0, Math.min(1, v));
+  if (humGain) { try { humGain.gain.value = v; } catch (e) {} }
+  else if (bootAudio) { try { bootAudio.hum.volume = v; } catch (e) {} }
+}
+
+// Crossfade the main boot track into the hum bed (or just fade the hum in if the
+// track already ended). Runs once per boot so the two never step on each other.
+function beginHumBed(durationMs) {
+  if (humBedStarted) return;
+  humBedStarted = true;
+  durationMs = durationMs || 2500;
+  if (!bootAudio) { startHum(HUM_VOLUME); return; }
+  const main = bootAudio.main;
+  const fadingMain = main && !main.paused && !main.ended && main.volume > 0;
+  const mainStart = fadingMain ? main.volume : 0;
+  startHum(0);   // hum fades in from silence
+  const steps = 40, dt = durationMs / steps;
+  let i = 0;
+  const timer = window.setInterval(() => {
+    i += 1;
+    const t = i / steps;
+    if (fadingMain) { try { main.volume = Math.max(0, mainStart * (1 - t)); } catch (e) {} }
+    setHumVolume(HUM_VOLUME * t);
+    if (i >= steps) {
+      window.clearInterval(timer);
+      if (fadingMain) { try { main.pause(); main.volume = mainStart; } catch (e) {} }
+      setHumVolume(HUM_VOLUME);
+    }
+  }, dt);
 }
 
 function setupBootAudio() {
@@ -234,7 +272,7 @@ function setupBootAudio() {
   }
   const initial = new Audio("assets/initial_boot_sound.mp3");
   const hum = new Audio(humUrl);
-  const main = new Audio("assets/main_boot_sequence_v3.mp3");
+  const main = new Audio("assets/main_boot_sequence_v5.mp3");
   const beep = new Audio("assets/console_beep_v2.mp3");
   hum.loop = true;
   initial.volume = 0.75;
@@ -246,7 +284,7 @@ function setupBootAudio() {
       startHum();
     }
   });
-  main.addEventListener("ended", () => startHum());
+  main.addEventListener("ended", () => beginHumBed(2500));
   bootAudio = { initial, hum, main, beep };
 }
 
@@ -272,6 +310,7 @@ function establishLinkAudio() {
     return;
   }
   linkEstablished = true;
+  humBedStarted = false;
   bootAudio.initial.pause();
   stopHum();
   bootAudio.main.currentTime = 0;
@@ -1110,8 +1149,8 @@ async function activateRootPrompt(startedAt, opts) {
   form.classList.remove("loading");
   setTerminalState("booting");
   input.disabled = true;
-  // Console rests on the ambient computer-hum loop.
-  if (bootAudio) { try { bootAudio.main.pause(); } catch (e) {} startHum(); }
+  // Console rests on the ambient computer-hum loop — crossfade from the main track.
+  if (bootAudio) { beginHumBed(2500); }
   // Hard clear -> short black-screen hold (skipped when keeping the logo on screen).
   if (!opts.keepOutput) { await sleep(randomBetween(180, 240)); }
 
@@ -1158,9 +1197,7 @@ async function runBoot() {
   // Connect gate: a blinking prompt whose first key/tap unlocks audio.
   await waitForConnect();
   bootAudioT0 = performance.now();
-  // Desktop: hold the visuals 200ms longer so the main boot SFX starts 200ms
-  // earlier relative to the visual boot.
-  await sleep(mainBootLeadMs + (mobileMode ? 0 : 200));
+  await sleep(mainBootLeadMs);
 
   // A lone cursor blinks by itself before anything is typed.
   const openingLines = [""];
@@ -2304,9 +2341,9 @@ if (DEBUG) {
     audioBank: {
       boot: [
         { name: "initial_boot_sound.mp3", url: "assets/initial_boot_sound.mp3" },
-        { name: "main_boot_sequence_v3.mp3", url: "assets/main_boot_sequence_v3.mp3" },
+        { name: "main_boot_sequence_v5.mp3", url: "assets/main_boot_sequence_v5.mp3" },
       ],
-      terminal: [{ name: "computer_hum_looping2.mp3", url: "assets/computer_hum_looping2.mp3" }],
+      terminal: [{ name: "computer_hum_looping_v3.mp3", url: "assets/computer_hum_looping_v3.mp3" }],
       ui: [
         { name: "console_beep_v2.mp3", url: "assets/console_beep_v2.mp3" },
         { name: "sfx: key", sfx: "key" },

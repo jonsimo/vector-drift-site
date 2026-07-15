@@ -18,7 +18,7 @@ function buildGrid(word){ let lines=ASCII[WEIGHT][word].split("\n");
   const w=Math.max.apply(null,lines.map(l=>l.length)); lines=lines.map(l=>l+" ".repeat(w-l.length));
   return {lines,w,h:lines.length}; }
 function schedule(cells,off){
-  if(MODE==="raster"){ const rg=119,cg=7.5,gb=238; cells.forEach(c=>{c.showAt=off+c.r*rg;c.lockAt=c.showAt+c.c*cg+gb;}); } /* 25% slower than demo */
+  if(MODE==="raster"){ const rg=137,cg=8.6,gb=274; cells.forEach(c=>{c.showAt=off+c.r*rg;c.lockAt=c.showAt+c.c*cg+gb;}); } /* ~44% slower than demo (25% + another 15%) */
   else if(MODE==="decode"){ const sp=1400; cells.forEach(c=>{c.showAt=off;c.lockAt=off+200+Math.random()*sp;}); }
   else { const cg=15,gb=150; cells.forEach(c=>{c.showAt=off+c.c*cg;c.lockAt=c.showAt+gb;}); }
 }
@@ -51,11 +51,10 @@ function fitLogo(){ if(!curPanels) return;
   const h=logo.scrollHeight*1.03;
   let lf=Math.min(trial*availW/w, trial*availH/h);
   document.documentElement.style.setProperty("--lf",Math.max(4,Math.min(30,lf))+"px"); }
-function finalizeLogo(){ if(curPanels) for(const p of curPanels) renderPanel(p,1e9);
-  logo.classList.add("flash"); setTimeout(()=>logo.classList.remove("flash"),520); }
+function finalizeLogo(){ if(curPanels) for(const p of curPanels) renderPanel(p,1e9); }
 function reveal(id){ logo.style.opacity="1";
   const vP=makePanel(vec,"VECTOR",0);
-  const dOff=MODE==="raster"?vP.h*119+175:(MODE==="wipe"?200:240);
+  const dOff=MODE==="raster"?vP.h*137+201:(MODE==="wipe"?200:240);
   const dP=makePanel(dft,"DRIFT",dOff);
   curPanels=[vP,dP]; renderPanel(vP,0); renderPanel(dP,0); fitLogo();
   requestAnimationFrame(()=>{ if(id===runId) logo.classList.add("reveal"); });
@@ -70,12 +69,12 @@ function reveal(id){ logo.style.opacity="1";
 /* ---- scratch wrapper: render the logo as a top banner in the console flow ---- */
 const OUT = () => document.getElementById("terminal-output");
 
-// Logo SFX: shimmer during the reveal, flash on completion. (Audio is unlocked
-// by then — the user pressed keys for the connect + continue gates.)
-const shimmerSfx = new Audio("assets/vd_logo_shimmer_on.wav");
-const flashSfx = new Audio("assets/vd_logo_flash.wav");
-shimmerSfx.volume = 0.5;
-flashSfx.volume = 0.5;
+// Logo write-on SFX — two options for A/B: ?writeon=1 (default) or ?writeon=2.
+// No completion flash sound (removed). Audio is unlocked by now (the user pressed
+// keys for the connect + continue gates).
+const writeOnChoice = new URLSearchParams(location.search).get("writeon") === "1" ? "1" : "2";
+const writeOnSfx = new Audio("assets/vector_drift_logo_write_on_" + writeOnChoice + ".wav");
+writeOnSfx.volume = 0.5;
 function playSfx(a) { try { a.currentTime = 0; a.play().catch(function () {}); } catch (e) {} }
 function stopSfx(a) { try { a.pause(); a.currentTime = 0; } catch (e) {} }
 
@@ -88,17 +87,19 @@ function gaugeLine(host, text) {
   const out = OUT(); if (out) out.scrollTop = out.scrollHeight;
 }
 
-// A file-read progress gauge that fills 0 -> 100% over totalMs (demo style).
+// A retro ASCII load gauge that fills 0 -> 100% over totalMs. Pure ASCII (# / -)
+// so every column stays monospace-aligned (no block-glyph font fallback).
 async function gaugeBar(host, file, totalMs) {
-  const W = 24, N = 12;
+  const W = 20, N = 12;
   const el = document.createElement("div");
   el.className = "vd-gauge-line";
   host.appendChild(el);
-  const label = "READING A: " + (file + "            ").slice(0, 12);
+  const item = (file + "            ").slice(0, 12);   // pad items to 12 -> columns align
   for (let i = 1; i <= N; i++) {
     const p = (i === N) ? 1 : Math.max(0, Math.min(0.96, i / N + (Math.random() - 0.5) * 0.18));
     const fl = Math.round(p * W);
-    el.textContent = label + " [" + "█".repeat(fl) + "░".repeat(W - fl) + "] " + String(Math.round(p * 100)).padStart(3) + "%";
+    const bar = "#".repeat(fl) + "-".repeat(W - fl);
+    el.textContent = "LOADING:/ " + item + "  [" + bar + "]  " + String(Math.round(p * 100)).padStart(3) + "%";
     const out = OUT(); if (out) out.scrollTop = out.scrollHeight;
     await sleep(totalMs / N);
   }
@@ -114,7 +115,7 @@ window.renderBootGauges = async function () {
   const files = ["VDRENDER.SYS", "VDSCOPE.COM", "COMBAT.MOD", "LATTICE.BIN"];
   const perBar = 500;   // 4 x 500 = 2000ms + LOAD COMPLETE < 2250ms total
   for (const f of files) { await gaugeBar(host, f, perBar); }
-  gaugeLine(host, "LOAD COMPLETE — DECODING VECTOR TABLE");
+  gaugeLine(host, "LOAD COMPLETE - VECTOR TABLE DECODED");
   const o = OUT(); if (o) o.scrollTop = o.scrollHeight;
   if (new URLSearchParams(location.search).has("gaugehold")) { await sleep(3600000); } // dev: freeze on gauges
 };
@@ -168,8 +169,7 @@ window.renderLogoBanner = async function (opts) {
   const noAnim = params.has("noanim") ||
     (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   logo.style.opacity = "1";
-  playSfx(shimmerSfx);   // shimmer-on sound as the logo animates in
-  const shimmerStop = setTimeout(function () { stopSfx(shimmerSfx); }, 1800);
+  playSfx(writeOnSfx);   // write-on sound as the logo animates in
   const showStatic = function () {
     const vP = makePanel(vec, "VECTOR", 0), dP = makePanel(dft, "DRIFT", 0);
     curPanels = [vP, dP];
@@ -186,9 +186,6 @@ window.renderLogoBanner = async function (opts) {
   } catch (e) {
     showStatic();   // any failure -> the logo still shows
   }
-  clearTimeout(shimmerStop);
-  stopSfx(shimmerSfx);   // shimmer never overruns the logo completion
-  playSfx(flashSfx);     // flash sound on logo completion
 
   // 3) Version + divider fade in beneath the logo.
   await sleep(300);
@@ -219,6 +216,32 @@ function mountDriftToggle() {
   chip.addEventListener("click", () => { p.set("drift", next); location.search = p.toString(); });
   document.body.appendChild(chip);
 }
-if (document.body) mountDriftToggle();
-else document.addEventListener("DOMContentLoaded", mountDriftToggle);
+/* Dev-only A/B chip for the two write-on SFX options (?writeon=1|2). */
+function mountWriteOnToggle() {
+  if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
+  if (document.getElementById("vd-writeon-toggle")) return;
+  const p = new URLSearchParams(location.search);
+  const cur = p.get("writeon") === "2" ? "2" : "1";
+  const next = cur === "2" ? "1" : "2";
+  const chip = document.createElement("button");
+  chip.id = "vd-writeon-toggle";
+  chip.textContent = "WRITE-ON SFX: " + cur + "  ▸ " + next;
+  chip.style.cssText =
+    "position:fixed;bottom:44px;left:50%;transform:translateX(-50%);z-index:200;" +
+    "font:12px/1 monospace;letter-spacing:1px;color:#11cab8;background:rgba(17,202,184,0.06);" +
+    "border:1px solid rgba(17,202,184,0.4);border-radius:3px;padding:7px 13px;cursor:pointer;" +
+    "text-shadow:0 0 6px rgba(17,202,184,0.6);";
+  chip.addEventListener("click", () => { p.set("writeon", next); location.search = p.toString(); });
+  document.body.appendChild(chip);
+}
+// Subtle noise-dither overlay to break up gradient/glow banding on the dark bg.
+function mountDither() {
+  if (document.getElementById("vd-dither")) return;
+  const d = document.createElement("div");
+  d.id = "vd-dither";
+  document.body.appendChild(d);
+}
+function onReady() { mountDither(); mountDriftToggle(); mountWriteOnToggle(); }
+if (document.body) onReady();
+else document.addEventListener("DOMContentLoaded", onReady);
 })();
