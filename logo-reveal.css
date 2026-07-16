@@ -198,3 +198,20 @@ body.vd-banner-active .terminal-content { height: auto; }
 /* head brightest (hot), food a bright pip — same cyan phosphor family as the console */
 .terminal-home .vd-snake .s-head { color: #aef9e6; text-shadow: 0 0 4px rgba(174, 249, 230, 0.95), 0 0 9px rgba(36, 245, 207, 0.5); }
 .terminal-home .vd-snake .s-food { color: #7ffce8; text-shadow: 0 0 5px rgba(36, 245, 207, 0.9); }
+
+/* Loadable pi streamer — same console match as .vd-snake (a <pre>/div must restate
+   the console props explicitly). Body wraps digit blocks. */
+.terminal-home .vd-pi {
+  font-family: "Glass TTY VT220", "Courier New", monospace;
+  font-size: min(18px, 3.3vw);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.05em;
+  color: #11cab8;
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.74), 0 0 12px rgba(17, 202, 184, 0.42), 0 0 28px rgba(17, 202, 184, 0.16);
+  filter: blur(0.28px);
+  margin: 0.35em 0 0.5em;
+}
+.terminal-home .vd-pi .vd-pi-head { opacity: 0.72; margin-bottom: 0.55em; }
+.terminal-home .vd-pi .vd-pi-body { word-break: break-all; }   /* continuous digits fill the width */
+.terminal-home .vd-pi .vd-pi-stat { opacity: 0.6; margin-top: 0.55em; }

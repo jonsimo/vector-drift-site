@@ -26,6 +26,7 @@ let sudoUseCount = 0;
 const VDI = window.VDIntents;
 const session = VDI.createSession();
 const SNAKE_CMDS = new Set(["snake", "snake.exe", "play snake", "run snake", "snake game"]);
+const PI_CMDS = new Set(["pi.exe", "pi", "pi me", "pie", "count pi", "give me pi"]);
 const rng = Math.random;
 // True while a response sequence is running; blocks a second submit so async
 // sequences can never overlap. Input stays editable, only Enter is a no-op.
@@ -2105,6 +2106,12 @@ async function runCommand(command, normalized) {
     appendResponse("loading snake.exe ...", "terminal-meta");
     await window.VDSnake.launch({ output: output });
     appendResponse("snake.exe // session ended", "terminal-meta");
+    return;
+  }
+  if (window.VDPi && PI_CMDS.has(normalized)) {
+    appendResponse("loading pi.exe ...", "terminal-meta");
+    await window.VDPi.launch({ output: output });
+    appendResponse("pi.exe // stopped", "terminal-meta");
     return;
   }
 
