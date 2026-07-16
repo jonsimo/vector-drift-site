@@ -28,8 +28,8 @@ body {
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top, rgba(19, 53, 44, 0.55), transparent 34%),
-    radial-gradient(circle at 50% 120%, rgba(16, 61, 51, 0.38), transparent 40%),
+    radial-gradient(circle at top, rgba(19, 53, 44, 0.34), transparent 30%),
+    radial-gradient(circle at 50% 120%, rgba(16, 61, 51, 0.24), transparent 34%),
     linear-gradient(180deg, #020404 0%, #050706 48%, #030404 100%);
   color: var(--text);
   font-family: "SFMono-Regular", "Cascadia Mono", "Menlo", "Monaco", "Consolas", monospace;
@@ -37,6 +37,9 @@ body {
 
 body.terminal-home {
   overflow: hidden;
+  /* Flat lifted-black — no radial/linear wash (gradients band into rings on the
+     dark screen). Ambience = scanlines + text/border phosphor glow. */
+  background: #040705;
 }
 
 body::before,
@@ -653,7 +656,7 @@ body.terminal-home {
   line-height: 1.42;
   letter-spacing: 0.035em;
   color: #11cab8;
-  text-shadow: 0 0 3px rgba(17, 202, 184, 0.9), 0 0 8px rgba(17, 202, 184, 0.46), 0 0 14px rgba(17, 202, 184, 0.13);
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.82), 0 0 6px rgba(17, 202, 184, 0.34), 0 0 10px rgba(17, 202, 184, 0.08);
   filter: blur(0.22px);
 }
 
@@ -996,7 +999,10 @@ body.terminal-home {
   inset: 0;
   pointer-events: none;
   z-index: 40;
-  background: radial-gradient(ellipse at 50% 42%, rgba(17, 202, 184, 0.022), rgba(0, 0, 0, 0) 72%);
+  /* Flat, no radial ramp — a radial wash on near-black quantizes into visible
+     concentric bands (grain can't fill them on dark). Ambience comes from the
+     text/border glow + scanlines instead. */
+  background: none;
 }
 
 .terminal-home .screen-scanlines {

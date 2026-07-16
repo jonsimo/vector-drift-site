@@ -41,16 +41,20 @@ function measureRatio(){ const s=document.createElement("span");
   s.textContent="0000000000"; document.body.appendChild(s); const w=s.getBoundingClientRect().width; document.body.removeChild(s); if(w>0) CHAR_RATIO=w/10/200; }
 function fitLogo(){ if(!curPanels) return;
   const stage=document.getElementById("stage");
-  const availW=stage.clientWidth*0.9, availH=Math.max(150,stage.clientHeight*0.46);
+  // Mobile: fill nearly the full width + a taller allowance + a higher cap so the
+  // logo makes better use of the upper screen. All ratios of clientWidth/Height,
+  // so it scales across phone sizes/resolutions. Desktop unchanged.
+  const mobile = window.innerWidth <= 600;
+  const availW=stage.clientWidth*(mobile?1.0:0.9), availH=Math.max(150,stage.clientHeight*(mobile?0.5:0.46));
   const trial=20; document.documentElement.style.setProperty("--lf",trial+"px");
   // Measure against the FINAL glyphs, not the mid-reveal grid of spaces (whose
   // advance width underestimates and inflates --lf, clipping narrow screens).
   for(const p of curPanels) renderPanel(p,1e9);
   const dr=document.getElementById("driftrow");
-  const w=Math.max(vec.scrollWidth, dr.scrollWidth)*1.1;
+  const w=Math.max(vec.scrollWidth, dr.scrollWidth)*(mobile?1.05:1.1);
   const h=logo.scrollHeight*1.03;
   let lf=Math.min(trial*availW/w, trial*availH/h);
-  document.documentElement.style.setProperty("--lf",Math.max(4,Math.min(30,lf))+"px"); }
+  document.documentElement.style.setProperty("--lf",Math.max(4,Math.min(mobile?48:30,lf))+"px"); }
 function finalizeLogo(){ if(curPanels) for(const p of curPanels) renderPanel(p,1e9); }
 function reveal(id){ logo.style.opacity="1";
   const vP=makePanel(vec,"VECTOR",0);
@@ -128,8 +132,37 @@ function buildBanner(driftMode) {
     '<div id="stage"><div id="logo"><pre id="vec"></pre>' +
     '<div id="driftrow"><div id="speed"><i></i><i></i><i></i><i></i></div>' +
     '<pre id="dft"></pre></div></div></div>' +
-    '<div class="vd-meta"><span class="vd-version">vector_drift.sim v0.9.3 alpha build</span><hr class="vd-divider"></div>';
+    '<div class="vd-meta"><span class="vd-version"></span><hr class="vd-divider"></div>';
   return b;
+}
+
+// Scramble->lock reveal for a single text line, using the SAME GLYPHS engine as
+// the VECTOR DRIFT words: every char scrambles, then locks left-to-right; each
+// char flashes .hot for a beat as it settles (matches the logo's glitch style).
+function glitchText(el, text, opts) {
+  opts = opts || {};
+  const perChar = opts.perChar || 20;    // stagger between chars locking
+  const scramble = opts.scramble || 240; // how long each char scrambles first
+  if (opts.noAnim) { el.textContent = text; return Promise.resolve(); }
+  const chars = text.split("");
+  const t0 = performance.now();
+  const rg = (t, i) => { const gi = (((t / 50) | 0) * 37 + i * 13) % GLYPHS.length; return GLYPHS[(gi + GLYPHS.length) % GLYPHS.length]; };
+  return new Promise((res) => {
+    (function frame() {
+      const t = performance.now() - t0;
+      let done = true, html = "";
+      for (let i = 0; i < chars.length; i++) {
+        const ch = chars[i];
+        if (ch === " ") { html += " "; continue; }
+        const lockAt = i * perChar + scramble;
+        if (t < lockAt) { html += "<span class='g'>" + esc(rg(t, i)) + "</span>"; done = false; }
+        else if (t - lockAt < 120) { html += "<span class='hot'>" + esc(ch) + "</span>"; }
+        else { html += esc(ch); }
+      }
+      el.innerHTML = html;
+      if (!done) requestAnimationFrame(frame); else res();
+    })();
+  });
 }
 
 // Cuts to the VECTOR DRIFT logo: clears the boot/gauges, then reveals the logo
@@ -188,9 +221,11 @@ window.renderLogoBanner = async function (opts) {
     showStatic();   // any failure -> the logo still shows
   }
 
-  // 3) Version + divider fade in beneath the logo.
+  // 3) Version glitches in (same style as the words); divider fades in beneath it.
   await sleep(300);
   if (metaEl) metaEl.classList.add("show");
+  const verEl = banner.querySelector(".vd-version");
+  if (verEl) await glitchText(verEl, "vector_drift.sim v0.9.3 alpha build", { noAnim, perChar: 24, scramble: 320 });
   const out2 = OUT(); if (out2) out2.scrollTop = out2.scrollHeight;
 };
 

@@ -34,8 +34,8 @@ body.vd-banner-active .terminal-content { height: auto; }
   --glitch: #24f5cf;
   --dim: rgba(17, 202, 184, 0.45);
   --lf: clamp(6px, 2.15vw, 20px);
-  --glow: 0 0 3px rgba(17, 202, 184, 0.92), 0 0 9px rgba(17, 202, 184, 0.5), 0 0 15px rgba(17, 202, 184, 0.14);
-  --glow-hot: 0 0 4px rgba(174, 249, 230, 0.95), 0 0 12px rgba(36, 245, 207, 0.55), 0 0 20px rgba(36, 245, 207, 0.2);
+  --glow: 0 0 2px rgba(17, 202, 184, 0.82), 0 0 6px rgba(17, 202, 184, 0.34), 0 0 10px rgba(17, 202, 184, 0.08);
+  --glow-hot: 0 0 3px rgba(174, 249, 230, 0.88), 0 0 8px rgba(36, 245, 207, 0.42), 0 0 13px rgba(36, 245, 207, 0.12);
   display: block;
   text-align: left;
   padding: 0.6em 0 0.4em;
@@ -65,30 +65,37 @@ body.vd-banner-active .terminal-content { height: auto; }
   align-items: center;
   width: max-content;
   max-width: 100%;
-  margin: 0.12em 0 0 -3.8em;   /* shift word + gauge lines left (D under E) */
+  margin: 0.12em 0 0 0;   /* start at the logo's left edge so the speed lines (first
+     in this row) don't get dragged off-screen-left and clipped. The lines fill the
+     indent; DRIFT follows to the right of them. */
   font-size: var(--lf, 12px);
 }
 .vd-banner #speed {
   display: flex;
   flex-direction: column;
-  gap: 0.85em;
-  align-items: center;   /* centered -> both ends step in evenly (symmetric funnel) */
+  gap: 0.9em;                /* generous space between the streaks */
+  align-items: flex-end;     /* right ends toward the D */
   margin-right: 0.7em;
-  transform: translateY(0.05em);
+  transform: translateY(-0.5em);   /* sit slightly ABOVE center. NO skew. */
 }
 .vd-banner #speed i {
   display: block;
-  height: 0.16em;
+  height: 0.18em;
   background: var(--phos);
   box-shadow: var(--glow);
   border-radius: 1px;
   transform: scaleX(0);
-  transform-origin: center center;
+  transform-origin: right center;   /* streaks grow out from the D side */
 }
-.vd-banner #speed i:nth-child(1) { width: 10em;  opacity: 0.95; }
-.vd-banner #speed i:nth-child(2) { width: 7.5em; opacity: 0.82; }
-.vd-banner #speed i:nth-child(3) { width: 5em;   opacity: 0.68; }
-.vd-banner #speed i:nth-child(4) { width: 2.5em; opacity: 0.54; }
+/* Ref shape: top line longest, both ends taper INWARD going down (left ends step
+   more than right). Decreasing width + increasing margin-right gives:
+     LEFT ends step right ~0.5em/line (top line reaches the logo's left edge),
+     RIGHT ends step left ~0.4em/line (follow the D's italic diagonal).
+   With driftrow margin-left:0 the lines can't clip -> DRIFT just sits to their right. */
+.vd-banner #speed i:nth-child(1) { width: 6.7em; margin-right: 0;      opacity: 0.95; }
+.vd-banner #speed i:nth-child(2) { width: 5.8em; margin-right: 0.4em;  opacity: 0.82; }
+.vd-banner #speed i:nth-child(3) { width: 4.9em; margin-right: 0.8em;  opacity: 0.68; }
+.vd-banner #speed i:nth-child(4) { width: 4em;   margin-right: 1.2em;  opacity: 0.54; }
 .vd-banner #logo.reveal #speed i { transform: scaleX(1); transition: transform 0.45s ease-out 0.6s; }
 
 /* Option 1: solid DRIFT (still skewed italic). */
@@ -123,12 +130,10 @@ body.vd-banner-active .terminal-content { height: auto; }
 .vd-banner.drift-outline #dft .hot { text-shadow: 0 0 2px rgba(36, 245, 207, 0.7); }
 
 /* version line + solid divider beneath the logo (>=2 line breaks of space above) */
-.vd-banner .vd-meta {
-  margin-top: 1.2em;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-.vd-banner .vd-meta.show { opacity: 1; }
+/* Container stays fully opaque so the version's scramble glyphs are visible as
+   they glitch in (a fade here washed them out). The version is empty until
+   glitchText fills it; the divider fades in on .show. */
+.vd-banner .vd-meta { margin-top: 1.2em; }
 .vd-banner .vd-version {
   display: block;
   font-family: "Glass TTY VT220", "Courier New", monospace;
@@ -137,14 +142,24 @@ body.vd-banner-active .terminal-content { height: auto; }
   color: rgba(17, 202, 184, 0.66);
   text-shadow: 0 0 1px rgba(17, 202, 184, 0.45);   /* tight glow -> crisp small text */
 }
+/* glitch chars while the version scrambles->locks (matches the logo words) */
+.vd-banner .vd-version .g { color: var(--glitch); text-shadow: 0 0 2px rgba(36, 245, 207, 0.7); opacity: 0.9; }
+.vd-banner .vd-version .hot { color: var(--hot); text-shadow: var(--glow-hot); }
 .vd-banner .vd-divider {
   border: 0;
   border-top: 1px solid rgba(17, 202, 184, 0.55);
   box-shadow: 0 0 6px rgba(17, 202, 184, 0.4);
   margin: 0.45em 0 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
 }
+.vd-banner .vd-meta.show .vd-divider { opacity: 1; }
 
-@media (max-width: 600px) { .vd-banner #dft { transform: none; } }
+@media (max-width: 600px) {
+  .vd-banner #dft { transform: none; }
+  /* keep the slightly-high position on mobile */
+  .vd-banner #speed { transform: translateY(-0.5em); }
+}
 @media (prefers-reduced-motion: reduce) {
   .vd-banner #logo.reveal #speed i { transition: none; }
   .vd-banner #logo.flash { animation: none; }
@@ -157,7 +172,7 @@ body.vd-banner-active .terminal-content { height: auto; }
   inset: 0;
   z-index: 40;
   pointer-events: none;
-  opacity: 0.2;
+  opacity: 0.28;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
