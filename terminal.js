@@ -209,9 +209,9 @@ function sfxTone({ freq, type = "triangle", dur = 0.05, gain = 0.25, to = 0 }) {
 
 // Chosen cues.
 function sfxKey() {
-  // vt220 soft (louder type-on)
-  sfxNoiseHit({ freq: 1100, q: 0.7, type: "lowpass", dur: 0.013, gain: 0.5, lp: 1500 });
-  sfxTone({ freq: 175, dur: 0.028, gain: 0.17 });
+  // vt220 soft type-on (lowered 40% from 0.5/0.17)
+  sfxNoiseHit({ freq: 1100, q: 0.7, type: "lowpass", dur: 0.013, gain: 0.3, lp: 1500 });
+  sfxTone({ freq: 175, dur: 0.028, gain: 0.102 });
 }
 
 // --- Boot music/ambience (real mp3 tracks) -----------------------------------
@@ -2103,7 +2103,7 @@ async function runCommand(command, normalized) {
   // Loadable ASCII game — intercept before the intent system.
   if (window.VDSnake && SNAKE_CMDS.has(normalized)) {
     appendResponse("loading snake.exe ...", "terminal-meta");
-    await window.VDSnake.launch({ output: output, onEat: playConsoleBeep });
+    await window.VDSnake.launch({ output: output });
     appendResponse("snake.exe // session ended", "terminal-meta");
     return;
   }

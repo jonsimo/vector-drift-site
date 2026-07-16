@@ -165,6 +165,39 @@ function glitchText(el, text, opts) {
   });
 }
 
+// Reveal the speed lines with the SAME scramble->lock language as the logo words:
+// each bar flickers random width/opacity + glitch-cyan (the "scramble"), then locks
+// bright (hot) and settles to phosphor. All lock (nearly) together -> uniform
+// brightness, no per-line variance. Caller times this to the DRIFT panel finishing.
+function runSpeedGlitch(bars, id) {
+  if (!bars || !bars.length) return;
+  var start = performance.now();
+  var SCRAMBLE = 300;          // ms of flicker before a bar locks
+  var STEP = 28;               // tiny per-bar cascade
+  var lockFull = function (b) {
+    b.style.opacity = "1"; b.style.transform = "scaleX(1)";
+    b.style.background = "var(--phos)"; b.style.filter = "brightness(1)";
+  };
+  (function frame() {
+    if (id !== runId) return;                     // superseded (re-run / skip) -> stop
+    var t = performance.now() - start;
+    for (var i = 0; i < bars.length; i++) {
+      var b = bars[i], lockAt = SCRAMBLE + i * STEP;
+      if (t < lockAt) {                            // scramble
+        b.style.opacity = (0.25 + Math.random() * 0.7).toFixed(2);
+        b.style.transform = "scaleX(" + (0.12 + Math.random() * 0.9).toFixed(2) + ")";
+        b.style.background = Math.random() < 0.5 ? "var(--glitch)" : "var(--phos)";
+        b.style.filter = "brightness(" + (1 + Math.random() * 0.5).toFixed(2) + ")";
+      } else if (t < lockAt + 100) {               // lock flash (hot)
+        b.style.opacity = "1"; b.style.transform = "scaleX(1)";
+        b.style.background = "var(--hot)"; b.style.filter = "brightness(1.7)";
+      } else { lockFull(b); }                       // settled (uniform)
+    }
+    if (t <= SCRAMBLE + bars.length * STEP + 110) requestAnimationFrame(frame);
+    else for (var j = 0; j < bars.length; j++) lockFull(bars[j]);
+  })();
+}
+
 // Cuts to the VECTOR DRIFT logo: clears the boot/gauges, then reveals the logo
 // as a banner at the TOP of the output (prompt is reordered below via .vd-console
 // so typing scrolls the banner off top). No gauges, no prompt here.
@@ -204,15 +237,23 @@ window.renderLogoBanner = async function (opts) {
     (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   logo.style.opacity = "1";
   setTimeout(function () { playSfx(writeOnSfx); }, 150);   // write-on, delayed 150ms
+  const bars = Array.prototype.slice.call(banner.querySelectorAll("#speed i"));
+  const lockBars = function () {
+    bars.forEach(function (b) { b.style.opacity = "1"; b.style.transform = "scaleX(1)"; b.style.background = "var(--phos)"; b.style.filter = "brightness(1)"; });
+  };
   const showStatic = function () {
     const vP = makePanel(vec, "VECTOR", 0), dP = makePanel(dft, "DRIFT", 0);
     curPanels = [vP, dP];
     renderPanel(vP, 1e9); renderPanel(dP, 1e9); fitLogo(); logo.classList.add("reveal");
+    lockBars();
   };
   try {
     if (noAnim) {
       showStatic();
     } else {
+      // Fire the speed-line scramble so it LOCKS as the DRIFT panel finishes
+      // (~2.25s into the reveal); the ~0.3s scramble runs just before that.
+      setTimeout(function () { runSpeedGlitch(bars, id); }, 1950);
       await Promise.race([reveal(id), sleep(5600)]);
       if (curPanels) { for (const p of curPanels) renderPanel(p, 1e9); }
       else { showStatic(); }

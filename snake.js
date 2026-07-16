@@ -1,22 +1,45 @@
-/* Vector Drift — loadable ASCII SNAKE (premium). Self-contained; window.VDSnake.
-   Loads INLINE in the console output (does not clear the logo banner). Uses a
-   strict box-drawing monospace so the double walls / blocks all align.
+/* Vector Drift — loadable ASCII SNAKE. Self-contained; window.VDSnake.
+   Loads INLINE in the console output (does not clear the logo banner). Renders
+   with pure ASCII glyphs (all present in the console's Glass TTY font) so it
+   inherits the exact console look — phosphor colour, glow, scanlines. Snake body
+   uses '#', the same fill glyph as the boot gauges.
    launch() resolves when quit/over, so the console prompt returns after. */
 (function () {
   "use strict";
 
   var COLS = 48, ROWS = 17;
-  var BODY = "█";
+  var BODY = "#";                        // same fill glyph as the boot gauges
   // placeholders (bright spans applied at render): \x01 head, \x02 food
   var H = "\x01", F = "\x02";
-  var TL = "╔", TR = "╗", BL = "╚", BR = "╝", HZ = "═", VT = "║";
+  // ASCII box border (Glass-TTY-native so it aligns + matches the console)
+  var TL = "+", TR = "+", BL = "+", BR = "+", HZ = "=", VT = "|";
+
+  // Subtle self-contained "eat" blip — soft triangle tick with a fast, clean
+  // decay (replaces the lingering HTMLAudio console beep).
+  var _actx = null;
+  function _ac() { if (!_actx) { try { _actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return _actx; }
+  function playEat() {
+    var ac = _ac(); if (!ac) return;
+    try {
+      if (ac.state === "suspended") ac.resume();
+      var t = ac.currentTime;
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(620, t);
+      o.frequency.exponentialRampToValueAtTime(920, t + 0.025);   // tiny upward blip
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.06, t + 0.006);       // soft attack
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);       // quick clean decay
+      o.connect(g); g.connect(ac.destination);
+      o.start(t); o.stop(t + 0.12);
+    } catch (e) {}
+  }
 
   function padR(s, n) { s = String(s); return s.length >= n ? s : s + " ".repeat(n - s.length); }
 
   function launch(opts) {
     opts = opts || {};
     var output = opts.output || document.getElementById("terminal-output");
-    var onEat = typeof opts.onEat === "function" ? opts.onEat : function () {};
     if (!output) return Promise.resolve({ score: 0 });
 
     return new Promise(function (resolve) {
@@ -66,7 +89,7 @@
           putCenter(field, r0, "G A M E   O V E R");
           putCenter(field, r0 + 2, "SCORE   " + score);
           putCenter(field, r0 + 3, "BEST    " + Math.max(best, score));
-          putCenter(field, r0 + 5, "[ press any key to exit ]");
+          putCenter(field, r0 + 5, "[ ENTER play again    Q quit ]");
         } else {
           field = blankField();
           field[food.y][food.x] = F;
@@ -78,15 +101,15 @@
         lines.push(BL + HZ.repeat(COLS) + BR);
 
         var footer;
-        if (over) footer = " session ended — press any key";
+        if (over) footer = " game over   ·   ENTER play again   ·   Q quit";
         else if (paused) footer = " ‖ PAUSED ‖   ·   P resume   ·   Q quit";
         else if (!started) footer = " press an arrow / WASD to start   ·   Q quit";
         else footer = " ← ↑ ↓ → / WASD move   ·   P pause   ·   Q quit";
         lines.push(footer);
 
         var html = lines.join("\n")
-          .replace(/\x01/g, '<span class="s-head">█</span>')
-          .replace(/\x02/g, '<span class="s-food">◆</span>');
+          .replace(/\x01/g, '<span class="s-head">#</span>')
+          .replace(/\x02/g, '<span class="s-food">*</span>');
         box.innerHTML = html;
       }
 
@@ -100,7 +123,7 @@
         if (head.x === food.x && head.y === food.y) {
           score += 10;
           food = spawnFood(snake);
-          try { onEat(); } catch (e) {}
+          playEat();
           if (tickMs > 75) { tickMs -= 4; clearInterval(timer); timer = setInterval(tick, tickMs); }
         } else {
           snake.pop();
@@ -122,12 +145,29 @@
         resolve({ score: score });
       }
 
+      // Play again — reset to a fresh round (keeps best + the same box/listener).
+      function reset() {
+        clearInterval(timer);
+        cx = (COLS / 2) | 0; cy = (ROWS / 2) | 0;
+        snake = [{ x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
+        dir = { x: 1, y: 0 }; nextDir = { x: 1, y: 0 };
+        food = spawnFood(snake);
+        score = 0; over = false; started = false; paused = false; tickMs = 145;
+        render();
+        timer = setInterval(tick, tickMs);
+      }
+
       function turn(nd) { started = true; if (nd.x !== -dir.x || nd.y !== -dir.y) nextDir = nd; }
 
       function block(e) { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); }
       function onKey(e) {
         var k = e.key;
-        if (over) { block(e); exit(); return; }
+        if (over) {
+          block(e);
+          if (k === "q" || k === "Q" || k === "Escape") exit();
+          else if (k === "Enter" || k === " " || k === "r" || k === "R") reset();
+          return;   // ignore other keys on the game-over screen
+        }
         if (k === "Escape" || k === "q" || k === "Q") { block(e); exit(); return; }
         if (k === "p" || k === "P") { block(e); if (started) { paused = !paused; render(); } return; }
         if (k === "ArrowUp" || k === "w" || k === "W") { block(e); turn({ x: 0, y: -1 }); }

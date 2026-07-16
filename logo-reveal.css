@@ -84,19 +84,21 @@ body.vd-banner-active .terminal-content { height: auto; }
   background: var(--phos);
   box-shadow: var(--glow);
   border-radius: 1px;
+  opacity: 0;                       /* hidden until JS glitches them on */
   transform: scaleX(0);
   transform-origin: right center;   /* streaks grow out from the D side */
 }
-/* Ref shape: top line longest, both ends taper INWARD going down (left ends step
-   more than right). Decreasing width + increasing margin-right gives:
-     LEFT ends step right ~0.5em/line (top line reaches the logo's left edge),
-     RIGHT ends step left ~0.4em/line (follow the D's italic diagonal).
-   With driftrow margin-left:0 the lines can't clip -> DRIFT just sits to their right. */
-.vd-banner #speed i:nth-child(1) { width: 6.7em; margin-right: 0;      opacity: 0.95; }
-.vd-banner #speed i:nth-child(2) { width: 5.8em; margin-right: 0.4em;  opacity: 0.82; }
-.vd-banner #speed i:nth-child(3) { width: 4.9em; margin-right: 0.8em;  opacity: 0.68; }
-.vd-banner #speed i:nth-child(4) { width: 4em;   margin-right: 1.2em;  opacity: 0.54; }
-.vd-banner #logo.reveal #speed i { transform: scaleX(1); transition: transform 0.45s ease-out 0.6s; }
+/* Ref shape: top line longest, both ends taper INWARD going down. LEFT ends step
+   right ~0.5em/line (top reaches the logo's left edge), RIGHT ends step left
+   ~0.4em/line (follow the D's diagonal). UNIFORM brightness (no per-line opacity
+   variance). driftrow margin-left:0 -> lines can't clip. The reveal itself is
+   driven in JS (runSpeedGlitch), timed to the DRIFT panel finishing: scramble
+   (random flicker + glitch-cyan) then lock hot -> phosphor, all locking together.
+   Same scramble->lock language as the VECTOR / DRIFT words. */
+.vd-banner #speed i:nth-child(1) { width: 6.7em; margin-right: 0;     }
+.vd-banner #speed i:nth-child(2) { width: 5.8em; margin-right: 0.4em; }
+.vd-banner #speed i:nth-child(3) { width: 4.9em; margin-right: 0.8em; }
+.vd-banner #speed i:nth-child(4) { width: 4em;   margin-right: 1.2em; }
 
 /* Option 1: solid DRIFT (still skewed italic). */
 .vd-banner #dft {
@@ -161,7 +163,7 @@ body.vd-banner-active .terminal-content { height: auto; }
   .vd-banner #speed { transform: translateY(-0.5em); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .vd-banner #logo.reveal #speed i { transition: none; }
+  .vd-banner #speed i { opacity: 1; transform: scaleX(1); background: var(--phos); }
   .vd-banner #logo.flash { animation: none; }
   .vd-banner .vd-meta { transition: none; }
 }
@@ -177,16 +179,22 @@ body.vd-banner-active .terminal-content { height: auto; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Loadable ASCII SNAKE grid. */
+/* Loadable ASCII SNAKE grid. A <pre> resets font-family to the UA monospace, so
+   EVERY console text property must be restated here to match the console output
+   (.terminal-home .terminal-output) exactly: Glass TTY, phosphor green, size,
+   weight, glow, blur. Scanlines/dither are global overlays that sit on top. */
 .terminal-home .vd-snake {
-  /* strict box-drawing monospace so the double walls + blocks all align */
-  font-family: "DejaVu Sans Mono", "Menlo", "Consolas", "Courier New", monospace;
+  font-family: "Glass TTY VT220", "Courier New", monospace;
+  font-size: min(18px, 3.3vw);   /* 18px like the console; scales down so 50 cols fit narrow screens */
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: 0.035em;
+  color: #11cab8;
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.74), 0 0 12px rgba(17, 202, 184, 0.42), 0 0 28px rgba(17, 202, 184, 0.16);
+  filter: blur(0.28px);
   white-space: pre;
-  line-height: 1.0;
   margin: 0.35em 0 0.45em;
-  font-size: clamp(10px, 1.55vw, 18px);   /* scales so 50 cols fit desktop + mobile */
-  color: #12b7a2;
-  text-shadow: 0 0 3px rgba(17, 202, 184, 0.45);
 }
-.terminal-home .vd-snake .s-head { color: #d7fff2; text-shadow: 0 0 5px rgba(174, 249, 230, 0.95), 0 0 10px rgba(126, 252, 232, 0.5); }
-.terminal-home .vd-snake .s-food { color: #7ffce8; text-shadow: 0 0 6px rgba(126, 252, 232, 0.95); }
+/* head brightest (hot), food a bright pip — same cyan phosphor family as the console */
+.terminal-home .vd-snake .s-head { color: #aef9e6; text-shadow: 0 0 4px rgba(174, 249, 230, 0.95), 0 0 9px rgba(36, 245, 207, 0.5); }
+.terminal-home .vd-snake .s-food { color: #7ffce8; text-shadow: 0 0 5px rgba(36, 245, 207, 0.9); }
