@@ -277,13 +277,17 @@ function beginHumBed(durationMs) {
   const fadingMain = main && !main.paused && !main.ended && main.volume > 0;
   const mainStart = fadingMain ? main.volume : 0;
   startHum(0);   // hum fades in from silence
-  const steps = 40, dt = durationMs / steps;
+  const steps = 60, dt = durationMs / steps;
   let i = 0;
+  const HALF_PI = Math.PI / 2;
   const timer = window.setInterval(() => {
     i += 1;
     const t = i / steps;
-    if (fadingMain) { try { main.volume = Math.max(0, mainStart * (1 - t)); } catch (e) {} }
-    setHumVolume(HUM_VOLUME * t);
+    // Equal-power crossfade: out=cos, in=sin. Their squares sum to 1 so the
+    // perceived loudness holds flat instead of dipping ~6dB mid-fade (the "weird"
+    // sag a linear fade produces when both tracks sit near half volume).
+    if (fadingMain) { try { main.volume = Math.max(0, mainStart * Math.cos(t * HALF_PI)); } catch (e) {} }
+    setHumVolume(HUM_VOLUME * Math.sin(t * HALF_PI));
     if (i >= steps) {
       window.clearInterval(timer);
       if (fadingMain) { try { main.pause(); main.volume = mainStart; } catch (e) {} }
@@ -310,7 +314,10 @@ function setupBootAudio() {
       startHum();
     }
   });
-  main.addEventListener("ended", () => beginHumBed(2500));
+  // If the main track ends before the console-ready crossfade fires, there is no
+  // track left to fade against -> ramp the hum up FAST so there's no dead-air gap.
+  // (When console-ready wins first, it pauses main so this never runs.)
+  main.addEventListener("ended", () => beginHumBed(600));
   bootAudio = { initial, hum, main, beep };
 }
 
@@ -1187,7 +1194,7 @@ async function activateRootPrompt(startedAt, opts) {
     form.style.display = "none";
     playConsoleBeep();
     await sleep(consoleBeepLeadMs);
-    appendMobilePrompt("console>vector_drift:/root");
+    appendMobilePrompt("console>vd_root:/");   // short path so it fits narrow screens
     await sleep(randomBetween(150, 190));
     input.disabled = false;
     input.focus();
