@@ -3,20 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vector Drift — Retro Vector Space Shooter</title>
-  <meta name="description" content="Vector Drift is a fast, neon vector space shooter inspired by classic arcade hardware, 90s shmups, and a simulation that may be learning from you.">
-  <meta name="robots" content="index,follow">
+
+  <!-- Security. Site is 100% first-party; the only cross-origin calls are the
+       GitHub release API and the download proxy. Note: frame-ancestors /
+       X-Frame-Options are header-only and cannot be set via <meta> on GitHub
+       Pages, so clickjacking protection is not enforced here. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; media-src 'self'; connect-src 'self' https://api.github.com https://vd-dl-proxy.codexjr.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#03110a">
+
+  <title>Vector Drift — Retro Neon Vector Space Shooter</title>
+  <meta name="description" content="Vector Drift is a fast neon vector space shooter — precise drifting, escalating enemy formations, and a hostile simulation that learns how you play. Free beta for Windows and macOS.">
+  <meta name="keywords" content="Vector Drift, vector space shooter, retro arcade shooter, neon shmup, space shooter, indie game, terminal game">
+  <meta name="author" content="Vector Drift">
+  <meta name="robots" content="index,follow,max-image-preview:large">
   <link rel="canonical" href="https://vectordrift.io/">
-  <meta property="og:title" content="Vector Drift">
+
+  <!-- Icons -->
+  <link rel="icon" href="/icon.png" type="image/png" sizes="256x256">
+  <link rel="apple-touch-icon" href="/icon.png">
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="Vector Drift">
+  <meta property="og:title" content="Vector Drift — Retro Neon Vector Space Shooter">
   <meta property="og:description" content="Enter a hostile vector simulation. Drift, survive, upgrade, and uncover what is operating behind the system.">
-  <meta property="og:image" content="https://vectordrift.io/og-image.jpg">
+  <meta property="og:image" content="https://vectordrift.io/og-image.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="VECTOR DRIFT ASCII logo on a black terminal background">
   <meta property="og:url" content="https://vectordrift.io/">
   <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Vector Drift">
+  <meta name="twitter:title" content="Vector Drift — Retro Neon Vector Space Shooter">
   <meta name="twitter:description" content="Enter a hostile vector simulation. Drift, survive, upgrade, and uncover what is operating behind the system.">
-  <meta name="twitter:image" content="https://vectordrift.io/og-image.jpg">
-  <link rel="icon" href="icon.png">
+  <meta name="twitter:image" content="https://vectordrift.io/og-image.png">
+  <meta name="twitter:image:alt" content="VECTOR DRIFT ASCII logo on a black terminal background">
+
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="vd-font.css">
   <link rel="stylesheet" href="logo-reveal.css">
@@ -26,9 +53,12 @@
       "@type": "VideoGame",
       "name": "Vector Drift",
       "url": "https://vectordrift.io/",
+      "image": "https://vectordrift.io/og-image.png",
       "description": "A high-speed retro vector space shooter built around precision, momentum, escalating enemy formations, and a hostile simulation that may be watching how you play.",
       "genre": ["Arcade", "Shoot 'em up", "Space shooter"],
-      "gamePlatform": "PC"
+      "gamePlatform": ["PC", "Windows", "macOS"],
+      "operatingSystem": "Windows, macOS",
+      "applicationCategory": "Game"
     }
   </script>
 </head>

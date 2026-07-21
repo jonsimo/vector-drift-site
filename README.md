@@ -23,7 +23,3 @@ At your DNS provider, point the apex domain at GitHub Pages:
 Optional `www` record:
 
 - `CNAME` -> `jonsimo.github.io`
-
-## Beta links
-
-Edit `beta/index.html` to replace the placeholder beta download URLs.

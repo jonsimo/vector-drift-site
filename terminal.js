@@ -68,16 +68,30 @@ const timeScale = Math.min(1, Math.max(0.05, parseFloat(bootParams.get("speed"))
 // Dev: ?auto skips the connect/continue gates so a headless render can advance.
 const autoAdvance = bootParams.has("auto");
 let mobileMode = false;
-// Hold the visuals this long after the key press so they line up with the main
-// boot track (v5).
-const mainBootLeadMs = 400;
+// Beat between the key press and the first boot text: the gate message clears and
+// a bare cursor blinks (~2 blinks) while the power-on sfx plays, so the boot does
+// not slam in on top of the press. NOTE: this pushes the glitch arrival later, so
+// it is paired with mainAudioDelayMs below to keep the glitch synced -- change
+// both together (arrival grows ~1:1 with this).
+const mainBootLeadMs = 700;
 // The console beep plays, then the root prompt appears this much later so the
 // prompt lands on the beep rather than before it.
 const consoleBeepLeadMs = 250;
-// Absolute time (ms from audio start) of the glitch-sound onset in
-// main_boot_sequence. The visual glitch is anchored to this so it fires exactly
-// on the waveform onset every run, regardless of typing jitter.
-const glitchAudioMs = 13580;
+// Onset of the glitch-sound burst WITHIN main_boot_sequence (ms from the track's
+// own t=0). Re-measure whenever the boot track is swapped -- high-freq (>3.5kHz)
+// peak jumps ~-34dB -> ~-11dB:
+//   main_boot_sequence_v3 = 13.56s   main_boot_sequence_v5 = 13.21s (current)
+const mainAudioGlitchMs = 13210;
+// The main track starts this long AFTER the key press. The typed boot needs
+// ~13.4s+ of real wall-clock to REACH the glitch beat, but v5's glitch sits at
+// 13.21s, so an undelayed track glitches before the visuals arrive (sfx sounds
+// early). Delaying the track pushes its glitch past the visual arrival. Safe
+// either way: if the visuals arrive first, waitUntilFromAudio just pads the
+// pre-glitch stillness -- it never desyncs. Initial ambience covers the lead-in.
+const mainAudioDelayMs = 1400;
+// Absolute time (ms from the key press) the VISUAL glitch is anchored to, so it
+// fires exactly on the audio glitch burst every run, regardless of typing jitter.
+const glitchAudioMs = mainAudioGlitchMs + mainAudioDelayMs;
 let bootAudioT0 = 0;
 
 function sleep(ms) {
@@ -219,11 +233,16 @@ function sfxKey() {
 // initial -> (no key) hum loop; key press -> main sequence -> hum loop.
 let bootAudio = null;
 let linkEstablished = false;
-const humUrl = "assets/computer_hum_looping_v3.mp3";
+const humUrl = "assets/computer_hum_looping_v4.mp3";
 let humBuffer = null;
 let humSource = null;
 let humGain = null;
 let humBedStarted = false;
+// Main boot track routed through Web Audio (like the hum) so the main->hum
+// crossfade automates gain sample-accurately on BOTH sides -- no HTMLAudio
+// .volume lag/quantization, which was the audible dip at the handoff.
+let mainSource = null;
+let mainGain = null;
 
 function stopHum() {
   if (humSource) {
@@ -266,6 +285,23 @@ function setHumVolume(v) {
   else if (bootAudio) { try { bootAudio.hum.volume = v; } catch (e) {} }
 }
 
+// Route the main track through the Web Audio graph once (element -> gain ->
+// destination) so its level can be automated sample-accurately during the hum
+// crossfade. createMediaElementSource runs once per element and needs the
+// context, so it is lazy; on any failure we fall back to HTMLAudio .volume.
+function ensureMainRouted() {
+  if (!audioCtx || !bootAudio || mainSource) return;
+  try {
+    mainGain = audioCtx.createGain();
+    mainGain.gain.value = 1;
+    mainSource = audioCtx.createMediaElementSource(bootAudio.main);
+    mainSource.connect(mainGain).connect(audioCtx.destination);
+  } catch (e) {
+    mainSource = null;
+    mainGain = null;
+  }
+}
+
 // Crossfade the main boot track into the hum bed (or just fade the hum in if the
 // track already ended). Runs once per boot so the two never step on each other.
 function beginHumBed(durationMs) {
@@ -274,18 +310,40 @@ function beginHumBed(durationMs) {
   durationMs = durationMs || 2500;
   if (!bootAudio) { startHum(HUM_VOLUME); return; }
   const main = bootAudio.main;
+  const HALF_PI = Math.PI / 2;
+
+  // Preferred: both sides in Web Audio -> one sample-accurate equal-power
+  // crossfade (out=cos, in=sin; their squares sum to 1 so loudness holds flat).
+  if (audioCtx && humBuffer && mainGain) {
+    startHum(0);   // fresh hum source at gain 0
+    const t0 = audioCtx.currentTime;
+    const dur = Math.max(0.05, durationMs / 1000);
+    const N = 64;
+    const outCurve = new Float32Array(N);
+    const inCurve = new Float32Array(N);
+    for (let k = 0; k < N; k += 1) {
+      const t = k / (N - 1);
+      outCurve[k] = Math.cos(t * HALF_PI);               // main gain 1 -> 0
+      inCurve[k] = HUM_VOLUME * Math.sin(t * HALF_PI);    // hum gain 0 -> HUM_VOLUME
+    }
+    try { mainGain.gain.cancelScheduledValues(t0); mainGain.gain.setValueCurveAtTime(outCurve, t0, dur); } catch (e) {}
+    try { humGain.gain.cancelScheduledValues(t0); humGain.gain.setValueCurveAtTime(inCurve, t0, dur); } catch (e) {}
+    window.setTimeout(() => {
+      try { main.pause(); } catch (e) {}
+      try { if (humGain) humGain.gain.value = HUM_VOLUME; } catch (e) {}
+    }, durationMs + 40);
+    return;
+  }
+
+  // Fallback: main only has HTMLAudio .volume (routing unavailable). Stepped fade.
   const fadingMain = main && !main.paused && !main.ended && main.volume > 0;
   const mainStart = fadingMain ? main.volume : 0;
-  startHum(0);   // hum fades in from silence
+  startHum(0);
   const steps = 60, dt = durationMs / steps;
   let i = 0;
-  const HALF_PI = Math.PI / 2;
   const timer = window.setInterval(() => {
     i += 1;
     const t = i / steps;
-    // Equal-power crossfade: out=cos, in=sin. Their squares sum to 1 so the
-    // perceived loudness holds flat instead of dipping ~6dB mid-fade (the "weird"
-    // sag a linear fade produces when both tracks sit near half volume).
     if (fadingMain) { try { main.volume = Math.max(0, mainStart * Math.cos(t * HALF_PI)); } catch (e) {} }
     setHumVolume(HUM_VOLUME * Math.sin(t * HALF_PI));
     if (i >= steps) {
@@ -344,10 +402,22 @@ function establishLinkAudio() {
   }
   linkEstablished = true;
   humBedStarted = false;
-  bootAudio.initial.pause();
   stopHum();
-  bootAudio.main.currentTime = 0;
-  bootAudio.main.play().catch(() => {});
+  ensureMainRouted();   // route main through Web Audio for a clean hum crossfade
+  // Power-on sfx fires on THIS key press (the gesture that dismisses "press any
+  // key"), so it reads as user-triggered instead of already running, and it
+  // covers the lead-in. The main boot track then takes over after
+  // mainAudioDelayMs; its baked-in glitch lands after the typed boot reaches the
+  // glitch beat.
+  const initial = bootAudio.initial;
+  const main = bootAudio.main;
+  try { initial.currentTime = 0; } catch (e) {}
+  initial.play().catch(() => {});
+  main.currentTime = 0;
+  window.setTimeout(() => {
+    try { initial.pause(); } catch (e) {}
+    main.play().catch(() => {});
+  }, mainAudioDelayMs);
 }
 function sfxFast() {
   // noise zip
@@ -1074,9 +1144,9 @@ async function waitForConnect() {
     ? "TAP TO ESTABLISH LINK"
     : "PRESS ANY KEY TO ESTABLISH COMMUNICATION LINK";
 
-  // The gate appears -> attract audio starts (best-effort until a gesture).
+  // The gate appears silent. The power-on sfx is deferred to the key press (in
+  // establishLinkAudio) so it reads as user-triggered, not already running.
   setupBootAudio();
-  playInitialAmbience();
 
   // The words flicker in one at a time from black, with random variance and
   // overlap (next word starts before the previous settles). Hidden words hold
@@ -1088,36 +1158,50 @@ async function waitForConnect() {
   };
   render();
 
-  const flickerWord = async (i) => {
-    for (const on of [true, false, true]) {
-      visible[i] = on;
+  // Play the flicker-in animation, bailing the instant isStopped() goes true so
+  // a press mid-animation can snap straight to the settled line.
+  const playFlickerIn = async (isStopped) => {
+    const flickerWord = async (i) => {
+      for (const on of [true, false, true]) {
+        if (isStopped()) return;
+        visible[i] = on;
+        render();
+        await sleep(randomBetween(42, 78));
+      }
+      if (isStopped()) return;
+      visible[i] = true;
       render();
-      await sleep(randomBetween(42, 78));
+    };
+
+    const tasks = [];
+    for (let i = 0; i < words.length; i += 1) {
+      const delay = randomBetween(0, 780);
+      tasks.push((async () => {
+        await sleep(delay);
+        if (isStopped()) return;
+        await flickerWord(i);
+      })());
     }
-    visible[i] = true;
-    render();
+    await Promise.all(tasks);
+    if (isStopped()) return;
+
+    // ...the line settles and holds, then the cursor appears and blinks.
+    await sleep(randomBetween(650, 850));
+    if (isStopped()) return;
+    renderStatusLines([text], 0);
   };
 
-  const tasks = [];
-  for (let i = 0; i < words.length; i += 1) {
-    const delay = randomBetween(0, 780);
-    tasks.push((async () => {
-      await sleep(delay);
-      await flickerWord(i);
-    })());
-  }
-  await Promise.all(tasks);
-
-  // ...the line settles and holds, then the cursor appears and blinks.
-  await sleep(randomBetween(650, 850));
-  renderStatusLines([text], 0);
-
   if (autoAdvance) {
+    await playFlickerIn(() => false);
     await sleep(300);
     return;
   }
 
+  // Interactive gate: the key/tap listeners attach NOW and run THROUGH the
+  // flicker-in, so a press during the animation advances immediately instead of
+  // being dropped. The animation keeps playing only until the first press.
   return new Promise((resolve) => {
+    let answered = false;
     const modifiers = new Set(["Shift", "Alt", "Control", "Meta", "CapsLock"]);
     const done = (event) => {
       if (event.type === "keydown" && modifiers.has(event.key)) {
@@ -1126,14 +1210,22 @@ async function waitForConnect() {
       if (event.type === "keydown") {
         event.preventDefault();
       }
+      if (answered) {
+        return;
+      }
+      answered = true;
       window.removeEventListener("keydown", done);
       window.removeEventListener("pointerdown", done);
+      renderStatusLines([""], 0);   // clear the gate message -> bare cursor beat
       initAudio();
       establishLinkAudio();
       resolve();
     };
     window.addEventListener("keydown", done);
     window.addEventListener("pointerdown", done);
+
+    // Fire-and-forget: plays until `answered` flips, then bails via the guards.
+    playFlickerIn(() => answered);
   });
 }
 
