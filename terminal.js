@@ -1774,13 +1774,17 @@ async function runBootMobile() {
     "vd_combat   READY  local  armed",
     "vd_scope    READY  local  nominal",
   ], 56);
-  await sleep(280);
+  // Mobile plays the main track immediately (no lead), so the typed boot must
+  // REACH the glitch beat before the track's 13.21s glitch. These pre-glitch
+  // beats are trimmed ~570ms vs desktop so the visual arrives just early and
+  // waitUntilFromAudio pads it exactly onto the audio glitch (was ~450ms late).
+  await sleep(160);
   const observerLine = appendLine("vd_observer MISS   none   unavail");
-  await sleep(380);
+  await sleep(250);
   const cortexLine = appendLine("vd_cortex   WAIT   ----   bridge");
-  await sleep(500);
+  await sleep(350);
   const resolvingLine = appendLine("io>loader/ resolving iface ...");
-  await sleep(640);
+  await sleep(470);
 
   rewriteStatus("io>loader/ resolving iface");
   // Anchor the glitch onset to the audio glitch onset.
