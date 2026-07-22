@@ -51,7 +51,7 @@ function fitLogo(){ if(!curPanels) return;
   // advance width underestimates and inflates --lf, clipping narrow screens).
   for(const p of curPanels) renderPanel(p,1e9);
   const dr=document.getElementById("driftrow");
-  const w=Math.max(vec.scrollWidth, dr.scrollWidth)*(mobile?1.08:1.1);   // mobile: ~4% side padding, else fill
+  const w=Math.max(vec.scrollWidth, dr.scrollWidth)*(mobile?1.03:1.1);   // mobile: ~1.5% side gap (near edge-to-edge), else fill
   const h=logo.scrollHeight*1.03;
   let lf=Math.min(trial*availW/w, trial*availH/h);
   // Mobile cap raised so WIDTH is the binding constraint -> logo fills the upper
@@ -277,6 +277,7 @@ window.renderLogoBanner = async function (opts) {
   const verEl = banner.querySelector(".vd-version");
   if (verEl) await glitchText(verEl, "vector_drift.sim v0.9.3 alpha build", { noAnim, perChar: 24, scramble: 320 });
   const out2 = OUT(); if (out2) out2.scrollTop = out2.scrollHeight;
+  if (params.has("logohold")) { await sleep(3600000); }   // dev: freeze on the logo
 };
 
 // Back-compat alias: the earlier boot called window.runLogoReveal.
