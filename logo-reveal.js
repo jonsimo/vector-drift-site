@@ -57,6 +57,10 @@ function fitLogo(){ if(!curPanels) return;
   // Mobile cap raised so WIDTH is the binding constraint -> logo fills the upper
   // area edge-to-edge (minus the padding above) instead of capping small.
   document.documentElement.style.setProperty("--lf",Math.max(4,Math.min(mobile?80:30,lf))+"px"); }
+// Refit the logo when the viewport changes (rotate / fold / resize) so it never
+// clips or shrinks after the reveal. No-op until curPanels exists.
+window.addEventListener("resize", fitLogo);
+window.addEventListener("orientationchange", fitLogo);
 function finalizeLogo(){ if(curPanels) for(const p of curPanels) renderPanel(p,1e9); }
 function reveal(id){ logo.style.opacity="1";
   const vP=makePanel(vec,"VECTOR",0);

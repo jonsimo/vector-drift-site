@@ -165,6 +165,14 @@ function initAudio() {
   noiseBuffer = buffer;
   sfxEnabled = true;
   resumeAudio();
+  // iOS: play a 1-sample silent buffer inside the gesture to fully wake the
+  // context. resume() alone can leave Safari's context effectively muted.
+  try {
+    const wake = audioCtx.createBufferSource();
+    wake.buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+    wake.connect(audioCtx.destination);
+    wake.start(0);
+  } catch (e) {}
 
   // Decode the hum for a gapless Web Audio loop (ready before the main track ends).
   if (!humBuffer) {
@@ -290,7 +298,10 @@ function setHumVolume(v) {
 // crossfade. createMediaElementSource runs once per element and needs the
 // context, so it is lazy; on any failure we fall back to HTMLAudio .volume.
 function ensureMainRouted() {
-  if (!audioCtx || !bootAudio || mainSource) return;
+  // On mobile (iOS especially) the AudioContext can lag resuming; routing the
+  // main track through it risks silence. Keep main as plain HTMLAudio there, so
+  // it plays reliably once unlocked; beginHumBed uses the .volume crossfade.
+  if (!audioCtx || !bootAudio || mainSource || mobileMode) return;
   try {
     mainGain = audioCtx.createGain();
     mainGain.gain.value = 1;
@@ -1577,8 +1588,11 @@ function fitMobileFont() {
   }
   // Measure the real monospace char width, then size the font so TARGET_COLS
   // columns fill the available width exactly (independent of device/font).
-  const TARGET_COLS = 41;
-  const SIDE_PADDING = 30; // must match the mobile CSS left/right padding
+  // Widest real boot line is ~37 cols. Target 46 for ~20% headroom: the char-width
+  // probe under-reads the VD font's advance by ~10%, so a thin margin still clips.
+  const TARGET_COLS = 46;
+  // Window side-margin (16px) + screen padding (16px) per side in the mobile CSS.
+  const SIDE_PADDING = 32;
   const probe = document.createElement("span");
   probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre;font-size:100px;font-family:inherit;letter-spacing:0;";
   probe.textContent = "0".repeat(20);
@@ -1587,7 +1601,10 @@ function fitMobileFont() {
   probe.remove();
   const avail = window.innerWidth - SIDE_PADDING * 2;
   let size = avail / (TARGET_COLS * charWidthPerPx);
-  size = Math.max(13, Math.min(24, size));
+  // Floor at 8.5px so all columns still FIT (never clip) down to ~280px folded
+  // covers; on normal phones (>=340px) the width binds well above this. Not
+  // clipping matters more than absolute legibility on a 280px cover screen.
+  size = Math.max(8.5, Math.min(24, size));
   document.documentElement.style.setProperty("--mobile-font", `${size.toFixed(2)}px`);
 }
 
@@ -1596,7 +1613,12 @@ async function runBootMobile() {
     return;
   }
   fitMobileFont();
+  // Re-fit once the VD font is actually loaded: the first measurement can run
+  // against the fallback font (narrower advance), which under-sizes the padding
+  // and clips the widest boot line on real phones.
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(fitMobileFont); }
   window.addEventListener("resize", fitMobileFont);
+  window.addEventListener("orientationchange", fitMobileFont);
   bootStarted = true;
   bootActive = true;
   const startedAt = performance.now();
