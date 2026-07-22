@@ -396,6 +396,22 @@ function playInitialAmbience() {
   bootAudio.initial.play().catch(() => {});
 }
 
+// iOS/Safari only lets a media element play outside a user gesture if it has
+// already played inside one. Elements that play later (main after a delay, the
+// console beep) are unlocked here by playing them muted for an instant inside the
+// current tap/press, then resetting.
+function unlockMediaElement(el) {
+  if (!el) return;
+  try {
+    const wasMuted = el.muted;
+    el.muted = true;
+    const p = el.play();
+    const reset = () => { try { el.pause(); el.currentTime = 0; el.muted = wasMuted; } catch (e) {} };
+    if (p && typeof p.then === "function") { p.then(reset).catch(() => { try { el.muted = wasMuted; } catch (e) {} }); }
+    else { reset(); }
+  } catch (e) {}
+}
+
 function establishLinkAudio() {
   if (!bootAudio) {
     return;
@@ -403,6 +419,7 @@ function establishLinkAudio() {
   linkEstablished = true;
   humBedStarted = false;
   stopHum();
+  resumeAudio();        // iOS: the AudioContext starts suspended; resume in-gesture
   ensureMainRouted();   // route main through Web Audio for a clean hum crossfade
   // Power-on sfx fires on THIS key press (the gesture that dismisses "press any
   // key"), so it reads as user-triggered instead of already running, and it
@@ -413,9 +430,13 @@ function establishLinkAudio() {
   const main = bootAudio.main;
   try { initial.currentTime = 0; } catch (e) {}
   initial.play().catch(() => {});
-  main.currentTime = 0;
+  // iOS: main plays on a delay and the beep plays much later -- both outside this
+  // gesture -- so unlock them now, silently, inside it so the deferred play works.
+  unlockMediaElement(main);
+  unlockMediaElement(bootAudio.beep);
   window.setTimeout(() => {
     try { initial.pause(); } catch (e) {}
+    try { main.currentTime = 0; } catch (e) {}
     main.play().catch(() => {});
   }, mainAudioDelayMs);
 }
