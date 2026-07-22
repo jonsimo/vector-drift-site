@@ -161,6 +161,12 @@ body.vd-banner-active .terminal-content { height: auto; }
   .vd-banner #dft { transform: none; }
   /* keep the slightly-high position on mobile */
   .vd-banner #speed { transform: translateY(-0.5em); }
+  /* Banner mode: widen the terminal box to the full screen and shrink the side
+     padding so the logo (which fills ~97% of its container) reaches near the
+     screen edges. Safe: the boot text is cleared before banner mode, so this
+     only affects the logo + the console prompt beneath it. */
+  body.vd-banner-active .terminal-window { width: 100vw; max-width: 100vw; }
+  body.vd-banner-active .terminal-screen { padding-left: 10px; padding-right: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .vd-banner #speed i { opacity: 1; transform: scaleX(1); background: var(--phos); }
