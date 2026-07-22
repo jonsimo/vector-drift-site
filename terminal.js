@@ -439,16 +439,22 @@ function establishLinkAudio() {
   // glitch beat.
   const initial = bootAudio.initial;
   const main = bootAudio.main;
+  // Power-on sfx: audible immediately, in this gesture.
   try { initial.currentTime = 0; } catch (e) {}
   initial.play().catch(() => {});
-  // iOS: main plays on a delay and the beep plays much later -- both outside this
-  // gesture -- so unlock them now, silently, inside it so the deferred play works.
-  unlockMediaElement(main);
-  unlockMediaElement(bootAudio.beep);
+  // iOS only allows play() inside a gesture. So start main NOW (a single play(),
+  // muted) and let it run; at mainAudioDelayMs rewind to 0 and unmute so the
+  // audible boot begins after the power-on lead with its glitch cue still landing
+  // on glitchAudioMs. One play(), no deferred play(), no pause -> no iOS block and
+  // no play/pause race (the race cut mobile audio off mid-track).
+  try { main.currentTime = 0; } catch (e) {}
+  main.muted = true;
+  main.play().catch(() => {});
+  unlockMediaElement(bootAudio.beep);   // console beep fires much later, outside a gesture
   window.setTimeout(() => {
     try { initial.pause(); } catch (e) {}
     try { main.currentTime = 0; } catch (e) {}
-    main.play().catch(() => {});
+    main.muted = false;
   }, mainAudioDelayMs);
 }
 function sfxFast() {
