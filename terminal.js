@@ -90,8 +90,10 @@ const mainAudioGlitchMs = 13210;
 // pre-glitch stillness -- it never desyncs. Initial ambience covers the lead-in.
 const mainAudioDelayMs = 1400;
 // Absolute time (ms from the key press) the VISUAL glitch is anchored to, so it
-// fires exactly on the audio glitch burst every run, regardless of typing jitter.
-const glitchAudioMs = mainAudioGlitchMs + mainAudioDelayMs;
+// fires exactly on the audio glitch burst every run. Desktop delays the track by
+// mainAudioDelayMs; mobile plays it immediately (iOS can't delay a media element
+// reliably), so the mobile boot init lowers this to the track's own onset.
+let glitchAudioMs = mainAudioGlitchMs + mainAudioDelayMs;
 let bootAudioT0 = 0;
 
 function sleep(ms) {
@@ -430,31 +432,32 @@ function establishLinkAudio() {
   linkEstablished = true;
   humBedStarted = false;
   stopHum();
-  resumeAudio();        // iOS: the AudioContext starts suspended; resume in-gesture
-  ensureMainRouted();   // route main through Web Audio for a clean hum crossfade
-  // Power-on sfx fires on THIS key press (the gesture that dismisses "press any
-  // key"), so it reads as user-triggered instead of already running, and it
-  // covers the lead-in. The main boot track then takes over after
-  // mainAudioDelayMs; its baked-in glitch lands after the typed boot reaches the
-  // glitch beat.
+  resumeAudio();   // iOS: the AudioContext starts suspended; resume in-gesture
   const initial = bootAudio.initial;
   const main = bootAudio.main;
-  // Power-on sfx: audible immediately, in this gesture.
+
+  if (mobileMode) {
+    // iOS will NOT reliably start a media element on a delay, nor unmute one
+    // later. So on mobile just play the main track immediately in this gesture
+    // (the behaviour that worked originally). glitchAudioMs is lowered to the
+    // track's own onset for the mobile path (boot init), so the glitch stays
+    // aligned with no lead. Reliability over the power-on lead here.
+    try { main.currentTime = 0; } catch (e) {}
+    main.play().catch(() => {});
+    return;
+  }
+
+  // Desktop: power-on sfx on the press, then the main track after the lead so its
+  // glitch cue lands on glitchAudioMs. Routed through Web Audio for a clean hum
+  // crossfade. Desktop allows a deferred play(), so no iOS workarounds are needed.
+  ensureMainRouted();
   try { initial.currentTime = 0; } catch (e) {}
   initial.play().catch(() => {});
-  // iOS only allows play() inside a gesture. So start main NOW (a single play(),
-  // muted) and let it run; at mainAudioDelayMs rewind to 0 and unmute so the
-  // audible boot begins after the power-on lead with its glitch cue still landing
-  // on glitchAudioMs. One play(), no deferred play(), no pause -> no iOS block and
-  // no play/pause race (the race cut mobile audio off mid-track).
-  try { main.currentTime = 0; } catch (e) {}
-  main.muted = true;
-  main.play().catch(() => {});
-  unlockMediaElement(bootAudio.beep);   // console beep fires much later, outside a gesture
+  main.currentTime = 0;
   window.setTimeout(() => {
     try { initial.pause(); } catch (e) {}
     try { main.currentTime = 0; } catch (e) {}
-    main.muted = false;
+    main.play().catch(() => {});
   }, mainAudioDelayMs);
 }
 function sfxFast() {
@@ -2630,10 +2633,30 @@ async function runEndSequence() {
   await activateRootPrompt(startedAt, { keepOutput: true });
 }
 
+// iOS keeps HTMLAudio playing on the lock screen / when the tab is backgrounded
+// (it shows up in Now Playing like a song). Pause every element and suspend the
+// audio context whenever the page is hidden so nothing plays in the background.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    if (bootAudio) {
+      try { bootAudio.initial.pause(); } catch (e) {}
+      try { bootAudio.main.pause(); } catch (e) {}
+      try { bootAudio.hum.pause(); } catch (e) {}
+      try { bootAudio.beep.pause(); } catch (e) {}
+    }
+    try { if (audioCtx) audioCtx.suspend(); } catch (e) {}
+  } else {
+    try { if (audioCtx && linkEstablished) audioCtx.resume(); } catch (e) {}
+  }
+});
+
 window.addEventListener("load", () => {
   mobileMode = isMobileDevice() || bootParams.get("view") === "mobile";
   if (mobileMode) {
     document.body.classList.add("mobile");
+    // Mobile plays the main track immediately (no lead), so the glitch sits at
+    // the track's own onset rather than lead + onset.
+    glitchAudioMs = mainAudioGlitchMs;
   }
   if (bootParams.has("end")) {
     runEndSequence();
