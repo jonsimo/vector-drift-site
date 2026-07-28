@@ -2444,7 +2444,7 @@ async function handleUplinkInput(command) {
   const ok = await window.VDUplink.subscribe(typed);
   if (ok) {
     rewriteLine(pending, "> transmission received.");
-    appendResponse("> confirm via your inbox to join the alpha uplink.", "terminal-meta");
+    appendResponse("> you're on the vector drift alpha list. drift on.", "terminal-meta");
   } else {
     rewriteLine(pending, "> uplink error. signal lost — try again later.");
   }

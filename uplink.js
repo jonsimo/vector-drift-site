@@ -10,9 +10,10 @@
 (function () {
   "use strict";
 
-  // Kit form uid 10871da90d (from the JS embed data-uid). The embed submits to
-  // /forms/<uid>/subscriptions; no API key needed, CORS-enabled, client-safe.
-  var FORM_ACTION = "https://app.kit.com/forms/10871da90d/subscriptions";
+  // Kit form NUMERIC id 9734489 (embed uid 10871da90d maps to this; the
+  // /forms/<id>/subscriptions endpoint wants the numeric id). No API key,
+  // CORS-enabled (ACAO *), client-safe.
+  var FORM_ACTION = "https://app.kit.com/forms/9734489/subscriptions";
 
   function valid(email) {
     return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -33,7 +34,10 @@
       headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
       body: body.toString()
     })
-      .then(function (r) { return r.ok; })
+      // Kit answers HTTP 200 even on failure; the JSON body carries the real
+      // result (status:"failed" + errors). Parse it — don't trust r.ok alone.
+      .then(function (r) { return r.json().catch(function () { return { ok: r.ok }; }); })
+      .then(function (j) { return j && typeof j.status === "string" ? j.status !== "failed" : !!(j && j.ok); })
       // Fallback if a future Kit change drops CORS: opaque no-cors POST still reaches
       // them; we can't read status, so treat a completed request as accepted.
       .catch(function () {
