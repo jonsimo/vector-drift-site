@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!-- OG-image generator. Renders the REAL site banner (logo-reveal.js + the same
+     CSS) in its final static state, centered on a 1200x630 canvas, so the social
+     card is pixel-identical to the site logo. Screenshot this at 1200x630 and
+     save as og-image.png. Not linked from the site; dev/build tooling only. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Vector Drift — OG render</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="vd-font.css">
+  <link rel="stylesheet" href="logo-reveal.css">
+  <style>
+    html, body { margin: 0; padding: 0; }
+    /* Fixed OG canvas. Flat lifted-black like the site. */
+    body.terminal-home { width: 1200px; height: 630px; overflow: hidden; background: #040705; }
+    .og-frame { width: 1200px; height: 630px; display: flex; align-items: center; justify-content: center; }
+    .terminal-content.vd-console { max-height: none; }
+    /* Let the banner size to its content; the script fits it via --lf. */
+    #terminal-output { width: max-content; max-width: none; height: auto; max-height: none; overflow: visible; }
+    .screen-scanlines, .screen-vignette, .screen-noise { position: fixed; inset: 0; pointer-events: none; }
+  </style>
+</head>
+<body class="terminal-home vd-banner-active">
+  <div class="screen-vignette"></div>
+  <div class="screen-scanlines"></div>
+  <div class="screen-noise"></div>
+  <div class="og-frame">
+    <section class="terminal-content vd-console">
+      <div id="terminal-output" class="terminal-output"></div>
+    </section>
+  </div>
+
+  <script src="logo-reveal.js"></script>
+  <script>
+    window.__vdSkip = true;   // force the no-animation / final-state render path
+    (async function () {
+      try { await window.renderLogoBanner({}); } catch (e) {}
+      await new Promise(function (r) { setTimeout(r, 300); });
+      var banner = document.querySelector(".vd-banner");
+      if (banner) {
+        // Fit the whole banner into the card by scaling --lf (every part is sized
+        // in em of --lf, so the logo + speed lines + DRIFT stay in proportion).
+        var curLf = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--lf")) || 20;
+        var rect = banner.getBoundingClientRect();
+        var s = Math.min(980 / rect.width, 470 / rect.height);
+        if (isFinite(s) && s > 0) document.documentElement.style.setProperty("--lf", (curLf * s) + "px");
+      }
+      document.documentElement.setAttribute("data-og-ready", "1");
+    })();
+  </script>
+</body>
+</html>
