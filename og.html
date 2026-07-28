@@ -15,8 +15,9 @@
     /* Fixed OG canvas. Flat lifted-black like the site. */
     body.terminal-home { width: 1200px; height: 630px; overflow: hidden; background: #040705; }
     .og-frame { width: 1200px; height: 630px; display: flex; align-items: center; justify-content: center; }
-    .terminal-content.vd-console { max-height: none; }
-    /* Let the banner size to its content; the script fits it via --lf. */
+    /* Shrink the content box to the banner so the flex parent actually centers it
+       (a full-width box would pin the left-aligned banner to the edge). */
+    .terminal-content.vd-console { width: max-content; max-height: none; }
     #terminal-output { width: max-content; max-width: none; height: auto; max-height: none; overflow: visible; }
     .screen-scanlines, .screen-vignette, .screen-noise { position: fixed; inset: 0; pointer-events: none; }
   </style>
@@ -39,11 +40,14 @@
       await new Promise(function (r) { setTimeout(r, 300); });
       var banner = document.querySelector(".vd-banner");
       if (banner) {
-        // Fit the whole banner into the card by scaling --lf (every part is sized
-        // in em of --lf, so the logo + speed lines + DRIFT stay in proportion).
+        // Keep the version line + divider like the site; make sure the divider is
+        // shown (it fades in on .show). Fit the WHOLE banner — the logo is the wide
+        // part so width binds, keeping the logo large while the meta rides beneath.
+        var meta = banner.querySelector(".vd-meta");
+        if (meta) meta.classList.add("show");
         var curLf = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--lf")) || 20;
         var rect = banner.getBoundingClientRect();
-        var s = Math.min(980 / rect.width, 470 / rect.height);
+        var s = Math.min(1080 / rect.width, 540 / rect.height);
         if (isFinite(s) && s > 0) document.documentElement.style.setProperty("--lf", (curLf * s) + "px");
       }
       document.documentElement.setAttribute("data-og-ready", "1");
