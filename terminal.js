@@ -549,16 +549,24 @@ function appendRawLine(className = "") {
   return line;
 }
 
-function appendCommandLine(command) {
+function appendCommandLine(command, prefixText) {
   const line = appendRawLine("command prompt-history");
+  const commandPart = document.createElement("span");
+  commandPart.textContent = ` ${command}`;
+  if (prefixText) {
+    // Custom prompt (e.g. the "enter email >" uplink stage) echoes on its own line.
+    const p = document.createElement("span");
+    p.className = "prompt-console";
+    p.textContent = prefixText;
+    line.append(p, commandPart);
+    return line;
+  }
   const consolePart = document.createElement("span");
   consolePart.className = "prompt-console";
   consolePart.textContent = "console>";
   const pathPart = document.createElement("span");
   pathPart.className = "prompt-path";
   pathPart.textContent = "vector_drift:/root";
-  const commandPart = document.createElement("span");
-  commandPart.textContent = ` ${command}`;
   line.append(consolePart, pathPart, commandPart);
   return line;
 }
@@ -2392,14 +2400,33 @@ function maybeOfferUplink(normalized) {
   appendResponse("subscribe to vector drift email alpha list?  [Y/N]", "terminal-meta");
 }
 
+const UPLINK_EMAIL_PROMPT = "enter email >";
+
+// Desktop: swap the live prompt prefix to "enter email >" during the email stage
+// so the input sits on that line; restore the console prompt otherwise.
+function applyUplinkPrompt() {
+  if (mobileMode) return;
+  if (uplinkStage === "email") {
+    promptPrefix.replaceChildren();
+    const s = document.createElement("span");
+    s.className = "prompt-console";
+    s.textContent = UPLINK_EMAIL_PROMPT;
+    promptPrefix.append(s);
+  } else {
+    setPromptPrefix();
+  }
+}
+
 async function handleUplinkInput(command) {
   const typed = command.trim();
-  if (mobileMode) { freezeMobilePrompt(typed); } else { appendCommandLine(typed); }
+  const emailStage = uplinkStage === "email";
+  // Echo under the prompt that was active: console for Y/N, "enter email >" for the address.
+  if (mobileMode) { freezeMobilePrompt(typed); }
+  else { appendCommandLine(typed, emailStage ? UPLINK_EMAIL_PROMPT : undefined); }
 
   if (uplinkStage === "offer") {
     if (/^(y|yes)$/i.test(typed)) {
-      uplinkStage = "email";
-      appendResponse("enter email >", "terminal-meta");
+      uplinkStage = "email";   // prompt becomes "enter email >" on re-append
     } else {
       uplinkStage = null; uplinkResolved = true;
       appendResponse("> uplink declined. drift on.", "terminal-meta");
@@ -2409,8 +2436,8 @@ async function handleUplinkInput(command) {
 
   // uplinkStage === "email"
   if (!window.VDUplink || !window.VDUplink.valid(typed)) {
-    appendResponse("> malformed address. enter email >", "terminal-error");
-    return;   // stay in the email stage
+    appendResponse("> malformed address. try again.", "terminal-error");
+    return;   // stay in the email stage (prompt still "enter email >")
   }
   uplinkStage = null; uplinkResolved = true;
   const pending = appendResponse("> transmitting ...", "terminal-meta");
@@ -2440,7 +2467,8 @@ async function submitCurrentCommand() {
     responseActive = true;
     try { await handleUplinkInput(uplinkCommand); } finally { responseActive = false; }
     input.disabled = false;
-    if (mobileMode) appendMobilePrompt("root:/");
+    applyUplinkPrompt();   // desktop: "enter email >" during email stage, else console
+    if (mobileMode) appendMobilePrompt(uplinkStage === "email" ? UPLINK_EMAIL_PROMPT : "root:/");
     input.focus();
     return;
   }
@@ -2752,11 +2780,13 @@ if (bootParams.has("uplinkdemo")) {
       appendResponse("");
       appendResponse("subscribe to vector drift email alpha list?  [Y/N]", "terminal-meta");
       appendCommandLine("Y");
-      appendResponse("enter email >", "terminal-meta");
-      appendCommandLine("jon@rogers.com");
-      appendResponse("> transmission received.", "terminal-meta");
-      appendResponse("> confirm via your inbox to join the alpha uplink.", "terminal-meta");
+      // Live email-entry state: prompt is "enter email >", input on the same line.
+      uplinkStage = "email";
+      applyUplinkPrompt();
+      input.value = "jon";
+      updateCursor();
       output.scrollTop = output.scrollHeight;
+      input.focus();
     }, 500);
   });
 }
