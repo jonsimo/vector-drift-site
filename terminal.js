@@ -2444,7 +2444,7 @@ async function handleUplinkInput(command) {
   const ok = await window.VDUplink.subscribe(typed);
   if (ok) {
     rewriteLine(pending, "> handshake accepted");
-    appendResponse("> node added to alpha manifest // await transmission", "terminal-meta");
+    appendResponse("> node user added to alpha manifest // await future transmission for demo", "terminal-meta");
   } else {
     rewriteLine(pending, "> uplink error. signal lost — try again later.");
   }
