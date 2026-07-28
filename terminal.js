@@ -2373,6 +2373,56 @@ async function runLoreOrUnknown(normalized) {
   await runResponse(steps);
 }
 
+// --- Email uplink (Kit) ------------------------------------------------------
+// Offered ONCE per session, after the first real command. Y/YES -> ask for an
+// email inline -> POST to Kit (uplink.js) -> confirm, all in-console. The user
+// never sees a Kit / Web-2.0 surface. While a stage is active, input routes here
+// instead of running as a command.
+let uplinkStage = null;      // null | "offer" | "email"
+let uplinkOffered = false;   // offer shown this session
+let uplinkResolved = false;  // subscribed OR declined -> never offer again
+
+function maybeOfferUplink(normalized) {
+  if (uplinkOffered || uplinkResolved || uplinkStage) return;
+  if (!normalized) return;                              // only after a real command
+  if (DEBUG && DEBUG.isActive()) return;                // not in the operator channel
+  uplinkOffered = true;
+  uplinkStage = "offer";
+  appendResponse("");
+  appendResponse("subscribe to vector drift email alpha list?  [Y/N]", "terminal-meta");
+}
+
+async function handleUplinkInput(command) {
+  const typed = command.trim();
+  if (mobileMode) { freezeMobilePrompt(typed); } else { appendCommandLine(typed); }
+
+  if (uplinkStage === "offer") {
+    if (/^(y|yes)$/i.test(typed)) {
+      uplinkStage = "email";
+      appendResponse("enter email >", "terminal-meta");
+    } else {
+      uplinkStage = null; uplinkResolved = true;
+      appendResponse("> uplink declined. drift on.", "terminal-meta");
+    }
+    return;
+  }
+
+  // uplinkStage === "email"
+  if (!window.VDUplink || !window.VDUplink.valid(typed)) {
+    appendResponse("> malformed address. enter email >", "terminal-error");
+    return;   // stay in the email stage
+  }
+  uplinkStage = null; uplinkResolved = true;
+  const pending = appendResponse("> transmitting ...", "terminal-meta");
+  const ok = await window.VDUplink.subscribe(typed);
+  if (ok) {
+    rewriteLine(pending, "> transmission received.");
+    appendResponse("> confirm via your inbox to join the alpha uplink.", "terminal-meta");
+  } else {
+    rewriteLine(pending, "> uplink error. signal lost — try again later.");
+  }
+}
+
 async function submitCurrentCommand() {
   if (terminalState === "downloading" || terminalState === "executing" || responseActive) {
     return;
@@ -2380,6 +2430,20 @@ async function submitCurrentCommand() {
 
   resumeAudio();
   sfxEnter();
+
+  // Email-uplink flow intercepts BEFORE any command handling (incl. the
+  // handoff-download empty-Enter shortcut) while a stage is active.
+  if (uplinkStage) {
+    const uplinkCommand = input.value;
+    input.value = "";
+    updateCursor();
+    responseActive = true;
+    try { await handleUplinkInput(uplinkCommand); } finally { responseActive = false; }
+    input.disabled = false;
+    if (mobileMode) appendMobilePrompt("root:/");
+    input.focus();
+    return;
+  }
 
   if (terminalState === "handoffReady" && !input.value.trim()) {
     activateFallbackDownload();
@@ -2448,6 +2512,7 @@ async function submitCurrentCommand() {
   if (terminalState !== "downloading" && terminalState !== "executing") {
     setTerminalState(terminalState === "handoffReady" ? "handoffReady" : "ready");
     input.disabled = false;
+    maybeOfferUplink(normalized);   // first real command -> offer the email uplink (once)
     if (mobileMode) {
       appendMobilePrompt("root:/");
     }
@@ -2676,3 +2741,22 @@ window.addEventListener("load", () => {
   }
   runBoot();
 }, { once: true });
+
+// Dev: ?uplinkdemo paints the full email-uplink exchange (offer -> Y -> email ->
+// confirm) into the console for a visual check. No network; desktop layout.
+if (bootParams.has("uplinkdemo")) {
+  window.addEventListener("load", function () {
+    setTimeout(function () {
+      appendCommandLine("status");
+      appendResponse("system nominal ......................... ok");
+      appendResponse("");
+      appendResponse("subscribe to vector drift email alpha list?  [Y/N]", "terminal-meta");
+      appendCommandLine("Y");
+      appendResponse("enter email >", "terminal-meta");
+      appendCommandLine("jon@rogers.com");
+      appendResponse("> transmission received.", "terminal-meta");
+      appendResponse("> confirm via your inbox to join the alpha uplink.", "terminal-meta");
+      output.scrollTop = output.scrollHeight;
+    }, 500);
+  });
+}
