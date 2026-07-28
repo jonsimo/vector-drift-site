@@ -2443,8 +2443,8 @@ async function handleUplinkInput(command) {
   const pending = appendResponse("> transmitting ...", "terminal-meta");
   const ok = await window.VDUplink.subscribe(typed);
   if (ok) {
-    rewriteLine(pending, "> transmission received.");
-    appendResponse("> you're on the vector drift alpha list. drift on.", "terminal-meta");
+    rewriteLine(pending, "> handshake accepted");
+    appendResponse("> node added to alpha manifest // await transmission", "terminal-meta");
   } else {
     rewriteLine(pending, "> uplink error. signal lost — try again later.");
   }
