@@ -42,7 +42,10 @@ const locateCommand = "find /opt -iname 'vector_drift' $>/dev/null";
 const loadCommand = "load /opt/unknown/vectordrift.sim";
 const finalPrompt = "console>vector_drift:/root";
 const initialCursorCycleMs = 815;
-const releasesApiUrl = "https://api.github.com/repos/jonsimo/codex-jr-downloads/releases/latest";
+// List endpoint (newest-first), NOT /releases/latest — /latest skips prereleases,
+// and the alpha builds are published as prereleases. resolveLatestPackage() takes
+// the newest non-draft entry, so a prerelease alpha is served automatically.
+const releasesApiUrl = "https://api.github.com/repos/jonsimo/codex-jr-downloads/releases?per_page=20";
 const releasesPageUrl = "https://github.com/jonsimo/codex-jr-downloads/releases";
 // CORS proxy for the release asset. GitHub's asset host sends no
 // Access-Control-Allow-Origin, so the browser cannot stream the bytes directly;
@@ -666,7 +669,24 @@ function setTerminalState(nextState) {
   input.disabled = processing;
 }
 
+// During the download access-code gate the input is masked: render asterisks,
+// but reveal the just-typed char briefly (like a phone password field) before it
+// flips to "*". The real <input> is color:transparent, so masking this span is
+// all that shows.
+let gateMaskTimer = null;
+function renderGateMasked(revealLast) {
+  const v = input.value;
+  const n = v.length;
+  commandText.textContent = !n ? "" : (revealLast ? "*".repeat(n - 1) + v[n - 1] : "*".repeat(n));
+}
 function updateCommandRender() {
+  if (dlGateStage === "code") {
+    renderGateMasked(true);
+    if (gateMaskTimer) clearTimeout(gateMaskTimer);
+    gateMaskTimer = setTimeout(function () { if (dlGateStage === "code") renderGateMasked(false); }, 550);
+    return;
+  }
+  if (gateMaskTimer) { clearTimeout(gateMaskTimer); gateMaskTimer = null; }
   commandText.textContent = input.value;
 }
 
@@ -1947,7 +1967,16 @@ async function resolveLatestPackage() {
     throw error;
   }
 
-  const release = await response.json();
+  const data = await response.json();
+  // The list endpoint returns releases newest-first; take the newest non-draft
+  // (prereleases included) so an alpha prerelease is what the site serves.
+  const releaseList = Array.isArray(data) ? data : [data];
+  const release = releaseList.find((r) => r && !r.draft) || releaseList[0];
+  if (!release) {
+    const error = new Error("no releases found");
+    error.status = 404;
+    throw error;
+  }
   const assets = Array.isArray(release.assets) ? release.assets : [];
   const ranked = assets
     .map((asset) => ({ asset, score: scoreAsset(asset, target) }))
@@ -2288,6 +2317,14 @@ async function runCommand(command, normalized) {
   // Protected: only the exact normalized "download.exe" ever reaches the real
   // transfer. No fuzzy path can land here.
   if (resolution.kind === "protected") {
+    // Gate the alpha behind an access code (once per session). The submit loop
+    // routes the next line to handleGateInput while dlGateStage is set.
+    if (!dlAuthorized) {
+      dlGateStage = "code";
+      appendResponse("restricted // alpha build", "terminal-meta");
+      appendResponse("access code required", "terminal-meta");
+      return;
+    }
     session.downloadStarted = true;
     await downloadPackage();
     return;
@@ -2391,7 +2428,7 @@ let uplinkOffered = false;   // offer shown this session
 let uplinkResolved = false;  // subscribed OR declined -> never offer again
 
 function maybeOfferUplink(normalized) {
-  if (uplinkOffered || uplinkResolved || uplinkStage) return;
+  if (uplinkOffered || uplinkResolved || uplinkStage || dlGateStage) return;
   if (!normalized) return;                              // only after a real command
   if (DEBUG && DEBUG.isActive()) return;                // not in the operator channel
   uplinkOffered = true;
@@ -2401,20 +2438,57 @@ function maybeOfferUplink(normalized) {
 }
 
 const UPLINK_EMAIL_PROMPT = "enter email >";
+const DL_GATE_PROMPT = "access code >";
 
-// Desktop: swap the live prompt prefix to "enter email >" during the email stage
-// so the input sits on that line; restore the console prompt otherwise.
-function applyUplinkPrompt() {
+// --- Alpha download gate (cosmetic access code) -----------------------------
+// Ask for an access code before download.exe runs. Client-side only (the build
+// repo is public), so it's a soft gate, not real protection. Change the code in
+// ONE place: DL_ACCESS_CODE.
+const DL_ACCESS_CODE = "axiom";
+let dlAuthorized = false;   // once correct, stays unlocked for the session
+let dlGateStage = null;     // null | "code"
+
+// The live desktop prompt + mobile prompt label reflect whichever input stage is
+// active (download gate, uplink email, or the normal console prompt).
+function livePromptLabel() {
+  if (dlGateStage === "code") return DL_GATE_PROMPT;
+  if (uplinkStage === "email") return UPLINK_EMAIL_PROMPT;
+  return null;   // -> normal console prompt
+}
+function applyLivePrompt() {
   if (mobileMode) return;
-  if (uplinkStage === "email") {
+  const label = livePromptLabel();
+  if (label) {
     promptPrefix.replaceChildren();
     const s = document.createElement("span");
     s.className = "prompt-console";
-    s.textContent = UPLINK_EMAIL_PROMPT;
+    s.textContent = label;
     promptPrefix.append(s);
   } else {
     setPromptPrefix();
   }
+}
+function mobilePromptLabel() { return livePromptLabel() || "root:/"; }
+
+async function handleGateInput(command) {
+  const typed = command.trim();
+  const masked = "*".repeat(typed.length);   // echo the code as asterisks in history
+  if (mobileMode) { freezeMobilePrompt(masked); } else { appendCommandLine(masked, DL_GATE_PROMPT); }
+  if (!typed) {
+    dlGateStage = null;
+    appendResponse("> access cancelled", "terminal-meta");
+    return;
+  }
+  if (typed.toLowerCase() === DL_ACCESS_CODE) {
+    dlGateStage = null;
+    dlAuthorized = true;
+    appendResponse("> code accepted // clearance granted", "terminal-meta");
+    session.downloadStarted = true;
+    await downloadPackage();
+    return;
+  }
+  appendResponse("> access denied", "terminal-error");
+  // stay in the gate -> re-ask (a blank Enter cancels)
 }
 
 async function handleUplinkInput(command) {
@@ -2458,6 +2532,23 @@ async function submitCurrentCommand() {
   resumeAudio();
   sfxEnter();
 
+  // Download access-code gate intercepts before any command handling while active.
+  if (dlGateStage) {
+    const gateCommand = input.value;
+    input.value = "";
+    updateCursor();
+    responseActive = true;
+    try { await handleGateInput(gateCommand); } finally { responseActive = false; }
+    if (terminalState !== "downloading" && terminalState !== "executing") {
+      setTerminalState(terminalState === "handoffReady" ? "handoffReady" : "ready");
+      input.disabled = false;
+      applyLivePrompt();
+      if (mobileMode) appendMobilePrompt(mobilePromptLabel());
+      input.focus();
+    }
+    return;
+  }
+
   // Email-uplink flow intercepts BEFORE any command handling (incl. the
   // handoff-download empty-Enter shortcut) while a stage is active.
   if (uplinkStage) {
@@ -2467,8 +2558,8 @@ async function submitCurrentCommand() {
     responseActive = true;
     try { await handleUplinkInput(uplinkCommand); } finally { responseActive = false; }
     input.disabled = false;
-    applyUplinkPrompt();   // desktop: "enter email >" during email stage, else console
-    if (mobileMode) appendMobilePrompt(uplinkStage === "email" ? UPLINK_EMAIL_PROMPT : "root:/");
+    applyLivePrompt();   // desktop: "enter email >" during email stage, else console
+    if (mobileMode) appendMobilePrompt(mobilePromptLabel());
     input.focus();
     return;
   }
@@ -2541,8 +2632,9 @@ async function submitCurrentCommand() {
     setTerminalState(terminalState === "handoffReady" ? "handoffReady" : "ready");
     input.disabled = false;
     maybeOfferUplink(normalized);   // first real command -> offer the email uplink (once)
+    applyLivePrompt();              // desktop: reflect an open gate/uplink stage, else console
     if (mobileMode) {
-      appendMobilePrompt("root:/");
+      appendMobilePrompt(mobilePromptLabel());
     }
     input.focus();
   }
@@ -2782,8 +2874,25 @@ if (bootParams.has("uplinkdemo")) {
       appendCommandLine("Y");
       // Live email-entry state: prompt is "enter email >", input on the same line.
       uplinkStage = "email";
-      applyUplinkPrompt();
+      applyLivePrompt();
       input.value = "jon";
+      updateCursor();
+      output.scrollTop = output.scrollHeight;
+      input.focus();
+    }, 500);
+  });
+}
+
+// Dev: ?dlgatedemo paints the download access-code gate live state for a look.
+if (bootParams.has("dlgatedemo")) {
+  window.addEventListener("load", function () {
+    setTimeout(function () {
+      appendCommandLine("download.exe");
+      appendResponse("restricted // alpha build", "terminal-meta");
+      appendResponse("access code required", "terminal-meta");
+      dlGateStage = "code";
+      applyLivePrompt();
+      input.value = "axiom";
       updateCursor();
       output.scrollTop = output.scrollHeight;
       input.focus();
