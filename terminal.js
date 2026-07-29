@@ -156,6 +156,35 @@ function resumeAudio() {
   }
 }
 
+// Return a copy of `buffer` shortened by the crossfade length, with the original
+// tail equal-power-blended over the head. Looping the result is seamless: the new
+// end sample is continuous with the new start, so there's no click/hard cut.
+function makeSeamlessLoop(buffer, fadeSec) {
+  try {
+    const sr = buffer.sampleRate;
+    const fade = Math.max(1, Math.min(Math.floor(fadeSec * sr), Math.floor(buffer.length / 2)));
+    const newLen = buffer.length - fade;
+    if (newLen <= fade) return buffer;   // too short to fold — leave as-is
+    const out = audioCtx.createBuffer(buffer.numberOfChannels, newLen, sr);
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const src = buffer.getChannelData(ch);
+      const dst = out.getChannelData(ch);
+      // Body after the crossfade region copies straight through.
+      for (let i = fade; i < newLen; i++) dst[i] = src[i];
+      // Seam: blend incoming head (src[0..fade)) with the outgoing tail (src[newLen..]).
+      for (let i = 0; i < fade; i++) {
+        const t = i / fade;
+        const fin = Math.sin(t * Math.PI / 2);   // head fades in
+        const fout = Math.cos(t * Math.PI / 2);  // tail fades out
+        dst[i] = src[i] * fin + src[newLen + i] * fout;
+      }
+    }
+    return out;
+  } catch (e) {
+    return buffer;
+  }
+}
+
 function initAudio() {
   if (audioCtx) {
     resumeAudio();
@@ -180,11 +209,13 @@ function initAudio() {
   } catch (e) {}
 
   // Decode the hum for a gapless Web Audio loop (ready before the main track ends).
+  // Bake an equal-power crossfade into the loop seam so end->start is smooth even
+  // if the source file isn't a perfect zero-crossing loop (that seam was the hard cut).
   if (!humBuffer) {
     fetch(humUrl)
       .then((response) => response.arrayBuffer())
       .then((data) => audioCtx.decodeAudioData(data))
-      .then((decoded) => { humBuffer = decoded; })
+      .then((decoded) => { humBuffer = makeSeamlessLoop(decoded, 0.45); })
       .catch(() => {});
   }
 }
