@@ -246,7 +246,7 @@ function sfxKey() {
 // initial -> (no key) hum loop; key press -> main sequence -> hum loop.
 let bootAudio = null;
 let linkEstablished = false;
-const humUrl = "assets/computer_hum_looping_v4.mp3";
+const humUrl = "assets/computer_hum_looping_v5.mp3";
 let humBuffer = null;
 let humSource = null;
 let humGain = null;
@@ -2005,13 +2005,22 @@ async function resolveLatestPackage() {
   };
 }
 
+// Progress label evolves through console-slang phases as the transfer advances.
+function sectorPhase(progress) {
+  if (progress < 0.25) return "fetching package sectors";
+  if (progress < 0.5) return "decrypting stream blocks";
+  if (progress < 0.75) return "reassembling package";
+  return "verifying checksums";
+}
+
 function renderProgress(line, receivedBytes, totalBytes, scannerPosition = 0) {
   if (Number.isFinite(totalBytes) && totalBytes > 0) {
     const progress = Math.min(1, Math.max(0, receivedBytes / totalBytes));
     const filled = Math.min(barWidth, Math.floor(progress * barWidth));
     const bar = `${"#".repeat(filled)}${"-".repeat(barWidth - filled)}`;
     const percent = `${Math.min(100, Math.floor(progress * 100))}`.padStart(3, " ");
-    rewriteLine(line, `fetching package sectors [${bar}] ${percent}%\n${formatBytes(receivedBytes)} / ${formatBytes(totalBytes)}`);
+    const label = sectorPhase(progress).padEnd(24);   // pad so the bar stays aligned across phases
+    rewriteLine(line, `${label} [${bar}] ${percent}%\n${formatBytes(receivedBytes)} / ${formatBytes(totalBytes)}`);
     line.setAttribute("role", "progressbar");
     line.setAttribute("aria-valuemin", "0");
     line.setAttribute("aria-valuemax", "100");
@@ -2483,6 +2492,7 @@ async function handleGateInput(command) {
     dlGateStage = null;
     dlAuthorized = true;
     appendResponse("> code accepted // clearance granted", "terminal-meta");
+    applyLivePrompt();   // restore console> prompt immediately (before the download runs)
     session.downloadStarted = true;
     await downloadPackage();
     return;
@@ -2727,7 +2737,7 @@ if (DEBUG) {
         { name: "initial_boot_sound.mp3", url: "assets/initial_boot_sound.mp3" },
         { name: "main_boot_sequence_v5.mp3", url: "assets/main_boot_sequence_v5.mp3" },
       ],
-      terminal: [{ name: "computer_hum_looping_v3.mp3", url: "assets/computer_hum_looping_v3.mp3" }],
+      terminal: [{ name: "computer_hum_looping_v5.mp3", url: "assets/computer_hum_looping_v5.mp3" }],
       ui: [
         { name: "console_beep_v2.mp3", url: "assets/console_beep_v2.mp3" },
         { name: "sfx: key", sfx: "key" },
