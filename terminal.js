@@ -27,6 +27,14 @@ const VDI = window.VDIntents;
 const session = VDI.createSession();
 const SNAKE_CMDS = new Set(["snake", "snake.exe", "play snake", "run snake", "snake game"]);
 const PI_CMDS = new Set(["pi.exe", "pi", "pi me", "pie", "count pi", "give me pi"]);
+// Destructive-root easter egg: these open a sudo password prompt. Correct code
+// (axiom) "wipes" the system and drops the visitor on a Web 1.0 404 page.
+const NUKE_CMDS = new Set([
+  "delete root", "rm root", "rm -rf root", "rm -rf /", "rm -rf /root", "rm /root",
+  "delete /root", "delete the root", "delete root directory", "remove root",
+  "sudo rm -rf /", "sudo rm -rf root", "sudo delete root", "format root",
+  "destroy root", "wipe root", "delete system", "delete everything",
+]);
 // Email uplink is now command-triggered (no auto-offer). Any of these opens it.
 const UPLINK_CMDS = new Set([
   "email", "email.exe", "email me", "email list", "email list.exe", "emaillist",
@@ -721,10 +729,12 @@ function renderGateMasked(revealLast) {
   commandText.textContent = !n ? "" : (revealLast ? "*".repeat(n - 1) + v[n - 1] : "*".repeat(n));
 }
 function updateCommandRender() {
-  if (dlGateStage === "code") {
+  if (dlGateStage === "code" || nukeStage === "sudo") {
     renderGateMasked(true);
     if (gateMaskTimer) clearTimeout(gateMaskTimer);
-    gateMaskTimer = setTimeout(function () { if (dlGateStage === "code") renderGateMasked(false); }, 550);
+    gateMaskTimer = setTimeout(function () {
+      if (dlGateStage === "code" || nukeStage === "sudo") renderGateMasked(false);
+    }, 550);
     return;
   }
   if (gateMaskTimer) { clearTimeout(gateMaskTimer); gateMaskTimer = null; }
@@ -2356,6 +2366,14 @@ async function runCommand(command, normalized) {
     appendResponse("pi.exe // stopped", "terminal-meta");
     return;
   }
+  // Destructive-root easter egg -> sudo password gate.
+  if (NUKE_CMDS.has(normalized)) {
+    nukeStage = "sudo";
+    appendResponse("rm: /root: operation requires elevated authority", "terminal-error");
+    appendResponse("[sudo] password required for root", "terminal-meta");
+    return;
+  }
+
   // Email uplink — command-triggered. Jump straight to the email prompt (the
   // submit loop routes the next line to handleUplinkInput while uplinkStage is set).
   if (UPLINK_CMDS.has(normalized)) {
@@ -2486,6 +2504,43 @@ let uplinkResolved = false;  // set once a subscribe attempt completes
 
 const UPLINK_EMAIL_PROMPT = "enter email >";
 const DL_GATE_PROMPT = "access code >";
+const SUDO_PROMPT = "password >";
+let nukeStage = null;        // null | "sudo"
+
+// Correct sudo password -> fake wipe, then hand the visitor to the Web 1.0 404.
+async function handleNukeInput(command) {
+  const typed = command.trim();
+  const masked = "*".repeat(typed.length);
+  if (mobileMode) { freezeMobilePrompt(masked); } else { appendCommandLine(masked, SUDO_PROMPT); }
+
+  if (!typed) {
+    nukeStage = null;
+    appendResponse("sudo: authentication cancelled", "terminal-meta");
+    return;
+  }
+  if (typed.toLowerCase() !== DL_ACCESS_CODE) {
+    appendResponse("sudo: access denied", "terminal-error");
+    return;   // stay in the gate (blank Enter cancels)
+  }
+
+  nukeStage = null;
+  input.disabled = true;
+  setTerminalState("executing");
+  appendResponse("sudo: authority accepted", "terminal-meta");
+  await sleep(320);
+  const wipe = appendResponse("removing /root ...", "terminal-error");
+  const stages = [
+    "removing /root ......................... 34%",
+    "removing /root ......................... 71%",
+    "removing /root ........................ 100%",
+    "unlinking simulation host ..............  gone",
+  ];
+  for (const s of stages) { await sleep(430); rewriteLine(wipe, s); }
+  await sleep(420);
+  appendResponse("CONNECTION TERMINATED", "terminal-error");
+  await sleep(900);
+  window.location.href = "404.html";
+}
 
 // --- Alpha download gate (cosmetic access code) -----------------------------
 // Ask for an access code before download.exe runs. Client-side only (the build
@@ -2498,6 +2553,7 @@ let dlGateStage = null;     // null | "code"
 // The live desktop prompt + mobile prompt label reflect whichever input stage is
 // active (download gate, uplink email, or the normal console prompt).
 function livePromptLabel() {
+  if (nukeStage === "sudo") return SUDO_PROMPT;
   if (dlGateStage === "code") return DL_GATE_PROMPT;
   if (uplinkStage === "email") return UPLINK_EMAIL_PROMPT;
   return null;   // -> normal console prompt
@@ -2573,6 +2629,23 @@ async function submitCurrentCommand() {
 
   resumeAudio();
   sfxEnter();
+
+  // sudo password gate (destructive-root easter egg) intercepts first.
+  if (nukeStage) {
+    const nukeCommand = input.value;
+    input.value = "";
+    updateCursor();
+    responseActive = true;
+    try { await handleNukeInput(nukeCommand); } finally { responseActive = false; }
+    if (terminalState !== "downloading" && terminalState !== "executing") {
+      setTerminalState("ready");
+      input.disabled = false;
+      applyLivePrompt();
+      if (mobileMode) appendMobilePrompt(mobilePromptLabel());
+      input.focus();
+    }
+    return;
+  }
 
   // Download access-code gate intercepts before any command handling while active.
   if (dlGateStage) {
@@ -2929,6 +3002,23 @@ if (bootParams.has("dlgatedemo")) {
       appendResponse("restricted // alpha build", "terminal-meta");
       appendResponse("access code required", "terminal-meta");
       dlGateStage = "code";
+      applyLivePrompt();
+      input.value = "axiom";
+      updateCursor();
+      output.scrollTop = output.scrollHeight;
+      input.focus();
+    }, 500);
+  });
+}
+
+// Dev: ?nukedemo paints the sudo password gate (destructive-root easter egg).
+if (bootParams.has("nukedemo")) {
+  window.addEventListener("load", function () {
+    setTimeout(function () {
+      appendCommandLine("delete root");
+      appendResponse("rm: /root: operation requires elevated authority", "terminal-error");
+      appendResponse("[sudo] password required for root", "terminal-meta");
+      nukeStage = "sudo";
       applyLivePrompt();
       input.value = "axiom";
       updateCursor();
