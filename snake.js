@@ -53,6 +53,10 @@
       var food = spawnFood(snake);
       var score = 0, best = 0;
       var paused = false, over = false, started = false, timer = null, tickMs = 145;
+      // Monospace character cells are ~2.1x taller than wide (measured H/W), so one
+      // vertical step covers ~2.1x the pixels of a horizontal step. Stretch vertical
+      // ticks by that ratio -> equal on-screen speed on both axes.
+      var V_ASPECT = 2.1;
 
       try { best = parseInt(localStorage.getItem("vd_snake_best") || "0", 10) || 0; } catch (e) {}
 
@@ -124,22 +128,31 @@
           score += 10;
           food = spawnFood(snake);
           playEat();
-          if (tickMs > 75) { tickMs -= 4; clearInterval(timer); timer = setInterval(tick, tickMs); }
+          if (tickMs > 75) { tickMs -= 4; }   // loop reschedules with the new pace
         } else {
           snake.pop();
         }
         render();
       }
 
+      // Self-scheduling loop: the delay before each step depends on the axis just
+      // moved (vertical steps wait V_ASPECT x longer) so both axes read as equal speed.
+      function scheduleNext() {
+        if (over) return;
+        var delay = (dir.y !== 0) ? Math.round(tickMs * V_ASPECT) : tickMs;
+        timer = setTimeout(runTick, delay);
+      }
+      function runTick() { tick(); scheduleNext(); }
+
       function gameOver() {
         over = true;
-        clearInterval(timer);
+        clearTimeout(timer);
         if (score > best) { best = score; try { localStorage.setItem("vd_snake_best", String(best)); } catch (e) {} }
         render();
       }
 
       function exit() {
-        clearInterval(timer);
+        clearTimeout(timer);
         document.removeEventListener("keydown", onKey, true);
         box.remove();
         resolve({ score: score });
@@ -147,14 +160,14 @@
 
       // Play again — reset to a fresh round (keeps best + the same box/listener).
       function reset() {
-        clearInterval(timer);
+        clearTimeout(timer);
         cx = (COLS / 2) | 0; cy = (ROWS / 2) | 0;
         snake = [{ x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
         dir = { x: 1, y: 0 }; nextDir = { x: 1, y: 0 };
         food = spawnFood(snake);
         score = 0; over = false; started = false; paused = false; tickMs = 145;
         render();
-        timer = setInterval(tick, tickMs);
+        scheduleNext();
       }
 
       function turn(nd) { started = true; if (nd.x !== -dir.x || nd.y !== -dir.y) nextDir = nd; }
@@ -180,7 +193,7 @@
       document.addEventListener("keydown", onKey, true);
       render();
       output.scrollTop = output.scrollHeight;
-      timer = setInterval(tick, tickMs);
+      scheduleNext();
     });
   }
 

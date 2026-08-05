@@ -459,6 +459,7 @@
       P("download.exe     retrieve authorized beta package"),
       P("snake.exe        load ascii snake   (arrows / WASD, Q quits)"),
       P("pi.exe           stream digits of pi   (ENTER stops)"),
+      P("email.exe        join the alpha email list"),
       P("status           inspect current runtime state"),
       P("inspect          inspect mounted system objects"),
       P("whoami           resolve local session identity"),

@@ -27,6 +27,16 @@ const VDI = window.VDIntents;
 const session = VDI.createSession();
 const SNAKE_CMDS = new Set(["snake", "snake.exe", "play snake", "run snake", "snake game"]);
 const PI_CMDS = new Set(["pi.exe", "pi", "pi me", "pie", "count pi", "give me pi"]);
+// Email uplink is now command-triggered (no auto-offer). Any of these opens it.
+const UPLINK_CMDS = new Set([
+  "email", "email.exe", "email me", "email list", "email list.exe", "emaillist",
+  "run email list.exe", "run email.exe", "run email list", "run emaillist.exe",
+  "signup", "sign up", "sign me up", "email signup", "sign up.exe",
+  "subscribe", "subscribe.exe", "newsletter", "mailing list",
+  "join", "join beta", "join alpha", "join list", "join the list",
+  "join alpha list", "join beta list", "join the alpha", "join the beta",
+  "alpha list", "beta list",
+]);
 const rng = Math.random;
 // True while a response sequence is running; blocks a second submit so async
 // sequences can never overlap. Input stays editable, only Enter is a no-op.
@@ -2346,6 +2356,14 @@ async function runCommand(command, normalized) {
     appendResponse("pi.exe // stopped", "terminal-meta");
     return;
   }
+  // Email uplink — command-triggered. Jump straight to the email prompt (the
+  // submit loop routes the next line to handleUplinkInput while uplinkStage is set).
+  if (UPLINK_CMDS.has(normalized)) {
+    uplinkStage = "email";
+    appendResponse("vector drift // alpha email uplink", "terminal-meta");
+    appendResponse("enter your email to join the alpha list", "terminal-meta");
+    return;
+  }
 
   const resolution = VDI.resolveCommand(normalized);
 
@@ -2463,19 +2481,8 @@ async function runLoreOrUnknown(normalized) {
 // email inline -> POST to Kit (uplink.js) -> confirm, all in-console. The user
 // never sees a Kit / Web-2.0 surface. While a stage is active, input routes here
 // instead of running as a command.
-let uplinkStage = null;      // null | "offer" | "email"
-let uplinkOffered = false;   // offer shown this session
-let uplinkResolved = false;  // subscribed OR declined -> never offer again
-
-function maybeOfferUplink(normalized) {
-  if (uplinkOffered || uplinkResolved || uplinkStage || dlGateStage) return;
-  if (!normalized) return;                              // only after a real command
-  if (DEBUG && DEBUG.isActive()) return;                // not in the operator channel
-  uplinkOffered = true;
-  uplinkStage = "offer";
-  appendResponse("");
-  appendResponse("subscribe to vector drift email alpha list?  [Y/N]", "terminal-meta");
-}
+let uplinkStage = null;      // null | "email"  (command-triggered; no auto-offer)
+let uplinkResolved = false;  // set once a subscribe attempt completes
 
 const UPLINK_EMAIL_PROMPT = "enter email >";
 const DL_GATE_PROMPT = "access code >";
@@ -2534,22 +2541,16 @@ async function handleGateInput(command) {
 
 async function handleUplinkInput(command) {
   const typed = command.trim();
-  const emailStage = uplinkStage === "email";
-  // Echo under the prompt that was active: console for Y/N, "enter email >" for the address.
   if (mobileMode) { freezeMobilePrompt(typed); }
-  else { appendCommandLine(typed, emailStage ? UPLINK_EMAIL_PROMPT : undefined); }
+  else { appendCommandLine(typed, UPLINK_EMAIL_PROMPT); }
 
-  if (uplinkStage === "offer") {
-    if (/^(y|yes)$/i.test(typed)) {
-      uplinkStage = "email";   // prompt becomes "enter email >" on re-append
-    } else {
-      uplinkStage = null; uplinkResolved = true;
-      appendResponse("> uplink declined. drift on.", "terminal-meta");
-    }
+  // Blank line cancels out of the uplink.
+  if (!typed) {
+    uplinkStage = null;
+    appendResponse("> uplink cancelled", "terminal-meta");
     return;
   }
 
-  // uplinkStage === "email"
   if (!window.VDUplink || !window.VDUplink.valid(typed)) {
     appendResponse("> malformed address. try again.", "terminal-error");
     return;   // stay in the email stage (prompt still "enter email >")
@@ -2672,7 +2673,6 @@ async function submitCurrentCommand() {
   if (terminalState !== "downloading" && terminalState !== "executing") {
     setTerminalState(terminalState === "handoffReady" ? "handoffReady" : "ready");
     input.disabled = false;
-    maybeOfferUplink(normalized);   // first real command -> offer the email uplink (once)
     applyLivePrompt();              // desktop: reflect an open gate/uplink stage, else console
     if (mobileMode) {
       appendMobilePrompt(mobilePromptLabel());
@@ -2908,12 +2908,9 @@ window.addEventListener("load", () => {
 if (bootParams.has("uplinkdemo")) {
   window.addEventListener("load", function () {
     setTimeout(function () {
-      appendCommandLine("status");
-      appendResponse("system nominal ......................... ok");
-      appendResponse("");
-      appendResponse("subscribe to vector drift email alpha list?  [Y/N]", "terminal-meta");
-      appendCommandLine("Y");
-      // Live email-entry state: prompt is "enter email >", input on the same line.
+      appendCommandLine("email.exe");
+      appendResponse("vector drift // alpha email uplink", "terminal-meta");
+      appendResponse("enter your email to join the alpha list", "terminal-meta");
       uplinkStage = "email";
       applyLivePrompt();
       input.value = "jon";
