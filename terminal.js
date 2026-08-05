@@ -2539,7 +2539,20 @@ async function handleNukeInput(command) {
   await sleep(420);
   appendResponse("CONNECTION TERMINATED", "terminal-error");
   await sleep(900);
-  window.location.href = "404.html";
+
+  // In-page takeover rather than a navigation to /404.html: loading a new
+  // document would tear down the AudioContext and hard-cut the hum bed. Staying
+  // put keeps the hum running unbroken through the "404" and the rebuild.
+  if (window.VD404) {
+    await window.VD404.show({ beep: playConsoleBeep });
+    // Rebuilt: wipe the console and let the logo animate back in, which doubles
+    // as the "site restored" beat. No boot, because we never left the page.
+    output.innerHTML = "";
+    output.scrollTop = 0;
+    if (window.renderLogoBanner) await window.renderLogoBanner(mobileMode ? { mobile: true } : undefined);
+  } else {
+    window.location.href = "404.html";   // fallback if the module failed to load
+  }
 }
 
 // --- Alpha download gate (cosmetic access code) -----------------------------

@@ -221,3 +221,52 @@ body.vd-banner-active .terminal-content { height: auto; }
 .terminal-home .vd-pi .vd-pi-head { opacity: 0.72; margin-bottom: 0.55em; }
 .terminal-home .vd-pi .vd-pi-body { word-break: break-all; }   /* continuous digits fill the width */
 .terminal-home .vd-pi .vd-pi-stat { opacity: 0.6; margin-top: 0.55em; }
+
+/* In-page "404" takeover (fake404.js). Lives here rather than in an injected
+   <style> because the page CSP is `style-src 'self'`, which blocks dynamically
+   created style elements. Typography mirrors the console exactly (18px / 1.42 /
+   0.035em, same glow + micro-blur); the panel is 53 columns, so the vw/vh terms
+   only shrink it below 18px when it would otherwise not fit one screen.
+   It cuts in hard (no fade-in) so it can never be left invisible. */
+#vd404 {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: #040705;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2vh 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-family: "Glass TTY VT220", "Courier New", monospace;
+  font-weight: 400;
+  font-size: min(18px, 3.1vw, 3.7vh);
+  line-height: 1.42;
+  letter-spacing: 0.035em;
+  color: #11cab8;
+  text-shadow: 0 0 2px rgba(17, 202, 184, 0.74), 0 0 12px rgba(17, 202, 184, 0.42), 0 0 28px rgba(17, 202, 184, 0.16);
+  filter: blur(0.28px);
+  opacity: 1;   /* no fade-in: a hard cut reads as the crash it follows, and an
+                   animation-based fade leaves the overlay invisible wherever
+                   animations don't run. The fade-OUT is applied inline in JS. */
+}
+#vd404 pre { margin: 0; font: inherit; letter-spacing: inherit; white-space: pre; text-align: left; }
+#vd404 a {
+  color: #aef9e6;
+  text-decoration: none;
+  cursor: pointer;
+  text-shadow: 0 0 4px rgba(174, 249, 230, 0.9), 0 0 9px rgba(36, 245, 207, 0.5);
+}
+#vd404 a:hover { color: #7ffce8; }
+#vd404 .cur {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.95em;
+  background: #11cab8;
+  vertical-align: text-bottom;
+  animation: vd404blink 1.06s steps(2, start) infinite;
+}
+@keyframes vd404blink { to { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { #vd404 .cur { animation: none; } }
