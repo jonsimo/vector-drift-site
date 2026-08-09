@@ -25,8 +25,14 @@ let sudoUseCount = 0;
 // and response *selection*; this file interprets the returned step data.
 const VDI = window.VDIntents;
 const session = VDI.createSession();
-const SNAKE_CMDS = new Set(["snake", "snake.exe", "play snake", "run snake", "snake game"]);
-const PI_CMDS = new Set(["pi.exe", "pi", "pi me", "pie", "count pi", "give me pi"]);
+const SNAKE_CMDS = new Set([
+  "snake", "snake.exe", "snake game",
+  "play snake", "play snake.exe", "run snake", "run snake.exe",
+]);
+const PI_CMDS = new Set([
+  "pi", "pi.exe", "pie", "pi me", "count pi", "give me pi",
+  "play pi", "play pi.exe", "run pi", "run pi.exe",
+]);
 // Destructive-root easter egg: these open a sudo password prompt. Correct code
 // (axiom) "wipes" the system and drops the visitor on a Web 1.0 404 page.
 const NUKE_CMDS = new Set([
@@ -2374,6 +2380,23 @@ async function runCommand(command, normalized) {
     return;
   }
 
+  // A typed address IS the signup -- no command needed. Matched on the actual
+  // name@host.tld shape (see uplink.js), not merely on containing "@", so only
+  // real addresses subscribe. A near-miss that is still clearly an address
+  // attempt gets a format hint; anything else falls through to normal commands.
+  // Runs before the intent layer so an address is never parsed as a sentence.
+  if (window.VDUplink && window.VDUplink.valid(normalized)) {
+    uplinkResolved = true;
+    appendResponse("address detected // opening alpha uplink", "terminal-meta");
+    await submitEmail(normalized);
+    return;
+  }
+  if (window.VDUplink && window.VDUplink.looksLikeAttempt(normalized)) {
+    appendResponse("> malformed address", "terminal-error");
+    appendResponse("> expected name@host.tld", "terminal-meta");
+    return;
+  }
+
   // Email uplink — command-triggered. Jump straight to the email prompt (the
   // submit loop routes the next line to handleUplinkInput while uplinkStage is set).
   if (UPLINK_CMDS.has(normalized)) {
@@ -2625,8 +2648,13 @@ async function handleUplinkInput(command) {
     return;   // stay in the email stage (prompt still "enter email >")
   }
   uplinkStage = null; uplinkResolved = true;
+  await submitEmail(typed);
+}
+
+// Shared by the `email.exe` flow and by simply typing an address at the prompt.
+async function submitEmail(address) {
   const pending = appendResponse("> transmitting ...", "terminal-meta");
-  const ok = await window.VDUplink.subscribe(typed);
+  const ok = await window.VDUplink.subscribe(address);
   if (ok) {
     rewriteLine(pending, "> handshake accepted");
     appendResponse("> node user added to alpha manifest // await future transmission for demo", "terminal-meta");

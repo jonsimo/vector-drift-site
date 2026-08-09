@@ -15,8 +15,20 @@
   // CORS-enabled (ACAO *), client-safe.
   var FORM_ACTION = "https://app.kit.com/forms/9734489/subscriptions";
 
+  // name@host.tld -- the TLD must be letters (2-24), so "a@b", "a@b.", "a@b.5"
+  // and other near-misses are rejected. A dotted host still works, so
+  // name@mail.example.co.uk matches.
+  var EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)*\.[A-Za-z]{2,24}$/;
+
   function valid(email) {
-    return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    return typeof email === "string" && EMAIL_RE.test(email.trim());
+  }
+
+  // Clearly an address attempt (single token, something before the @) even if it
+  // is malformed -- lets the console answer with a format hint instead of
+  // "command not found", without hijacking unrelated input that contains "@".
+  function looksLikeAttempt(text) {
+    return typeof text === "string" && /^[^\s@]+@\S*$/.test(text.trim());
   }
 
   // Resolves true on accept, false on any failure. Never throws.
@@ -49,5 +61,5 @@
       });
   }
 
-  window.VDUplink = { valid: valid, subscribe: subscribe };
+  window.VDUplink = { valid: valid, looksLikeAttempt: looksLikeAttempt, subscribe: subscribe };
 })();
