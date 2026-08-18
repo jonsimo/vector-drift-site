@@ -33,6 +33,17 @@ const PI_CMDS = new Set([
   "pi", "pi.exe", "pie", "pi me", "count pi", "give me pi",
   "play pi", "play pi.exe", "run pi", "run pi.exe",
 ]);
+// Hands off to the alpha tracker on its own subdomain.
+const ALPHA_URL = "https://alpha.vectordrift.io";
+const ALPHA_CMDS = new Set([
+  "alpha", "alpha.exe", "alpha tracker", "alpha tracker beta", "alpha tracker.exe",
+  "alpha_tracker", "alpha_tracker.exe", "alphatracker", "alphatracker.exe",
+  "tracker", "tracker.exe",
+  "run alpha", "run alpha tracker", "run alpha tracker.exe",
+  "run alpha_tracker", "run alpha_tracker.exe", "run tracker",
+  "open alpha", "open alpha tracker", "open alpha_tracker", "open tracker",
+  "launch alpha", "launch alpha tracker", "play alpha tracker",
+]);
 // Destructive-root easter egg: these open a sudo password prompt. Correct code
 // (axiom) "wipes" the system and drops the visitor on a Web 1.0 404 page.
 const NUKE_CMDS = new Set([
@@ -2255,8 +2266,53 @@ async function downloadPackage() {
   const progressLine = appendResponse("");
   renderProgress(progressLine, receivedBytes, totalBytes, scannerPosition);
 
+  // Transfer controls: LEFT/RIGHT select, ENTER activates. Pausing simply stops
+  // consuming the stream -- the reader is left un-read, so the connection back-
+  // pressures and no bytes are dropped; resuming continues the same transfer.
+  const controlLine = appendResponse("", "terminal-meta");
+  let selected = 0;                 // 0 = pause/resume, 1 = cancel
+  let paused = false;
+  let resumeWaiter = null;          // resolve() while paused
+  const drawControls = () => {
+    const items = [paused ? "> RESUME" : "|| PAUSE", "X CANCEL"];
+    const text = items
+      .map((label, i) => (i === selected ? `[ ${label} ]` : `  ${label}  `))
+      .join("   ");
+    rewriteLine(controlLine, `${text}      ${paused ? "// transfer held" : "// arrows select   enter confirms"}`);
+  };
+  drawControls();
+
+  const onControlKey = (event) => {
+    const k = event.key;
+    if (k !== "ArrowLeft" && k !== "ArrowRight" && k !== "Enter") return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+    if (k === "ArrowLeft") { selected = 0; drawControls(); return; }
+    if (k === "ArrowRight") { selected = 1; drawControls(); return; }
+    if (selected === 1) {
+      controller.abort();                                   // -> AbortError path below
+      if (resumeWaiter) { const go = resumeWaiter; resumeWaiter = null; go(); }   // wake a held transfer
+      return;
+    }
+    paused = !paused;
+    drawControls();
+    if (!paused && resumeWaiter) { const go = resumeWaiter; resumeWaiter = null; go(); }
+  };
+  window.addEventListener("keydown", onControlKey, true);
+  const clearControls = () => {
+    window.removeEventListener("keydown", onControlKey, true);
+    if (resumeWaiter) { const go = resumeWaiter; resumeWaiter = null; go(); }
+    controlLine.remove();
+  };
+
   try {
     for (;;) {
+      if (paused) {
+        // Hold here without reading; the abort path still fires while waiting.
+        await new Promise((resolve) => { resumeWaiter = resolve; });
+        if (controller.signal.aborted) throw Object.assign(new Error("aborted"), { name: "AbortError" });
+      }
       const { done, value } = await reader.read();
       if (done) {
         break;
@@ -2272,6 +2328,7 @@ async function downloadPackage() {
       }
     }
   } catch (error) {
+    clearControls();
     activeTransfer = null;
     if (error.name === "AbortError") {
       appendResponse("transfer aborted by local observer", "terminal-error");
@@ -2285,6 +2342,7 @@ async function downloadPackage() {
     return;
   }
 
+  clearControls();
   renderProgress(progressLine, receivedBytes, totalBytes, barWidth);
   activeTransfer = null;
 
@@ -2377,6 +2435,18 @@ async function runCommand(command, normalized) {
     nukeStage = "sudo";
     appendResponse("rm: /root: operation requires elevated authority", "terminal-error");
     appendResponse("[sudo] password required for root", "terminal-meta");
+    return;
+  }
+
+  // Alpha tracker lives on its own subdomain -- hand the session off to it.
+  if (ALPHA_CMDS.has(normalized)) {
+    appendResponse("loading alpha_tracker.exe ...", "terminal-meta");
+    const relay = appendResponse("opening relay ...", "terminal-meta");
+    await sleep(520);
+    rewriteLine(relay, "opening relay ........................... connected");
+    appendResponse("> handing off to alpha.vectordrift.io", "terminal-meta");
+    await sleep(760);
+    window.location.href = ALPHA_URL;
     return;
   }
 
