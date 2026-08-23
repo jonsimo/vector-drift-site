@@ -43,6 +43,13 @@ function isAllowedOrigin(origin) {
 // Response headers worth forwarding to the browser. Content-Length/Type are
 // CORS-safelisted, but Content-Disposition (filename) and range headers are not,
 // so they must be named in Access-Control-Expose-Headers below.
+//
+// x-asset-size is the gatekeeper's stand-in for Content-Length. Its /download
+// route wraps the body in a transform stream (an 8 MB revocation checkpoint), so
+// Cloudflare re-frames that response as chunked and any Content-Length set on it
+// is dropped before it reaches the client. A non-standard header survives that,
+// so the byte count arrives there instead. Advisory only -- integrity is still
+// the sha256 from /check measured against the bytes on disk.
 const FORWARD_HEADERS = [
   "Content-Length",
   "Content-Type",
@@ -51,6 +58,8 @@ const FORWARD_HEADERS = [
   "Content-Range",
   "ETag",
   "Last-Modified",
+  "x-asset-size",
+  "x-asset-size-src",
 ];
 
 function corsHeaders(origin) {
@@ -60,8 +69,12 @@ function corsHeaders(origin) {
     "Vary": "Origin",
     "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS, POST",
     "Access-Control-Allow-Headers": "Range, Content-Type",
+    // Forwarding a header is not enough: a cross-origin fetch can only READ the
+    // response headers named here, so x-asset-size must be exposed as well or it
+    // arrives and stays invisible to the page.
     "Access-Control-Expose-Headers":
-      "Content-Length, Content-Type, Content-Disposition, Accept-Ranges, Content-Range",
+      "Content-Length, Content-Type, Content-Disposition, Accept-Ranges, Content-Range, "
+      + "x-asset-size, x-asset-size-src",
     "Access-Control-Max-Age": "86400",
   };
 }

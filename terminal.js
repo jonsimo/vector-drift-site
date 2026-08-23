@@ -2228,7 +2228,10 @@ async function downloadPackage(keyed) {
       target: target,
       filename: sanitizeFilename(`vector_drift_${keyed.build || "alpha"}`),
       directUrl: keyed.url,
-      size: null,
+      // Present once the gatekeeper carries `size` on the release row. Until
+      // then this is null and the size line reads "unknown / streaming" until
+      // the stream's own headers answer.
+      size: Number(keyed.size) > 0 ? Number(keyed.size) : null,
       sha256: keyed.sha256 || null,
       keyed: true,
     };
@@ -2322,7 +2325,13 @@ async function downloadPackage(keyed) {
   rewriteLine(manifestLine, "requesting package stream ................ accepted");
   playConsoleBeep();                 // bytes are moving
   await sleep(640);
-  const headerSize = Number(response.headers.get("Content-Length"));
+  // Content-Length first; x-asset-size second. The gatekeeper's /download route
+  // wraps the body in a transform stream for its revocation checkpoints, which
+  // makes Cloudflare re-frame the response as chunked and strip Content-Length,
+  // so it publishes the byte count in x-asset-size instead. Without this the
+  // progress bar has no denominator and falls back to the indeterminate scanner.
+  const headerSize = Number(response.headers.get("Content-Length"))
+    || Number(response.headers.get("x-asset-size"));
   const totalBytes = Number.isFinite(headerSize) && headerSize > 0 ? headerSize : expectedSize;
   const contentDisposition = response.headers.get("Content-Disposition");
   const filename = sanitizeFilename(filenameFromDisposition(contentDisposition) || packageInfo.filename);
@@ -2857,7 +2866,7 @@ async function verifyKeyAndDownload(key) {
     dlGateStage = null;
     applyLivePrompt();            // restore console> before the transfer runs
     session.downloadStarted = true;
-    await downloadPackage({ url: data.url, sha256: data.sha256, build: data.build, platform: platform });
+    await downloadPackage({ url: data.url, sha256: data.sha256, build: data.build, size: data.size, platform: platform });
     return;
   }
 
