@@ -2229,6 +2229,11 @@ async function downloadPackage(keyed) {
   const expectedSize = packageInfo.size;
   rewriteLine(resolvingLine, "resolving package manifest .............. found");
   await sleep(300);
+  // Value column matches the surrounding readout (label + dots = 41 chars). The
+  // keyed path only knows a provisional name here; Content-Disposition below
+  // replaces it with the real one once the stream responds.
+  const ordinanceLine = appendResponse(`ordinance id ............................ ${packageInfo.filename}`);
+  await sleep(260);
   const channelLine = appendResponse("opening private relay ................... connected");
   await sleep(520);
   const sizeLine = appendResponse(`package size ............................ ${Number.isFinite(expectedSize) ? formatBytes(expectedSize) : "unknown / streaming"}`);
@@ -2299,6 +2304,7 @@ async function downloadPackage(keyed) {
   const totalBytes = Number.isFinite(headerSize) && headerSize > 0 ? headerSize : expectedSize;
   const contentDisposition = response.headers.get("Content-Disposition");
   const filename = sanitizeFilename(filenameFromDisposition(contentDisposition) || packageInfo.filename);
+  rewriteLine(ordinanceLine, `ordinance id ............................ ${filename}`);
   rewriteLine(sizeLine, `package size ............................ ${Number.isFinite(totalBytes) ? formatBytes(totalBytes) : "unknown / streaming"}`);
   appendResponse("PACKAGE          vector_drift_beta", "terminal-meta");
   await sleep(180);
