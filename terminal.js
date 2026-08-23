@@ -2804,7 +2804,7 @@ async function verifyKeyAndDownload(key) {
   } else if (result.status === 403 && data.error === "seat_taken") {
     appendResponse("> KEY ACTIVE ON ANOTHER MACHINE", "terminal-error");
   } else if (result.status === 403) {
-    appendResponse("> KEY NOT RECOGNISED", "terminal-error");
+    appendResponse("> KEY NOT RECOGNIZED", "terminal-error");
   } else if (result.status === 429) {
     appendResponse("> RATE LIMITED", "terminal-error");
     appendResponse("> 30 checks per minute per key // wait a moment", "terminal-meta");
