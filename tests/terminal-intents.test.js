@@ -102,18 +102,34 @@ test("download.exe (and case/dotslash variants) hit the protected handler", () =
   }
 });
 
-test("download hints never trigger the protected handler", () => {
-  assert.equal(resolve("download").id, "downloadHint");
-  assert.equal(resolve("download beta").id, "downloadBetaHint");
-  assert.equal(resolve("please download").id, "downloadBetaHint");
-  assert.equal(resolve("get beta").id, "downloadBetaHint");
+// The obvious phrasings all reach the gate. Reaching "protected" no longer
+// starts a transfer -- it opens the server-verified key prompt -- so the old
+// hint-only behaviour for "download" / "download beta" was just a dead end.
+test("obvious download phrasings hit the protected handler", () => {
+  for (const s of [
+    "download", "download beta", "get beta", "please download", "download alpha",
+    "run download.exe", "start download", "get the game", "install", "dl",
+    "DOWNLOAD", "  download  ", "download?",
+  ]) {
+    const r = resolve(s);
+    assert.equal(r.kind, "protected", s);
+    assert.equal(r.id, "download.exe", s);
+  }
 });
 
-test("dangerous near-misses never download", () => {
-  for (const s of ["download.exe now", "run download.exe", "/download.exe", "download.exe.exe", "downloader", "download file"]) {
+test("matching stays an explicit allowlist, never fuzzy", () => {
+  for (const s of ["download.exe now", "/download.exe", "download.exe.exe", "downloader", "download file", "downloads", "undownload"]) {
     const r = resolve(s);
     assert.notEqual(r.kind, "protected", `"${s}" must not be protected`);
     assert.ok(r.id !== "download.exe", `"${s}" must not be download.exe`);
+  }
+});
+
+test("a near miss ends in the download hint, not the unknown bank", () => {
+  for (const s of ["downloader", "download file", "downloads", "download.exe.exe", "install the thing"]) {
+    const r = resolve(s);
+    assert.equal(r.kind, "utility", s);
+    assert.equal(r.id, "downloadHint", s);
   }
 });
 

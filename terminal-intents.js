@@ -96,8 +96,18 @@
   ]);
   const LOCATION_PATH = new Set(["pwd", "current directory", "path", "location"]);
   const EXIT_SOFT = new Set(["bye", "goodbye"]);
-  const DOWNLOAD_BETA_ALIASES = new Set([
-    "download beta", "get beta", "please download", "download the beta", "get the beta",
+  // Obvious ways to ask for the build. This is an explicit allowlist, never a
+  // fuzzy or prefix match: reaching "protected" opens the server-verified key
+  // prompt, so junk like "downloader" or "download.exe.exe" must still miss.
+  const DOWNLOAD_ALIASES = new Set([
+    "download.exe", "download", "download exe", "downloadexe", "dl", "dl.exe",
+    "run download", "run download.exe", "start download", "get download",
+    "open download", "launch download", "execute download", "execute download.exe",
+    "download beta", "download the beta", "get beta", "get the beta", "please download",
+    "download alpha", "download the alpha", "get alpha", "get the alpha",
+    "download game", "download the game", "get the game",
+    "download build", "download vector drift", "download vectordrift",
+    "install", "install.exe", "install game", "get build",
   ]);
 
   // --- Intent registry -------------------------------------------------------
@@ -264,21 +274,18 @@
     if (!normalized) {
       return { kind: "empty" };
     }
-    if (normalized === "download.exe") {
+    if (DOWNLOAD_ALIASES.has(normalized)) {
       return { kind: "protected", id: "download.exe", normalized };
     }
     if (normalized === "clear" || normalized === "cls") {
       return { kind: "utility", id: "clear", normalized };
     }
-    if (normalized === "download") {
-      return { kind: "utility", id: "downloadHint", normalized };
-    }
-    if (DOWNLOAD_BETA_ALIASES.has(normalized)) {
-      return { kind: "utility", id: "downloadBetaHint", normalized };
-    }
     const intentId = classifyIntent(normalized);
     if (intentId) {
       return { kind: "intent", id: intentId, subtype: subclassify(intentId, normalized), normalized };
+    }
+    if (/download|install/.test(normalized)) {
+      return { kind: "utility", id: "downloadHint", normalized };
     }
     return { kind: "unknown", normalized };
   }
@@ -350,13 +357,6 @@
   }
 
   // --- Utility hint responses (rendered by terminal.js) ----------------------
-  function downloadHintSteps() {
-    return [P("executable extension required", "terminal-error"), P("try: download.exe", "terminal-error")];
-  }
-  function downloadBetaHintSteps() {
-    return [P("authorized transfer executable:"), P(""), P("download.exe")];
-  }
-
   // --- Fictional history (pure) ---------------------------------------------
   // Returns a display copy of the raw history with exactly one fictional entry
   // inserted just before the current `history` command. NEVER mutates rawHistory
@@ -450,6 +450,15 @@
       steps.push(H(350), RW("owner", "owner .................... remote"), H(140), RW("owner", "owner .................... unresolved"));
     }
     return steps;
+  }
+
+  // Shown when something download-ish missed the allowlist, so a near miss ends
+  // in a pointer rather than the generic unknown-command bank.
+  function downloadHintSteps() {
+    return [
+      P("unrecognized transfer request", "terminal-error"),
+      P("try: download.exe", "terminal-meta"),
+    ];
   }
 
   function buildHelp() {
@@ -632,7 +641,6 @@
     selectResponse,
     selectUnknown,
     downloadHintSteps,
-    downloadBetaHintSteps,
     insertFictionalHistory,
     findDuplicateAliases,
     INTENTS,

@@ -2194,9 +2194,9 @@ async function downloadPackage(keyed) {
   setTerminalState("executing");
   fallbackDownload = null;
   appendResponse("executing download.exe");
-  await sleep(320);
+  await sleep(620);
   const resolvingLine = appendResponse("resolving package manifest ...");
-  await sleep(560);
+  await sleep(920);
 
   let packageInfo;
   if (keyed && keyed.url) {
@@ -2228,18 +2228,18 @@ async function downloadPackage(keyed) {
   const targetLabel = `${packageInfo.target.os} / ${packageInfo.target.arch}`;
   const expectedSize = packageInfo.size;
   rewriteLine(resolvingLine, "resolving package manifest .............. found");
-  await sleep(300);
+  await sleep(640);
   // Value column matches the surrounding readout (label + dots = 41 chars). The
   // keyed path only knows a provisional name here; Content-Disposition below
   // replaces it with the real one once the stream responds.
   const ordinanceLine = appendResponse(`ordinance id ............................ ${packageInfo.filename}`);
-  await sleep(260);
+  await sleep(600);
   const channelLine = appendResponse("opening private relay ................... connected");
-  await sleep(520);
+  await sleep(820);
   const sizeLine = appendResponse(`package size ............................ ${Number.isFinite(expectedSize) ? formatBytes(expectedSize) : "unknown / streaming"}`);
-  await sleep(420);
+  await sleep(720);
   const manifestLine = appendResponse("requesting package stream ...");
-  await sleep(280);
+  await sleep(560);
 
   let response;
   let controller = new AbortController();
@@ -2258,7 +2258,7 @@ async function downloadPackage(keyed) {
     appendResponse("progress meter unavailable on this relay", "terminal-meta");
     await sleep(320);
     appendResponse(`TARGET           ${targetLabel}`, "terminal-meta");
-    await sleep(180);
+    await sleep(340);
     appendResponse(`PACKAGE          ${packageInfo.filename}`, "terminal-meta");
     await sleep(320);
     appendResponse("browser handoff ......................... ready");
@@ -2299,7 +2299,8 @@ async function downloadPackage(keyed) {
   }
 
   rewriteLine(manifestLine, "requesting package stream ................ accepted");
-  await sleep(320);
+  playConsoleBeep();                 // bytes are moving
+  await sleep(640);
   const headerSize = Number(response.headers.get("Content-Length"));
   const totalBytes = Number.isFinite(headerSize) && headerSize > 0 ? headerSize : expectedSize;
   const contentDisposition = response.headers.get("Content-Disposition");
@@ -2307,11 +2308,11 @@ async function downloadPackage(keyed) {
   rewriteLine(ordinanceLine, `ordinance id ............................ ${filename}`);
   rewriteLine(sizeLine, `package size ............................ ${Number.isFinite(totalBytes) ? formatBytes(totalBytes) : "unknown / streaming"}`);
   appendResponse("PACKAGE          vector_drift_beta", "terminal-meta");
-  await sleep(180);
+  await sleep(340);
   appendResponse(`TARGET           ${targetLabel}`, "terminal-meta");
-  await sleep(180);
+  await sleep(340);
   appendResponse("CHANNEL          private beta", "terminal-meta");
-  await sleep(180);
+  await sleep(340);
   appendResponse(`SIZE             ${Number.isFinite(totalBytes) ? formatBytes(totalBytes) : "unknown / streaming"}`, "terminal-meta");
   await sleep(320);
 
@@ -2559,17 +2560,13 @@ async function runCommand(command, normalized) {
 
   // Utilities with DOM side-effects stay in this file.
   if (resolution.kind === "utility") {
-    if (resolution.id === "clear") {
-      output.innerHTML = "";
-      output.scrollTop = 0;
-      return;
-    }
     if (resolution.id === "downloadHint") {
       await runResponse(VDI.downloadHintSteps());
       return;
     }
-    if (resolution.id === "downloadBetaHint") {
-      await runResponse(VDI.downloadBetaHintSteps());
+    if (resolution.id === "clear") {
+      output.innerHTML = "";
+      output.scrollTop = 0;
       return;
     }
     return;
@@ -2783,6 +2780,7 @@ async function verifyKeyAndDownload(key) {
 
   if (result.status === 200 && data.url) {
     rewriteLine(line, "verifying key ........................... accepted");
+    await sleep(760);            // let the acceptance land before the readout starts
     dlSessionKey = key;
     dlGateStage = null;
     applyLivePrompt();            // restore console> before the transfer runs
