@@ -87,6 +87,8 @@ const writeOnSfx = new Audio("assets/vector_drift_logo_write_on_" + writeOnChoic
 writeOnSfx.volume = 0.5;
 function playSfx(a) { try { a.currentTime = 0; a.play().catch(function () {}); } catch (e) {} }
 function stopSfx(a) { try { a.pause(); a.currentTime = 0; } catch (e) {} }
+// Called by the 3-Enter boot skip: cuts a write-on that is already sounding.
+window.stopLogoSfx = function () { stopSfx(writeOnSfx); };
 
 // A static gauge line (used for the LOAD COMPLETE notice).
 function gaugeLine(host, text) {
@@ -245,7 +247,11 @@ window.renderLogoBanner = async function (opts) {
   const noAnim = window.__vdSkip || params.has("noanim") ||
     (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   logo.style.opacity = "1";
-  setTimeout(function () { playSfx(writeOnSfx); }, 150);   // write-on, delayed 150ms
+  // Write-on, delayed 150ms. Skipped reveals stay silent -- and the flag is
+  // re-checked at fire time because the 3-Enter skip can land inside the delay.
+  if (!noAnim) {
+    setTimeout(function () { if (!window.__vdSkip) playSfx(writeOnSfx); }, 150);
+  }
   const bars = Array.prototype.slice.call(banner.querySelectorAll("#speed i"));
   const lockBars = function () {
     bars.forEach(function (b) { b.style.opacity = "1"; b.style.transform = "scaleX(1)"; b.style.background = "var(--phos)"; b.style.filter = "brightness(1)"; });

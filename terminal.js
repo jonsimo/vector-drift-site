@@ -183,6 +183,7 @@ function triggerBootSkip() {
   bootSkip = true;
   window.__vdSkip = true;
   if (bootAudio) { try { bootAudio.main.pause(); bootAudio.initial.pause(); } catch (e) {} }
+  if (window.stopLogoSfx) window.stopLogoSfx();   // silence the logo write-on too
 }
 function bootEnterWatch(e) {
   if (!bootActive || bootSkip || e.key !== "Enter") return;
