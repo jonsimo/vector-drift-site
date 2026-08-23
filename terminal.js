@@ -2474,6 +2474,14 @@ async function downloadPackage(keyed) {
     await sleep(240);
     appendResponse(`expected ${String(packageInfo.sha256).slice(0, 16)}...`, "terminal-meta");
     await sleep(200);
+    // Exact byte counts, not the rounded MB in the progress line. A short read
+    // is the likely cause and the raw numbers are what the upstream lane needs
+    // to see -- where the stream stopped, against what it should have been.
+    appendResponse(
+      `received ${receivedBytes} of ${Number.isFinite(totalBytes) && totalBytes > 0 ? totalBytes : "?"} bytes`,
+      "terminal-meta"
+    );
+    await sleep(200);
     appendResponse("package corrupt or truncated // discarded", "terminal-error");
     await sleep(200);
     appendResponse("run download.exe again to retry", "terminal-meta");
