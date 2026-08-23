@@ -6,3 +6,7 @@ worker/.wrangler/
 sfx-demo.html
 
 previews/
+
+# generated at deploy time by worker/deploy.sh -- never committed, so a plain
+# `wrangler deploy` fails in the shell instead of shipping an unstamped build
+worker/version.js

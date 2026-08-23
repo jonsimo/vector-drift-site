@@ -11,6 +11,11 @@
 // Origin are served (curl, hotlinks, and address-bar hits get 403) so the
 // Worker cannot be turned into free re-hosting bandwidth for the assets.
 
+// Stamped at deploy time by deploy.sh and served from /health. version.js is
+// gitignored, so a bare `wrangler deploy` fails on this import instead of
+// shipping a build that cannot say what it is.
+import { BUILD } from "./version.js";
+
 const ALLOWED_ORIGIN = "https://vectordrift.io";
 // Upstreams this proxy will stream. Kept as an explicit prefix allowlist, NOT a
 // hostname or regex test: the gatekeeper's token URLs need streaming too (it
@@ -139,6 +144,20 @@ async function handleCheck(request, origin) {
 export default {
   async fetch(request) {
     const origin = request.headers.get("Origin");
+
+    // Deliberately BEFORE the origin gate, so it answers curl. A stale deploy
+    // is otherwise invisible until someone thinks to compare a commit against a
+    // dashboard, which nobody does until they are already lost. The build id
+    // says nothing about keys, targets or releases -- it is a commit sha.
+    if (new URL(request.url).pathname === "/health") {
+      return new Response(JSON.stringify({ ok: true, ...BUILD }), {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
+    }
 
     if (request.method === "OPTIONS") {
       // Preflight: only advertise CORS access to an allowed origin.
