@@ -512,8 +512,16 @@ function playConsoleBeep() {
   if (!bootAudio) {
     return;
   }
-  bootAudio.beep.currentTime = 0;
-  bootAudio.beep.play().catch(() => {});
+  // Play a clone rather than the single shared element: reusing one <audio> is
+  // unreliable when it is already playing or stalled, and play() fails silently.
+  try {
+    const beep = bootAudio.beep.cloneNode();
+    beep.volume = bootAudio.beep.volume;
+    beep.play().catch(() => {});
+  } catch (error) {
+    bootAudio.beep.currentTime = 0;
+    bootAudio.beep.play().catch(() => {});
+  }
 }
 
 function playInitialAmbience() {
@@ -2423,7 +2431,41 @@ async function downloadPackage(keyed) {
   const objectUrl = URL.createObjectURL(blob);
   fallbackDownload = { url: objectUrl, filename };
   await sleep(260);
-  appendResponse("package checksum ........................ valid");
+  // Actually hash the bytes. This line used to be a hardcoded "valid", which
+  // meant a truncated or corrupt transfer still reported success -- and with no
+  // Content-Length there is no size check to catch it either, so the digest is
+  // the only thing standing between a bad download and a confident green line.
+  const checksumLine = appendResponse("package checksum ........................ ...");
+  let checksumOk = null;
+  if (packageInfo.sha256 && window.crypto && window.crypto.subtle) {
+    try {
+      const digest = await window.crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+      const hex = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      checksumOk = hex.toLowerCase() === String(packageInfo.sha256).toLowerCase();
+    } catch (error) {
+      checksumOk = null;   // could not hash -> say so rather than claim valid
+    }
+  }
+  if (checksumOk === true) {
+    rewriteLine(checksumLine, "package checksum ........................ valid");
+  } else if (checksumOk === false) {
+    rewriteLine(checksumLine, "package checksum ........................ MISMATCH");
+    checksumLine.className = "terminal-error";
+    await sleep(240);
+    appendResponse(`expected ${String(packageInfo.sha256).slice(0, 16)}...`, "terminal-meta");
+    await sleep(200);
+    appendResponse("package corrupt or truncated // discarded", "terminal-error");
+    await sleep(200);
+    appendResponse("run download.exe again to retry", "terminal-meta");
+    URL.revokeObjectURL(objectUrl);
+    fallbackDownload = null;
+    setTerminalState("ready");
+    input.disabled = false;
+    input.focus();
+    return;                // never hand a corrupt file to the browser
+  } else {
+    rewriteLine(checksumLine, "package checksum ........................ unverified");
+  }
   await sleep(240);
   appendResponse("transfer buffer ......................... complete");
   await sleep(240);
