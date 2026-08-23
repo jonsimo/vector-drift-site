@@ -88,6 +88,43 @@ const releasesPageUrl = "https://github.com/jonsimo/codex-jr-downloads/releases"
 // deployed Worker URL (workers.dev or dl.vectordrift.io). If empty or
 // unreachable, the fetch falls back to the native browser handoff below.
 const packageProxyUrl = "https://vd-dl-proxy.codexjr.workers.dev/";
+// Key verification goes through the same Worker: the gatekeeper deliberately
+// sends no CORS headers, so the browser cannot call it directly. The Worker
+// talks to it server-side and relays the answer.
+const keyCheckUrl = packageProxyUrl.replace(/\/*$/, "/") + "check";
+
+// The gatekeeper wants the platform the DOWNLOAD is for. Detection is only the
+// default -- someone on a Mac fetching the Windows build is a normal thing to do.
+function gatekeeperPlatform(target) {
+  const t = target || detectPlatform();
+  if (t.os === "Windows") return "windows-x86_64";
+  if (t.os === "macOS") return t.arch === "arm64" ? "darwin-arm64" : "darwin-x86_64";
+  return "";
+}
+
+// Resolves { status, data }. Throws ONLY when the server could not be asked --
+// a network error, a timeout or a 503. Callers must render that as "could not
+// reach", never as a denial: collapsing the two turns a Cloudflare blip into
+// every tester believing their key is dead.
+async function checkDownloadKey(key, platform) {
+  let response;
+  try {
+    response = await fetch(keyCheckUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: key, platform: platform }),
+      cache: "no-store",
+    });
+  } catch (error) {
+    throw Object.assign(new Error("unreachable"), { unreachable: true });
+  }
+  let data = null;
+  try { data = await response.json(); } catch (error) { data = null; }
+  if (response.status === 503 || (data && data.error === "unreachable")) {
+    throw Object.assign(new Error("unreachable"), { unreachable: true });
+  }
+  return { status: response.status, data: data || {} };
+}
 const barWidth = 28;
 
 const loaderStatuses = [
@@ -2130,7 +2167,7 @@ function appendFallbackAction(label = "[ open latest os package ]") {
   return line;
 }
 
-async function downloadPackage() {
+async function downloadPackage(keyed) {
   if (activeTransfer) {
     appendResponse("transfer already active", "terminal-error");
     return;
@@ -2162,6 +2199,20 @@ async function downloadPackage() {
   await sleep(560);
 
   let packageInfo;
+  if (keyed && keyed.url) {
+    // Keyed path: the gatekeeper already resolved the build and minted a
+    // single-use, short-lived URL on its own host. No GitHub lookup, and the
+    // URL is used immediately -- never cached, stored or reused.
+    const target = detectPlatform();
+    packageInfo = {
+      target: target,
+      filename: sanitizeFilename(`vector_drift_${keyed.build || "alpha"}`),
+      directUrl: keyed.url,
+      size: null,
+      sha256: keyed.sha256 || null,
+      keyed: true,
+    };
+  } else {
   try {
     packageInfo = await resolveLatestPackage();
   } catch (error) {
@@ -2171,6 +2222,7 @@ async function downloadPackage() {
     setTerminalState("ready");
     input.focus();
     return;
+  }
   }
 
   const targetLabel = `${packageInfo.target.os} / ${packageInfo.target.arch}`;
@@ -2189,7 +2241,7 @@ async function downloadPackage() {
   activeTransfer = controller;
 
   try {
-    response = await fetch(streamUrlFor(packageInfo.directUrl), { signal: controller.signal });
+    response = await fetch(streamUrlFor(packageInfo.directUrl), { signal: controller.signal, cache: "no-store" });
   } catch (error) {
     activeTransfer = null;
     rewriteLine(manifestLine, "requesting package stream ................ blocked");
@@ -2488,14 +2540,14 @@ async function runCommand(command, normalized) {
   if (resolution.kind === "protected") {
     // Gate the alpha behind an access code (once per session). The submit loop
     // routes the next line to handleGateInput while dlGateStage is set.
-    if (!dlAuthorized) {
-      dlGateStage = "code";
-      appendResponse("restricted // alpha build", "terminal-meta");
-      appendResponse("access code required", "terminal-meta");
+    if (dlSessionKey) {
+      // Re-check: the previous download URL was single-use and short-lived.
+      await verifyKeyAndDownload(dlSessionKey);
       return;
     }
-    session.downloadStarted = true;
-    await downloadPackage();
+    dlGateStage = "code";
+    appendResponse("restricted // alpha build", "terminal-meta");
+    appendResponse("download key required", "terminal-meta");
     return;
   }
 
@@ -2596,7 +2648,7 @@ let uplinkStage = null;      // null | "email"  (command-triggered; no auto-offe
 let uplinkResolved = false;  // set once a subscribe attempt completes
 
 const UPLINK_EMAIL_PROMPT = "enter email >";
-const DL_GATE_PROMPT = "access code >";
+const DL_GATE_PROMPT = "download key >";
 const SUDO_PROMPT = "password >";
 let nukeStage = null;        // null | "sudo"
 
@@ -2611,7 +2663,7 @@ async function handleNukeInput(command) {
     appendResponse("sudo: authentication cancelled", "terminal-meta");
     return;
   }
-  if (typed.toLowerCase() !== DL_ACCESS_CODE) {
+  if (typed.toLowerCase() !== NUKE_SUDO_PASSWORD) {
     appendResponse("sudo: access denied", "terminal-error");
     return;   // stay in the gate (blank Enter cancels)
   }
@@ -2648,12 +2700,18 @@ async function handleNukeInput(command) {
   }
 }
 
-// --- Alpha download gate (cosmetic access code) -----------------------------
-// Ask for an access code before download.exe runs. Client-side only (the build
-// repo is public), so it's a soft gate, not real protection. Change the code in
-// ONE place: DL_ACCESS_CODE.
-const DL_ACCESS_CODE = "axiom";
-let dlAuthorized = false;   // once correct, stays unlocked for the session
+// --- Alpha download gate (server-verified key) ------------------------------
+// download.exe asks for a key, which is checked by the gatekeeper through the
+// Worker. There is no secret in this file and nothing here decides access: the
+// page only renders the gatekeeper's answer.
+//
+// NUKE_SUDO_PASSWORD below is NOT part of that gate -- it is the joke password
+// for the destructive-root easter egg, which protects nothing.
+const NUKE_SUDO_PASSWORD = "axiom";
+// The accepted key is kept for the session so a second download.exe does not
+// need re-typing. It is re-checked every time: the download URL is single-use
+// and short-lived, so each transfer needs a freshly minted token.
+let dlSessionKey = null;
 let dlGateStage = null;     // null | "code"
 
 // The live desktop prompt + mobile prompt label reflect whichever input stage is
@@ -2681,24 +2739,77 @@ function mobilePromptLabel() { return livePromptLabel() || "root:/"; }
 
 async function handleGateInput(command) {
   const typed = command.trim();
-  const masked = "*".repeat(typed.length);   // echo the code as asterisks in history
+  const masked = "*".repeat(typed.length);   // echo the key as asterisks in history
   if (mobileMode) { freezeMobilePrompt(masked); } else { appendCommandLine(masked, DL_GATE_PROMPT); }
   if (!typed) {
     dlGateStage = null;
     appendResponse("> access cancelled", "terminal-meta");
     return;
   }
-  if (typed.toLowerCase() === DL_ACCESS_CODE) {
-    dlGateStage = null;
-    dlAuthorized = true;
-    appendResponse("> code accepted // clearance granted", "terminal-meta");
-    applyLivePrompt();   // restore console> prompt immediately (before the download runs)
-    session.downloadStarted = true;
-    await downloadPackage();
+  // No format check: the server normalises case, spaces and hyphens, and the
+  // key alphabet is its business, not ours.
+  await verifyKeyAndDownload(typed);
+}
+
+// Runs the gate's decision table. Stays in the gate on anything retryable so a
+// second key can be pasted; a blank ENTER cancels.
+async function verifyKeyAndDownload(key) {
+  const platform = gatekeeperPlatform();
+  if (!platform) {
+    appendResponse("> UNSUPPORTED PLATFORM", "terminal-error");
+    appendResponse("> alpha builds are macOS / Windows only", "terminal-meta");
     return;
   }
-  appendResponse("> access denied", "terminal-error");
-  // stay in the gate -> re-ask (a blank Enter cancels)
+
+  const line = appendResponse("verifying key ...", "terminal-meta");
+  let result;
+  try {
+    result = await checkDownloadKey(key, platform);
+  } catch (error) {
+    // 503 / timeout / DNS / captive-portal wifi. NOT a refusal.
+    rewriteLine(line, "verifying key ........................... no answer");
+    appendResponse("> COULD NOT REACH THE SERVER", "terminal-error");
+    appendResponse("> key was not checked // try again shortly", "terminal-meta");
+    return;
+  }
+
+  const data = result.data || {};
+
+  if (result.status === 200 && data.url) {
+    rewriteLine(line, "verifying key ........................... accepted");
+    dlSessionKey = key;
+    dlGateStage = null;
+    applyLivePrompt();            // restore console> before the transfer runs
+    session.downloadStarted = true;
+    await downloadPackage({ url: data.url, sha256: data.sha256, build: data.build, platform: platform });
+    return;
+  }
+
+  if (result.status === 200 && data.current) {
+    rewriteLine(line, "verifying key ........................... accepted");
+    dlSessionKey = key;
+    appendResponse(`> no build published for ${platform} yet`, "terminal-meta");
+    return;
+  }
+
+  rewriteLine(line, "verifying key ........................... refused");
+  if (result.status === 403 && data.error === "expired") {
+    appendResponse("> KEY EXPIRED", "terminal-error");
+    appendResponse("> press the button in Discord for a new one", "terminal-meta");
+  } else if (result.status === 403 && data.error === "seat_taken") {
+    appendResponse("> KEY ACTIVE ON ANOTHER MACHINE", "terminal-error");
+  } else if (result.status === 403) {
+    appendResponse("> KEY NOT RECOGNISED", "terminal-error");
+  } else if (result.status === 429) {
+    appendResponse("> RATE LIMITED", "terminal-error");
+    appendResponse("> 30 checks per minute per key // wait a moment", "terminal-meta");
+  } else if (result.status === 400) {
+    appendResponse("> RELAY SENT A MALFORMED REQUEST", "terminal-error");
+    appendResponse("> this is a fault on our side, not your key", "terminal-meta");
+  } else {
+    appendResponse("> COULD NOT REACH THE SERVER", "terminal-error");
+    appendResponse("> key was not checked // try again shortly", "terminal-meta");
+  }
 }
 
 async function handleUplinkInput(command) {
