@@ -2258,6 +2258,7 @@ async function downloadPackage(keyed) {
   await sleep(820);
   const sizeLine = appendResponse(`package size ............................ ${Number.isFinite(expectedSize) ? formatBytes(expectedSize) : "unknown / streaming"}`);
   await sleep(720);
+
   const manifestLine = appendResponse("requesting package stream ...");
   await sleep(560);
 
@@ -2428,6 +2429,9 @@ async function downloadPackage(keyed) {
   const blob = new Blob(chunks, {
     type: response.headers.get("Content-Type") || packageInfo.asset?.content_type || "application/octet-stream",
   });
+  // Release the chunk array now the Blob owns the bytes. Holding both doubles
+  // peak memory, which is what actually breaks on a multi-hundred-MB build.
+  chunks.length = 0;
   const objectUrl = URL.createObjectURL(blob);
   fallbackDownload = { url: objectUrl, filename };
   await sleep(260);
@@ -2437,7 +2441,14 @@ async function downloadPackage(keyed) {
   // the only thing standing between a bad download and a confident green line.
   const checksumLine = appendResponse("package checksum ........................ ...");
   let checksumOk = null;
-  if (packageInfo.sha256 && window.crypto && window.crypto.subtle) {
+  // SubtleCrypto has no streaming digest, so hashing needs the whole file as one
+  // contiguous ArrayBuffer -- a second full copy alongside the Blob. The cap is
+  // a backstop against an out-of-memory tab crash on an absurd file, not a
+  // normal path: a 1GB build still gets verified, which matters most given the
+  // transfer has already been caught truncating once.
+  const HASH_LIMIT_BYTES = 2048 * 1024 * 1024;
+  const tooBigToHash = blob.size > HASH_LIMIT_BYTES;
+  if (packageInfo.sha256 && !tooBigToHash && window.crypto && window.crypto.subtle) {
     try {
       const digest = await window.crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
       const hex = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -2463,6 +2474,10 @@ async function downloadPackage(keyed) {
     input.disabled = false;
     input.focus();
     return;                // never hand a corrupt file to the browser
+  } else if (tooBigToHash) {
+    rewriteLine(checksumLine, "package checksum ........................ skipped");
+    await sleep(200);
+    appendResponse(`package too large to verify in-browser (${formatBytes(blob.size)})`, "terminal-meta");
   } else {
     rewriteLine(checksumLine, "package checksum ........................ unverified");
   }
@@ -2474,12 +2489,15 @@ async function downloadPackage(keyed) {
   activateFallbackDownload();
   appendResponse("download request ........................ dispatched");
   appendFallbackAction("[ retry download ]");
+  // Give the browser time to actually write the file before the blob URL is
+  // revoked -- roughly a second per MB, floored at a minute and capped at 15.
+  const revokeAfterMs = Math.min(900000, Math.max(60000, Math.round(blob.size / (1024 * 1024)) * 1000));
   window.setTimeout(() => {
     if (fallbackDownload?.url === objectUrl) {
       URL.revokeObjectURL(objectUrl);
       fallbackDownload = null;
     }
-  }, 60000);
+  }, revokeAfterMs);
   setTerminalState("handoffReady");
   input.disabled = false;
   input.focus();
