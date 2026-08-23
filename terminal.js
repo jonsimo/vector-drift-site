@@ -185,6 +185,15 @@ function triggerBootSkip() {
   if (bootAudio) { try { bootAudio.main.pause(); bootAudio.initial.pause(); } catch (e) {} }
   if (window.stopLogoSfx) window.stopLogoSfx();   // silence the logo write-on too
 }
+// The 3-Enter skip fast-forwards the BOOT only. sleep() short-circuits while
+// bootSkip is set, so leaving it on made every later flow -- the download
+// readout, snake, pi -- dump instantly with no pacing. Cleared once the console
+// is live; the boot itself has already finished by then, so the skip stays instant.
+function endBootSkip() {
+  bootSkip = false;
+  window.__vdSkip = false;
+}
+
 function bootEnterWatch(e) {
   if (!bootActive || bootSkip || e.key !== "Enter") return;
   const now = performance.now();
@@ -1467,6 +1476,7 @@ async function activateRootPrompt(startedAt, opts) {
     input.focus();
     setTerminalState("ready");
     document.documentElement.dataset.bootDuration = String(Math.round(performance.now() - startedAt));
+    endBootSkip();
     return;
   }
 
@@ -1480,6 +1490,7 @@ async function activateRootPrompt(startedAt, opts) {
   input.focus();
   setTerminalState("ready");
   document.documentElement.dataset.bootDuration = String(Math.round(performance.now() - startedAt));
+  endBootSkip();
 }
 
 async function runBoot() {
