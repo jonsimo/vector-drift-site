@@ -2634,6 +2634,12 @@ async function runCommand(command, normalized) {
   // Protected: only the exact normalized "download.exe" ever reaches the real
   // transfer. No fuzzy path can land here.
   if (resolution.kind === "protected") {
+    // Held: the build is not ready to be handed out yet, so the key prompt never
+    // opens. Nothing is typed, nothing is checked, no token is minted.
+    if (DL_HOLD) {
+      announceDownloadHold();
+      return;
+    }
     // Gate the alpha behind an access code (once per session). The submit loop
     // routes the next line to handleGateInput while dlGateStage is set.
     if (dlSessionKey) {
@@ -2806,6 +2812,25 @@ const NUKE_SUDO_PASSWORD = "axiom";
 let dlSessionKey = null;
 let dlGateStage = null;     // null | "code"
 
+// ⚠ THE ONE SWITCH. Flip to false to open the gate again; nothing else changes.
+//
+// The demo is not ready to hand out, and a key holder who downloads early gets a
+// build we did not mean to ship -- so the hold is placed BEFORE the key prompt
+// rather than after the check. Nothing is typed, nothing is sent to the
+// gatekeeper, no token is minted and no key is spent against the rate limiter.
+// A key that is never checked also cannot be told it was refused, which is why
+// the copy says save it rather than anything about validity.
+const DL_HOLD = true;
+
+// Both callers say the same two lines, so they say them from one place: the
+// command path (where the prompt would open) and verifyKeyAndDownload (which is
+// still reachable through ?dlgatedemo, and must not transfer while held).
+function announceDownloadHold() {
+  appendResponse("> VECTOR DRIFT ALPHA DEMO IS NOT YET AVAILABLE FOR DOWNLOAD", "terminal-error");
+  appendResponse("> save your key somewhere safe", "terminal-meta");
+  appendResponse("> we'll notify you in Discord when it's live", "terminal-meta");
+}
+
 // The live desktop prompt + mobile prompt label reflect whichever input stage is
 // active (download gate, uplink email, or the normal console prompt).
 function livePromptLabel() {
@@ -2846,6 +2871,15 @@ async function handleGateInput(command) {
 // Runs the gate's decision table. Stays in the gate on anything retryable so a
 // second key can be pasted; a blank ENTER cancels.
 async function verifyKeyAndDownload(key) {
+  // Second guard, deliberately duplicated. The command path already refuses
+  // while DL_HOLD is set, but ?dlgatedemo opens the prompt directly and a key
+  // typed into it would otherwise reach the gatekeeper and start a transfer.
+  if (DL_HOLD) {
+    dlGateStage = null;
+    applyLivePrompt();
+    announceDownloadHold();
+    return;
+  }
   const platform = gatekeeperPlatform();
   if (!platform) {
     appendResponse("> UNSUPPORTED PLATFORM", "terminal-error");
