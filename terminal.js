@@ -2032,7 +2032,11 @@ function isMobileDevice() {
 function detectPlatform() {
   const platform = `${navigator.userAgentData?.platform || navigator.platform || ""}`.toLowerCase();
   const ua = navigator.userAgent.toLowerCase();
-  const isMac = platform.includes("mac") || ua.includes("mac os");
+  // ⚠ iOS IS NOT A MAC, AND BOTH OF ITS DEVICES CLAIM TO BE ONE. An iPhone's user agent says
+  // "like Mac OS X", and iPad Safari sends a full desktop Mac user agent with platform "MacIntel"
+  // -- the only tell is a touchscreen, which no Mac has. Without this both were handed a DMG.
+  const isIOS = /iphone|ipad|ipod/.test(ua) || (platform.includes("mac") && navigator.maxTouchPoints > 1);
+  const isMac = !isIOS && (platform.includes("mac") || ua.includes("mac os"));
   const isWindows = platform.includes("win") || ua.includes("windows");
   const isArm = ua.includes("arm64") || ua.includes("aarch64");
 
@@ -2077,7 +2081,9 @@ async function detectTarget() {
       const values = await navigator.userAgentData.getHighEntropyValues(["architecture", "bitness", "platform"]);
       const architecture = `${values.architecture || ""}`.toLowerCase();
       const platform = `${values.platform || ""}`.toLowerCase();
-      detected.os = platform.includes("mac") ? "macOS" : platform.includes("win") ? "Windows" : detected.os;
+      if (detected.os !== "unsupported" || !navigator.maxTouchPoints) {
+        detected.os = platform.includes("mac") ? "macOS" : platform.includes("win") ? "Windows" : detected.os;
+      }
       if (architecture) {
         detected.arch = architecture.includes("arm") ? "arm64" : values.bitness === "32" ? "x86" : "x64";
         hinted = true;
