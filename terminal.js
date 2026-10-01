@@ -95,6 +95,9 @@ const keyCheckUrl = packageProxyUrl.replace(/\/*$/, "/") + "check";
 
 // The gatekeeper wants the platform the DOWNLOAD is for. Detection is only the
 // default -- someone on a Mac fetching the Windows build is a normal thing to do.
+// Callers pass detectTarget()'s answer. The bare detectPlatform() fallback cannot tell an Apple
+// Silicon Mac from an Intel one (see macGpuArch) and is kept only so a missing argument still
+// yields an OS.
 function gatekeeperPlatform(target) {
   const t = target || detectPlatform();
   if (t.os === "Windows") return "windows-x86_64";
@@ -2039,8 +2042,35 @@ function detectPlatform() {
   };
 }
 
+// ⚠ NO MAC BROWSER EVER SAYS arm64 IN ITS USER AGENT. Safari, Chrome and Firefox all report
+// "Intel Mac OS X" on Apple Silicon, frozen that way for compatibility, so detectPlatform()'s
+// isArm is false on every Mac and the gatekeeper was asked for darwin-x86_64 (Jon 2026-10-01:
+// "no build published for darwin-x86_64" on an Apple Silicon Mac). The answer comes from, in order:
+//   1. userAgentData high-entropy hints (Chrome / Edge / Opera) -- the browser simply says;
+//   2. the WebGL renderer string (Safari / Firefox have no hints) -- "Apple M1" / "Apple GPU" is
+//      Apple Silicon, an Intel / AMD / NVIDIA part is an Intel Mac;
+//   3. arm64. Apple has not sold an Intel Mac since 2023, so an unanswered question defaults to
+//      the machine that is far more likely to be asking.
+function macGpuArch() {
+  try {
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    if (!gl) return null;
+    const ext = gl.getExtension("WEBGL_debug_renderer_info");
+    const renderer = `${(ext && gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) || gl.getParameter(gl.RENDERER) || ""}`.toLowerCase();
+    // Apple Silicon first: Chrome's ANGLE string on an Intel Mac also starts "ANGLE (Apple, ..."
+    // and only names the real part after it, so "apple" alone proves nothing.
+    if (/apple (m\d|gpu)/.test(renderer)) return "arm64";
+    if (/intel|amd|radeon|nvidia|geforce/.test(renderer)) return "x64";
+  } catch {
+    // No WebGL, or the browser refused the extension. Fall through to the default.
+  }
+  return null;
+}
+
 async function detectTarget() {
   const detected = detectPlatform();
+  let hinted = false;
 
   if (navigator.userAgentData?.getHighEntropyValues) {
     try {
@@ -2048,10 +2078,17 @@ async function detectTarget() {
       const architecture = `${values.architecture || ""}`.toLowerCase();
       const platform = `${values.platform || ""}`.toLowerCase();
       detected.os = platform.includes("mac") ? "macOS" : platform.includes("win") ? "Windows" : detected.os;
-      detected.arch = architecture.includes("arm") ? "arm64" : values.bitness === "32" ? "x86" : "x64";
+      if (architecture) {
+        detected.arch = architecture.includes("arm") ? "arm64" : values.bitness === "32" ? "x86" : "x64";
+        hinted = true;
+      }
     } catch {
-      // Browser declined high entropy hints; low entropy detection above is enough for asset choice.
+      // Browser declined high entropy hints; the fallbacks below answer instead.
     }
+  }
+
+  if (detected.os === "macOS" && !hinted) {
+    detected.arch = macGpuArch() || "arm64";
   }
 
   return detected;
@@ -2223,7 +2260,7 @@ async function downloadPackage(keyed) {
     // Keyed path: the gatekeeper already resolved the build and minted a
     // single-use, short-lived URL on its own host. No GitHub lookup, and the
     // URL is used immediately -- never cached, stored or reused.
-    const target = detectPlatform();
+    const target = await detectTarget();
     packageInfo = {
       target: target,
       filename: sanitizeFilename(keyed.name || `vector_drift_${keyed.build || "alpha"}`),
@@ -2880,7 +2917,7 @@ async function verifyKeyAndDownload(key) {
     announceDownloadHold();
     return;
   }
-  const platform = gatekeeperPlatform();
+  const platform = gatekeeperPlatform(await detectTarget());
   if (!platform) {
     appendResponse("> UNSUPPORTED PLATFORM", "terminal-error");
     appendResponse("> alpha builds are macOS / Windows only", "terminal-meta");
