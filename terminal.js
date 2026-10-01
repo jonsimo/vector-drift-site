@@ -2226,7 +2226,7 @@ async function downloadPackage(keyed) {
     const target = detectPlatform();
     packageInfo = {
       target: target,
-      filename: sanitizeFilename(`vector_drift_${keyed.build || "alpha"}`),
+      filename: sanitizeFilename(keyed.name || `vector_drift_${keyed.build || "alpha"}`),
       directUrl: keyed.url,
       // Present once the gatekeeper carries `size` on the release row. Until
       // then this is null and the size line reads "unknown / streaming" until
@@ -2820,7 +2820,7 @@ let dlGateStage = null;     // null | "code"
 // gatekeeper, no token is minted and no key is spent against the rate limiter.
 // A key that is never checked also cannot be told it was refused, which is why
 // the copy says save it rather than anything about validity.
-const DL_HOLD = true;
+const DL_HOLD = false;
 
 // Both callers say the same two lines, so they say them from one place: the
 // command path (where the prompt would open) and verifyKeyAndDownload (which is
@@ -2908,7 +2908,16 @@ async function verifyKeyAndDownload(key) {
     dlGateStage = null;
     applyLivePrompt();            // restore console> before the transfer runs
     session.downloadStarted = true;
-    await downloadPackage({ url: data.url, sha256: data.sha256, build: data.build, size: data.size, platform: platform });
+    // The DMG is what a first install wants. The gatekeeper keeps `url` on the zip forever (the
+    // Alpha Tracker updater reads it) and advertises the disk image BESIDE it as `installer`, so
+    // prefer that when it is there and fall back to the zip when a release has none.
+    const inst = data.installer && data.installer.url ? data.installer : null;
+    await downloadPackage({
+      url: inst ? inst.url : data.url,
+      sha256: inst ? inst.sha256 : data.sha256,
+      name: inst ? inst.name : null,
+      build: data.build, size: data.size, platform: platform,
+    });
     return;
   }
 
