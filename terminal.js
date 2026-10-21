@@ -2861,17 +2861,17 @@ let dlGateStage = null;     // null | "code"
 // build we did not mean to ship -- so the hold is placed BEFORE the key prompt
 // rather than after the check. Nothing is typed, nothing is sent to the
 // gatekeeper, no token is minted and no key is spent against the rate limiter.
-// A key that is never checked also cannot be told it was refused, which is why
-// the copy says save it rather than anything about validity.
-const DL_HOLD = false;
+// A key that is never checked also cannot be told it was refused.
+// HELD AGAIN 2026-10-21 (Jon): the demo is not out, and key minting is gated too, so
+// the copy no longer tells anyone to save a key they cannot get yet.
+const DL_HOLD = true;
 
 // Both callers say the same two lines, so they say them from one place: the
 // command path (where the prompt would open) and verifyKeyAndDownload (which is
 // still reachable through ?dlgatedemo, and must not transfer while held).
 function announceDownloadHold() {
   appendResponse("> VECTOR DRIFT ALPHA DEMO IS NOT YET AVAILABLE FOR DOWNLOAD", "terminal-error");
-  appendResponse("> save your key somewhere safe", "terminal-meta");
-  appendResponse("> we'll notify you in Discord when it's live", "terminal-meta");
+  appendResponse("> we'll announce it in Discord when it's live", "terminal-meta");
 }
 
 // The live desktop prompt + mobile prompt label reflect whichever input stage is
