@@ -64,3 +64,12 @@ test('the logo goes back to the start page, and the prompt reads console>root:/'
  assert.ok(/root:\//.test(read('sections.js'))&&!/vector_drift:\/root/.test(read('sections.js')));
  assert.ok(/finalPrompt = "console>root:\/"/.test(fs.readFileSync(path.join(__dirname,'..','..','terminal.js'),'utf8')));
 });
+
+test('phone console: prompt is always console> and the keyboard mode can be undone',()=>{
+ const root=path.join(__dirname,'..','..');
+ const t=fs.readFileSync(path.join(root,'terminal.js'),'utf8');
+ assert.ok(!/appendMobilePrompt\("root:\/"\)/.test(t)&&!/\? "operator>" : "root:\/"/.test(t),'no root:/ prompt after a reply');
+ assert.ok(t.includes('mobilePromptLabel() { return livePromptLabel() || "console>"'));
+ assert.ok(t.includes('[ SHOW LINKS ]')&&t.includes('setMobileTyping'));
+ for(const f of ['GO/index.html','expo/index.html']){const h=fs.readFileSync(path.join(root,f),'utf8');assert.ok(h.includes('id="ex"')&&h.includes('SHOW LINKS'),f);}
+});

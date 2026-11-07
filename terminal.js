@@ -758,10 +758,58 @@ function appendMobilePrompt(prefixText) {
   return line;
 }
 
+// Phone keyboard: tapping the prompt folds everything above it away so the console
+// sits near the top (the keyboard no longer covers it). The SHOW LINKS button
+// brings the outline and earlier lines back at any time.
+let mTyping = false, mLastTap = 0, mExpandBtn = null;
+function foldMobileLines() {
+  if (!mTyping || !mobileLive) return;
+  for (const n of Array.from(output.children)) {
+    if (n === mobileLive.line) break;
+    n.classList.add("m-fold");
+  }
+}
+function setMobileTyping(on) {
+  mTyping = on;
+  document.body.classList.toggle("m-typing", on);
+  if (on) {
+    foldMobileLines();
+    output.scrollTop = 0;
+    [0, 60, 300].forEach((ms) => setTimeout(() => { if (mTyping) { window.scrollTo(0, 0); output.scrollTop = 0; } }, ms));
+  } else {
+    output.querySelectorAll(".m-fold").forEach((n) => n.classList.remove("m-fold"));
+    window.scrollTo(0, 0);
+    if (mobileLive) scrollMobileToPrompt(mobileLive.line); else output.scrollTop = 0;
+  }
+}
+function initMobileTyping() {
+  if (mExpandBtn) return;
+  mExpandBtn = document.createElement("button");
+  mExpandBtn.type = "button";
+  mExpandBtn.className = "m-expand";
+  mExpandBtn.textContent = "[ SHOW LINKS ]";
+  mExpandBtn.addEventListener("click", () => { input.blur(); setMobileTyping(false); });
+  output.parentNode.insertBefore(mExpandBtn, output);
+  // A tap on empty console space (not a link or button) starts typing. The input is
+  // usually already focused after the boot, so no focus event would follow. Done on
+  // click, after the tap has landed, so the layout change cannot steal the focus.
+  document.addEventListener("pointerdown", () => { mLastTap = Date.now(); }, true);
+  document.addEventListener("click", (e) => {
+    if (!mobileLive || mTyping || input.disabled) return;
+    if (e.target.closest && e.target.closest("a, button")) return;
+    if (!e.target.closest || !e.target.closest(".terminal-content")) return;
+    input.focus();
+    setMobileTyping(true);
+    input.focus();
+  }, true);
+  input.addEventListener("focus", () => { if (mobileLive && !mTyping && Date.now() - mLastTap < 1200) setMobileTyping(true); });
+}
+
 function freezeMobilePrompt(commandValue) {
   if (!mobileLive) {
     return;
   }
+  foldMobileLines();
   const line = mobileLive.line;
   line.classList.remove("mobile-prompt");
   line.classList.add("mobile-prompt-done");
@@ -1518,7 +1566,7 @@ async function activateRootPrompt(startedAt, opts) {
     form.style.display = "none";
     playConsoleBeep();
     await sleep(consoleBeepLeadMs);
-    appendMobilePrompt("console>root:/");   // short path so it fits narrow screens
+    appendMobilePrompt("console>");   // just the prompt and the cursor on phones (Jon 2026-11-07)
     await sleep(randomBetween(150, 190));
     input.disabled = false;
     input.focus();
@@ -3001,7 +3049,7 @@ function applyLivePrompt() {
     setPromptPrefix();
   }
 }
-function mobilePromptLabel() { return livePromptLabel() || "root:/"; }
+function mobilePromptLabel() { return livePromptLabel() || "console>"; }
 
 async function handleGateInput(command) {
   const typed = command.trim();
@@ -3199,7 +3247,7 @@ async function submitCurrentCommand() {
   if (!normalized) {
     if (mobileMode) {
       freezeMobilePrompt("");
-      appendMobilePrompt("root:/");
+      appendMobilePrompt("console>");
       input.focus();
     } else {
       appendLine("");
@@ -3225,7 +3273,7 @@ async function submitCurrentCommand() {
     }
     input.disabled = false;
     if (mobileMode) {
-      appendMobilePrompt(DEBUG.isActive() ? "operator>" : "root:/");
+      appendMobilePrompt(DEBUG.isActive() ? "operator>" : "console>");
     }
     input.focus();
     return;
@@ -3464,6 +3512,7 @@ window.addEventListener("load", () => {
   mobileMode = isMobileDevice() || bootParams.get("view") === "mobile";
   if (mobileMode) {
     document.body.classList.add("mobile");
+    initMobileTyping();
     // Mobile plays the main track immediately (no lead), so the glitch sits at
     // the track's own onset rather than lead + onset.
     glitchAudioMs = mainAudioGlitchMs;

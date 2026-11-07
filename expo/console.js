@@ -7,6 +7,19 @@
   function mirror() { tx.textContent = input.value; form.classList.toggle("has", input.value.length > 0); }
   input.addEventListener("input", mirror);
   form.addEventListener("click", function () { input.focus(); });
+  // Phone keyboard: on focus fold the links and older lines away so the console
+  // sits near the top instead of under the keyboard. SHOW LINKS brings them back.
+  var ex = document.getElementById("ex"), body = document.body;
+  function fold() { var e = log.children; for (var i = 0; i < e.length - 1; i++) e[i].classList.add("old"); }
+  function typing(on) {
+    body.classList.toggle("typing", on); if (ex) ex.hidden = !on;
+    if (on) fold(); else [].forEach.call(log.querySelectorAll(".old"), function (n) { n.classList.remove("old"); });
+    [0, 60, 300].forEach(function (ms) { setTimeout(function () { if (body.classList.contains("typing") === on) window.scrollTo(0, on ? 0 : window.scrollY); }, ms); });
+  }
+  if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+    input.addEventListener("focus", function () { typing(true); });
+    if (ex) ex.addEventListener("click", function () { input.blur(); typing(false); });
+  }
   if (!Engine || !form) return;
   var session = Engine.createSession(), history = [], hi = 0, draft = "", leaving = false;
   var SITE = "/revamp/?ref=expo#";
@@ -24,6 +37,7 @@
       ent.appendChild(s);
     }
     log.appendChild(ent);
+    if (body.classList.contains("typing")) fold();
     while (log.children.length > 12) log.removeChild(log.firstChild);
     ent.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
