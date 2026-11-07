@@ -33,3 +33,11 @@ test('the expo console reuses the site engine and sends section/program effects 
  assert.ok(/VDConsoleEngine/.test(js)&&/\/revamp\/\?ref=expo#/.test(js)&&!/fetch|XMLHttpRequest/.test(js));
  for(const f of ['terminal-intents.js','revamp/console-language.js','revamp/console-engine.js','expo/console.js'])assert.ok(html.includes('src="/'+f+'"'),f);
 });
+
+test('phones opening the root go to /GO/, but never in a loop and never past a flag',()=>{
+ const js=read('mobile-redirect.js'),idx=read('index.html');
+ assert.ok(idx.indexOf('mobile-redirect.js')>0&&idx.indexOf('mobile-redirect.js')<idx.indexOf('styles.css'),'runs before anything else');
+ assert.ok(/location\.replace\("\/GO\/"\)/.test(js));
+ assert.ok(/utm_\|fbclid/.test(js)&&/plain = false/.test(js),'only tracking params still redirect');
+ assert.ok(read('GO/index.html').includes('https://vectordrift.io/?ref=expo'),'the GO visit link carries ?ref so it is not redirected back');
+});
