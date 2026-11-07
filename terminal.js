@@ -420,7 +420,7 @@ window.VDFadeOutAudio = function (ms) {
   setTimeout(stopHum, ms + 40);
 };
 
-const HUM_VOLUME = 0.397;   // 0.5 trimmed by 2 dB (Jon 2026-11-07)
+const HUM_VOLUME = 0.5;      // original level (2 dB trim reverted, Jon 2026-11-07)
 function startHum(startVol) {
   if (soundOff()) return;
   const vol = startVol === undefined ? HUM_VOLUME : startVol;

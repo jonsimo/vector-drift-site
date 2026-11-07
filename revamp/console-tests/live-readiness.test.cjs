@@ -51,8 +51,8 @@ test('previous and next step through the framegrabs and wrap',()=>{
 
 test('sound: ambient is 2 dB down, the toggle persists, and the display-options bar is gone',()=>{
  const amb=read('ambient.js'),html=read('index.html');
- assert.ok(/VOL = 0\.397/.test(amb)&&/vd_sound/.test(amb)&&/BEEP = 0\.2/.test(amb));
- assert.ok(/HUM_VOLUME = 0\.397/.test(fs.readFileSync(path.join(__dirname,'..','..','terminal.js'),'utf8')));
+ assert.ok(/VOL = 0\.5,/.test(amb)&&/vd_sound/.test(amb)&&/BEEP = 0\.2/.test(amb));
+ assert.ok(/HUM_VOLUME = 0\.5;/.test(fs.readFileSync(path.join(__dirname,'..','..','terminal.js'),'utf8')));
  assert.ok(/id="sound-toggle"[\s\S]*sound-state">\[ON\]/.test(html));
  assert.ok(!/DISPLAY OPTIONS|class="review"/.test(html));
  assert.ok(html.indexOf('ambient.js')>0&&html.indexOf('ambient.js')<html.indexOf('sections.js')+1000);

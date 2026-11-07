@@ -5,7 +5,7 @@
    before a gesture start the hum on the first tap or key. */
 (function () {
   "use strict";
-  var KEY = "vd_sound", VOL = 0.397, FADE = 1.8, DUCK = 0.1, BEEP = 0.2;
+  var KEY = "vd_sound", VOL = 0.5, FADE = 1.8, DUCK = 0.1, BEEP = 0.2;
   var off = false, duck = false, ctx = null, gain = null, src = null, buf = null, loading = false;
   try { off = localStorage.getItem(KEY) === "off"; } catch (e) {}
 
