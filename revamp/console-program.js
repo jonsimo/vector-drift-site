@@ -7,8 +7,7 @@
   const controls = document.getElementById('program-controls');
   const KEYS = {
     snake: [['UP','ArrowUp'],['LEFT','ArrowLeft'],['DOWN','ArrowDown'],['RIGHT','ArrowRight'],['PAUSE','p'],['RESTART','Enter'],['QUIT','Escape']],
-    pi: [['STOP','Enter']],
-    ost: [['PLAY/PAUSE',' '],['PREV','ArrowUp'],['NEXT','ArrowDown'],['-5S','ArrowLeft',1],['+5S','ArrowRight',1],['VOL -','-'],['VOL +','+'],['QUIT','Escape']]
+    pi: [['STOP','Enter']]
   };
   const keys = KEYS[name];
   if (!keys) { output.textContent='PROGRAM NOT AVAILABLE';return; }
@@ -23,6 +22,6 @@
   fitBoard();
   window.addEventListener('resize',fitBoard);
   document.fonts.ready.then(fitBoard);
-  const runner={snake:window.VDSnake,pi:window.VDPi,ost:window.VDOst}[name];
+  const runner={snake:window.VDSnake,pi:window.VDPi}[name];
   runner.launch({output,base:'ost/'}).then(result=>{controls.replaceChildren();output.textContent='SESSION ENDED';parent.postMessage({type:'vd:program-ended',name,...result},location.origin);});
 })();

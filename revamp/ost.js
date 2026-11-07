@@ -1,10 +1,10 @@
 /* Vector Drift — OST preview player. Self-contained; window.VDOst.
-   Plays ~45 s clips of the soundtrack with each track's own cover art, inside
-   the console program frame. launch() resolves when the visitor quits, so the
-   console prompt returns after (same contract as VDSnake / VDPi).
-   Clips and covers are ost/NN.mp3 + ost/NN.jpg, built by build-ost-previews.sh
-   (full tracks are never shipped). Audio only starts from a visitor gesture;
-   if the browser blocks the first autoplay the player waits for Enter / a click. */
+   Plays ~45 s clips of the soundtrack with each track's own cover art, mounted
+   straight into the soundtrack/ page (no iframe, so the reticle pointer works).
+   mount(el, {base}) returns {destroy}. Clips and covers are ost/NN.mp3 +
+   ost/NN.jpg, built by build-ost-previews.sh (full tracks are never shipped).
+   Audio only starts from a visitor gesture; if the browser blocks the first
+   autoplay the player waits for Enter / a click / the play button. */
 (function () {
   "use strict";
   var ARTIST = "root:/vector_drift", ALBUM = "Vector Drift OST";
@@ -38,135 +38,193 @@
   function fmt(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + pad2(s % 60); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
-  function launch(opts) {
-    var out = opts.output, base = opts.base || "ost/";
-    return new Promise(function (resolve) {
-      var audio = new Audio();
-      audio.preload = "auto";
-      audio.volume = 0.8;
-      var index = 0, played = 0, done = false, blocked = false, failed = false;
-      var heard = {};
+  // Pixel icons: '#' is a lit cell. Drawn as a grid of cells so the font never matters.
+  function tri(side, withBar) {
+    var rows = [], w = [1, 2, 3, 4, 5, 4, 3, 2, 1];
+    for (var i = 0; i < w.length; i++) {
+      var t = "#".repeat(w[i]), gap = ".".repeat(5 - w[i]);
+      if (!withBar) rows.push(t + gap);
+      else rows.push(side === "left" ? "#." + gap + t : t + gap + ".#");
+    }
+    return rows;
+  }
+  var ICONS = {
+    play: tri("right", false),
+    pause: ["##.##", "##.##", "##.##", "##.##", "##.##", "##.##", "##.##", "##.##", "##.##"],
+    next: tri("right", true),
+    prev: tri("left", true)
+  };
+  function icon(name) {
+    var rows = ICONS[name], cols = rows[0].length, ico = el("span", "ost-ico");
+    ico.style.setProperty("--cols", cols);
+    rows.forEach(function (r) { for (var i = 0; i < r.length; i++) ico.append(el("i", r.charAt(i) === "#" ? "on" : "")); });
+    return ico;
+  }
+  var CELLS = 56;
 
-      var root = el("div", "vd-ost");
-      var now = el("div", "ost-now");
-      var art = el("img", "ost-art"); art.width = 480; art.height = 480; art.alt = "";
-      var info = el("div", "ost-info");
-      var lblTrack = el("div", "ost-track");
-      var lblTitle = el("div", "ost-title");
-      var bar = el("button", "ost-bar"); bar.type = "button"; bar.setAttribute("aria-label", "Seek within preview");
-      var lblTime = el("div", "ost-time");
-      var lblStatus = el("div", "ost-status");
-      info.append(lblTrack, lblTitle, bar, lblTime, lblStatus);
-      now.append(art, info);
-      var list = el("div", "ost-list"); list.setAttribute("role", "list");
-      var rows = TRACKS.map(function (t, i) {
-        var b = el("button", "ost-row"); b.type = "button"; b.setAttribute("role", "listitem");
-        b.append(el("span", "ost-mark", " "), el("span", "ost-n", pad2(i + 1)), el("span", "ost-t", t[0]), el("span", "ost-d", fmt(t[1])));
-        b.addEventListener("click", function () { play(i); });
-        list.append(b);
-        return b;
-      });
-      root.append(now, list);
-      out.replaceChildren(root);
+  function mount(out, opts) {
+    var base = (opts && opts.base) || "ost/";
+    var audio = new Audio();
+    audio.preload = "auto";
+    audio.volume = 0.8;
+    var index = 0, played = 0, done = false, blocked = false, failed = false;
+    var heard = {};
 
-      function setStatus(text) { lblStatus.textContent = text; }
-      function renderBar() {
-        var d = audio.duration, c = audio.currentTime || 0;
-        var BAR = window.matchMedia("(max-width:560px)").matches ? 16 : 26;
-        var frac = d > 0 ? Math.min(1, c / d) : 0, f = Math.round(frac * BAR);
-        bar.textContent = "[" + "#".repeat(f) + "-".repeat(BAR - f) + "]";
-        lblTime.textContent = fmt(c) + " / " + (d > 0 ? fmt(d) : "--:--") + "   VOL " + Math.round(audio.volume * 100) + "%";
+    var root = el("div", "vd-ost");
+    var now = el("div", "ost-now");
+    var art = el("img", "ost-art"); art.width = 480; art.height = 480; art.alt = "";
+    var info = el("div", "ost-info");
+    var lblTrack = el("div", "ost-track");
+    var lblTitle = el("div", "ost-title");
+    var ctl = el("div", "ost-ctl");
+    var bPrev = el("button", "ost-btn"); bPrev.type = "button"; bPrev.setAttribute("aria-label", "Previous track"); bPrev.append(icon("prev"));
+    var bPlay = el("button", "ost-btn ost-btn-main"); bPlay.type = "button";
+    var bNext = el("button", "ost-btn"); bNext.type = "button"; bNext.setAttribute("aria-label", "Next track"); bNext.append(icon("next"));
+    ctl.append(bPrev, bPlay, bNext);
+    var lblStatus = el("div", "ost-status");
+    info.append(lblTrack, lblTitle, ctl, lblStatus);
+    now.append(art, info);
+    var list = el("div", "ost-list"); list.setAttribute("role", "list");
+    var rows = TRACKS.map(function (t, i) {
+      var b = el("button", "ost-row"); b.type = "button"; b.setAttribute("role", "listitem");
+      b.append(el("span", "ost-mark", " "), el("span", "ost-n", pad2(i + 1)), el("span", "ost-t", t[0]), el("span", "ost-d", fmt(t[1])));
+      b.addEventListener("click", function () { play(i); });
+      list.append(b);
+      return b;
+    });
+    // progress gauge, drawn like the boss HP bar: lit cells, then a dithered, darker unfilled run
+    var gauge = el("div", "ost-gauge");
+    var tCur = el("span", "ost-gt", "0:00");
+    var seekBar = el("button", "ost-seek"); seekBar.type = "button";
+    seekBar.setAttribute("role", "slider"); seekBar.setAttribute("aria-label", "Seek within preview"); seekBar.setAttribute("aria-valuemin", "0");
+    var cells = [];
+    for (var c = 0; c < CELLS; c++) { var cell = el("i", "e"); cells.push(cell); seekBar.append(cell); }
+    var tEnd = el("span", "ost-gt ost-gt-end", "--:--");
+    gauge.append(tCur, seekBar, tEnd);
+    root.append(now, list, gauge);
+    out.replaceChildren(root);
+
+    function setStatus(text) { lblStatus.textContent = text; }
+    function renderPlayIcon() {
+      var playing = !audio.paused && !failed && !blocked;
+      bPlay.replaceChildren(icon(playing ? "pause" : "play"));
+      bPlay.setAttribute("aria-label", playing ? "Pause" : "Play");
+    }
+    function renderBar() {
+      var d = audio.duration, c = audio.currentTime || 0;
+      var frac = d > 0 ? Math.min(1, c / d) : 0, lit = frac * CELLS, whole = Math.floor(lit), part = lit - whole;
+      for (var i = 0; i < CELLS; i++) {
+        var cls = i < whole ? "f" : (i === whole && part > 0.12 ? "p" : "e");
+        if (cells[i].className !== cls) cells[i].className = cls;
       }
-      function renderTrack() {
-        var t = TRACKS[index];
-        lblTrack.textContent = "TRACK " + pad2(index + 1) + " / " + TRACKS.length + " // PREVIEW CLIP";
-        lblTitle.textContent = t[0];
-        art.alt = "Cover art for " + t[0];
-        art.src = base + pad2(index + 1) + ".jpg";
-        rows.forEach(function (r, i) {
-          var on = i === index;
-          r.classList.toggle("on", on);
-          r.querySelector(".ost-mark").textContent = on ? ">" : " ";
-          if (on) r.setAttribute("aria-current", "true"); else r.removeAttribute("aria-current");
-        });
-        var row = rows[index], top = row.offsetTop, h = row.offsetHeight;
-        if (top < list.scrollTop || top + h > list.scrollTop + list.clientHeight) list.scrollTop = Math.max(0, top - list.clientHeight / 2 + h / 2);
-        if ("mediaSession" in navigator) {
-          try {
-            navigator.mediaSession.metadata = new MediaMetadata({ title: t[0], artist: ARTIST, album: ALBUM, artwork: [{ src: new URL(base + pad2(index + 1) + ".jpg", document.baseURI).href, sizes: "480x480", type: "image/jpeg" }] });
-          } catch (e) {}
-        }
-        renderBar();
-      }
-      function play(i) {
-        if (done) return;
-        index = (i + TRACKS.length) % TRACKS.length;
-        failed = false; blocked = false;
-        if (!heard[index]) { heard[index] = true; played++; }
-        audio.src = base + pad2(index + 1) + ".mp3";
-        renderTrack();
-        setStatus("LOADING");
-        var p = audio.play();
-        if (p && p.catch) p.catch(function (err) {
-          if (err && err.name === "AbortError") return;
-          if (err && err.name === "NotAllowedError") { blocked = true; setStatus("PRESS ENTER OR CLICK A TRACK TO PLAY"); }
-          else { failed = true; setStatus("SIGNAL LOST // PRESS N FOR THE NEXT TRACK"); }
-        });
-      }
-      function toggle() {
-        if (failed || blocked || !audio.src) { play(index); return; }
-        if (audio.paused) { var p = audio.play(); if (p && p.catch) p.catch(function () {}); } else audio.pause();
-      }
-      function seek(delta) { if (audio.duration > 0) audio.currentTime = Math.max(0, Math.min(audio.duration - 0.25, audio.currentTime + delta)); }
-      function volume(delta) { audio.volume = Math.max(0, Math.min(1, Math.round((audio.volume + delta) * 10) / 10)); renderBar(); }
-      function quit() {
-        if (done) return;
-        done = true;
-        document.removeEventListener("keydown", onKey);
-        audio.pause(); audio.removeAttribute("src"); audio.load();
-        if ("mediaSession" in navigator) { try { navigator.mediaSession.metadata = null; ["play", "pause", "nexttrack", "previoustrack"].forEach(function (a) { navigator.mediaSession.setActionHandler(a, null); }); } catch (e) {} }
-        resolve({ played: played });
-      }
-      function onKey(e) {
-        if (e.metaKey || e.ctrlKey || e.altKey) return;
-        var k = e.key;
-        // A focused button turns Space/Enter into its own click; don't act twice.
-        if ((k === " " || k === "Enter") && e.target && e.target.tagName === "BUTTON") return;
-        var handled = true;
-        if (k === " " || k === "Spacebar" || k === "Enter") toggle();
-        else if (k === "ArrowDown" || k === "n" || k === "N") play(index + 1);
-        else if (k === "ArrowUp" || k === "p" || k === "P") play(index - 1);
-        else if (k === "ArrowRight") seek(5);
-        else if (k === "ArrowLeft") seek(-5);
-        else if (k === "+" || k === "=") volume(0.1);
-        else if (k === "-" || k === "_") volume(-0.1);
-        else if (k === "Escape" || k === "q" || k === "Q") quit();
-        else handled = false;
-        if (handled) e.preventDefault();
-      }
-      document.addEventListener("keydown", onKey);
-      bar.addEventListener("click", function (e) {
-        var r = bar.getBoundingClientRect();
-        if (audio.duration > 0 && r.width) audio.currentTime = Math.max(0, Math.min(audio.duration - 0.25, (e.clientX - r.left) / r.width * audio.duration));
+      tCur.textContent = fmt(c);
+      tEnd.textContent = d > 0 ? fmt(d) : "--:--";
+      seekBar.setAttribute("aria-valuemax", String(Math.round(d || 0)));
+      seekBar.setAttribute("aria-valuenow", String(Math.round(c)));
+      seekBar.setAttribute("aria-valuetext", fmt(c) + " of " + (d > 0 ? fmt(d) : "unknown"));
+    }
+    function renderTrack() {
+      var t = TRACKS[index];
+      lblTrack.textContent = "TRACK " + pad2(index + 1) + " / " + TRACKS.length + " // PREVIEW CLIP";
+      lblTitle.textContent = t[0];
+      art.alt = "Cover art for " + t[0];
+      art.src = base + pad2(index + 1) + ".jpg";
+      rows.forEach(function (r, i) {
+        var on = i === index;
+        r.classList.toggle("on", on);
+        r.querySelector(".ost-mark").textContent = on ? ">" : " ";
+        if (on) r.setAttribute("aria-current", "true"); else r.removeAttribute("aria-current");
       });
-      audio.addEventListener("timeupdate", renderBar);
-      audio.addEventListener("loadedmetadata", renderBar);
-      audio.addEventListener("volumechange", renderBar);
-      audio.addEventListener("playing", function () { setStatus("PLAYING"); });
-      audio.addEventListener("pause", function () { if (!audio.ended && !failed && !blocked && !done) setStatus("PAUSED"); });
-      audio.addEventListener("waiting", function () { setStatus("LOADING"); });
-      audio.addEventListener("ended", function () { play(index + 1); });
-      audio.addEventListener("error", function () { if (done) return; failed = true; setStatus("SIGNAL LOST // PRESS N FOR THE NEXT TRACK"); });
+      var row = rows[index], top = row.offsetTop, h = row.offsetHeight;
+      if (list.scrollHeight > list.clientHeight && (top < list.scrollTop || top + h > list.scrollTop + list.clientHeight)) list.scrollTop = Math.max(0, top - list.clientHeight / 2 + h / 2);
       if ("mediaSession" in navigator) {
         try {
-          navigator.mediaSession.setActionHandler("play", function () { toggle(); });
-          navigator.mediaSession.setActionHandler("pause", function () { audio.pause(); });
-          navigator.mediaSession.setActionHandler("nexttrack", function () { play(index + 1); });
-          navigator.mediaSession.setActionHandler("previoustrack", function () { play(index - 1); });
+          navigator.mediaSession.metadata = new MediaMetadata({ title: t[0], artist: ARTIST, album: ALBUM, artwork: [{ src: new URL(base + pad2(index + 1) + ".jpg", document.baseURI).href, sizes: "480x480", type: "image/jpeg" }] });
         } catch (e) {}
       }
-      play(0);
+      renderBar(); renderPlayIcon();
+    }
+    function play(i) {
+      if (done) return;
+      index = (i + TRACKS.length) % TRACKS.length;
+      failed = false; blocked = false;
+      if (!heard[index]) { heard[index] = true; played++; }
+      audio.src = base + pad2(index + 1) + ".mp3";
+      renderTrack();
+      setStatus("LOADING");
+      var p = audio.play();
+      if (p && p.catch) p.catch(function (err) {
+        if (err && err.name === "AbortError") return;
+        if (err && err.name === "NotAllowedError") { blocked = true; setStatus("PRESS PLAY"); }
+        else { failed = true; setStatus("SIGNAL LOST // TRY THE NEXT TRACK"); }
+        renderPlayIcon();
+      });
+    }
+    function toggle() {
+      if (failed || blocked || !audio.src) { play(index); return; }
+      if (audio.paused) { var p = audio.play(); if (p && p.catch) p.catch(function () {}); } else audio.pause();
+    }
+    function seekTo(t) { if (audio.duration > 0) audio.currentTime = Math.max(0, Math.min(audio.duration - 0.25, t)); }
+    function seekBy(delta) { seekTo((audio.currentTime || 0) + delta); }
+    function seekFromPointer(e) {
+      var r = seekBar.getBoundingClientRect();
+      if (r.width) seekTo((e.clientX - r.left) / r.width * audio.duration);
+    }
+    function destroy() {
+      if (done) return;
+      done = true;
+      document.removeEventListener("keydown", onKey);
+      audio.pause(); audio.removeAttribute("src"); audio.load();
+      if ("mediaSession" in navigator) { try { navigator.mediaSession.metadata = null; ["play", "pause", "nexttrack", "previoustrack"].forEach(function (a) { navigator.mediaSession.setActionHandler(a, null); }); } catch (e) {} }
+      return { played: played };
+    }
+    // Space, N/P and the arrow keys work anywhere on the page except while typing
+    // or while a button has focus (a focused button turns Space/Enter into a click).
+    function onKey(e) {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      var t = e.target, tag = t && t.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      var k = e.key;
+      if ((k === " " || k === "Enter") && tag === "BUTTON") return;
+      var handled = true;
+      if (k === " " || k === "Spacebar") toggle();
+      else if (k === "n" || k === "N") play(index + 1);
+      else if (k === "p" || k === "P") play(index - 1);
+      else if (k === "ArrowRight") seekBy(5);
+      else if (k === "ArrowLeft") seekBy(-5);
+      else handled = false;
+      if (handled) e.preventDefault();
+    }
+    document.addEventListener("keydown", onKey);
+    bPlay.addEventListener("click", toggle);
+    bPrev.addEventListener("click", function () { play(index - 1); });
+    bNext.addEventListener("click", function () { play(index + 1); });
+    var dragging = false;
+    seekBar.addEventListener("pointerdown", function (e) { dragging = true; try { seekBar.setPointerCapture(e.pointerId); } catch (x) {} seekFromPointer(e); });
+    seekBar.addEventListener("pointermove", function (e) { if (dragging) seekFromPointer(e); });
+    seekBar.addEventListener("pointerup", function () { dragging = false; });
+    seekBar.addEventListener("pointercancel", function () { dragging = false; });
+    seekBar.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") { seekBy(5); e.preventDefault(); e.stopPropagation(); }
+      else if (e.key === "ArrowLeft") { seekBy(-5); e.preventDefault(); e.stopPropagation(); }
     });
+    audio.addEventListener("timeupdate", renderBar);
+    audio.addEventListener("loadedmetadata", renderBar);
+    audio.addEventListener("playing", function () { setStatus("PLAYING"); renderPlayIcon(); });
+    audio.addEventListener("pause", function () { if (!audio.ended && !failed && !blocked && !done) setStatus("PAUSED"); renderPlayIcon(); });
+    audio.addEventListener("waiting", function () { setStatus("LOADING"); });
+    audio.addEventListener("ended", function () { play(index + 1); });
+    audio.addEventListener("error", function () { if (done) return; failed = true; setStatus("SIGNAL LOST // TRY THE NEXT TRACK"); renderPlayIcon(); });
+    if ("mediaSession" in navigator) {
+      try {
+        navigator.mediaSession.setActionHandler("play", function () { toggle(); });
+        navigator.mediaSession.setActionHandler("pause", function () { audio.pause(); });
+        navigator.mediaSession.setActionHandler("nexttrack", function () { play(index + 1); });
+        navigator.mediaSession.setActionHandler("previoustrack", function () { play(index - 1); });
+      } catch (e) {}
+    }
+    play(0);
+    return { destroy: destroy };
   }
-  window.VDOst = { launch: launch, TRACKS: TRACKS };
+  window.VDOst = { mount: mount, TRACKS: TRACKS };
 })();

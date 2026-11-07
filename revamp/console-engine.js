@@ -360,7 +360,7 @@
         if(f.hull<=0){r.lines.push('TRIAL TERMINATED. No real ship was harmed.');s.flight=null;r.suggestions=['simulate'];}else r.suggestions=['fire','evade','upgrade shield','dock'];break;
       }
       case 'snake':case 'pi':r=result(`LOADING ${id}.exe — the console remains available outside the program.`,[{type:'program',name:id}]);break;
-      case 'ost':r=result(['OPENING THE OST PREVIEWS.','23 tracks, 45-second clips, each with its own cover. Space pauses, N skips, Q quits.'],[{type:'program',name:'ost'}]);break;
+      case 'ost':r=result(['OPENING THE OST PREVIEWS.','23 tracks, 45-second clips, each with its own cover. Space pauses, N skips, Esc leaves.'],[{type:'program',name:'ost'}]);break;
       case 'sudo':r=result(rotate(s,'sudo',['LOCAL AUTHORITY UNAVAILABLE.','REMOTE AUTHORITY DECLINED.','REQUEST RECORDED. No privileges changed.']),[],['whoami','privacy']);break;
       case 'privacy':r=result(['LOCAL CONSOLE STATE','Commands, discoveries and text games live in this page memory.','No analytics, real gameplay telemetry, AI service or network calls power this console.','A typed email address opens signup, filled in. It is sent to the mailing list (Kit) only when you press SIGN UP, and is never added to history.','Narrative observation refers to this fictional relay.','Reload clears this session.']);break;
       default:r=result('Command handler unavailable.',[],['help']);

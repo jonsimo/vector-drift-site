@@ -23,8 +23,8 @@
   const CONTACT = { email: "yo@jonsimo.com", site: "https://www.jonsimo.com", instagram: "https://www.instagram.com/jonsimo" };
   const DISCORD_URL = "https://discord.gg/Z8Kt8cDUX8"; // permanent invite (no expiry), supplied by Jon 2026-11-06
   let pendingPrefill = "";
-  const sections = ["root", "about", "media", "devlog", "links", "download", "discord", "email", "contact", "reference"];
-  const paths = { root: "", about: "about.txt", media: "media/", devlog: "devlog/", links: "links.lnk", download: "download.exe", discord: "discord", email: "email", contact: "contact", reference: "console/reference" };
+  const sections = ["root", "about", "media", "soundtrack", "devlog", "links", "download", "discord", "email", "contact", "reference"];
+  const paths = { root: "", about: "about.txt", media: "media/", soundtrack: "soundtrack/", devlog: "devlog/", links: "links.lnk", download: "download.exe", discord: "discord", email: "email", contact: "contact", reference: "console/reference" };
   const Routes = window.VDRouteState;
   const parseHash = (hash = location.hash) => Routes.parseHash(hash, sections);
   const routeKey = Routes.routeKey;
@@ -299,10 +299,6 @@
   }
   function media() {
     const mediaHead = heading("MEDIA ARCHIVE", "06 FRAMES");
-    const ostLink = element("button", "vd-quick ost-link", "[ LISTEN TO THE OST ]");
-    ostLink.type = "button"; ostLink.title = "23 soundtrack previews, with cover art";
-    ostLink.addEventListener("click", () => launchProgram("ost"));
-    mediaHead.append(ostLink);
     content.append(mediaHead);
     const grid = element("div", "media-layout");
     const wrap = element("div", "viewer-wrap");
@@ -401,6 +397,13 @@
         const row = element("div", "fact-row"); row.append(element("span","",a),element("span","",b)); page.append(row);
       });
       onward([["SEE THE GAME","media"],["GET EMAIL UPDATES","email"],["HOME","root"]]);
+    } else if (section === "soundtrack") {
+      const head = element("div", "section-heading inline-tag");
+      head.append(element("h1", "", "OST.EXE"), element("span", "heading-tag", "[ 45S PREVIEWS ]"));
+      content.append(head);
+      const host = element("div", "ost-host");
+      content.append(host);
+      ostPlayer = window.VDOst.mount(host, { base: "ost/" });
     } else if (section === "devlog") {
       copy("TRANSMISSION LOG", ["Development updates.", "Nothing has been posted yet. Sign up for email updates and the first post will reach you when it is out."]);
       onward([["GET EMAIL UPDATES","email"],["SEE THE GAME","media"],["HOME","root"]]);
@@ -468,6 +471,8 @@
       onward([["SEE THE GAME","media"],["CONTACT","contact"],["HOME","root"]]);
     }
   }
+  let ostPlayer = null;
+  function stopOst() { if (ostPlayer) { try { ostPlayer.destroy(); } catch (e) {} ostPlayer = null; } }
   function syncNavigation() {
     document.querySelectorAll("[data-section]").forEach(a=>{
       const active=a.dataset.section===current;
@@ -477,9 +482,10 @@
     });
     document.getElementById("section-path").textContent="/root/"+(PROGRAMS.includes(current)?current+".exe":paths[current]);
     document.getElementById("prompt-path").textContent="root:/"+(current === "root" || PROGRAMS.includes(current) ? "" : paths[current].replace(/\/$/,""));
-    document.getElementById("section-count").textContent=current === "media"?"06 FILES":"";
+    document.getElementById("section-count").textContent=current === "media"?"06 FILES":current === "soundtrack"?"23 TRACKS":"";
+    document.getElementById("terminal-output").classList.toggle("is-soundtrack",current === "soundtrack");
     tree.hidden=current !== "media";
-    if (window.VDAmbient) window.VDAmbient.setDuck(current === "ost");
+    if (window.VDAmbient) window.VDAmbient.setDuck(current === "soundtrack");
   }
   function closeDirectory() {
     document.body.classList.remove("nav-open");
@@ -490,6 +496,7 @@
     if (source !== "console") { commandEpoch++;expireChoices(true); }
     if (section !== "reference") lastSiteSection = section;
     activeProgram = null;
+    stopOst();
     const id=++generation;
     current=section;
     currentReader=section==="reference"?(view.reader||null):null;
@@ -517,6 +524,7 @@
     const open=document.body.classList.toggle("nav-open");e.currentTarget.setAttribute("aria-expanded",String(open));
   });
   function launchProgram(name, routeMode="push", autoFocus=true) {
+    if (name === "ost") { showSection("soundtrack", false, "console", routeMode === "none" ? "none" : routeMode === "replace" ? "replace" : "push"); return; }
     const launchEpoch = commandEpoch;
     ++generation;
     activeProgram = null;
@@ -555,7 +563,7 @@
     input.value = "";
     focusConsole();
     const now = new Date();
-    const response = Engine.execute(raw, consoleSession, { section: current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
+    const response = Engine.execute(raw, consoleSession, { section: current === "soundtrack" ? "ost" : current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
     historyIndex = consoleSession.history.length;
     draft = "";
     if (response.lines.length || response.echo || response.suggestions.length) report(response.lines.length ? response.lines : ["CHANNEL READY."], response.echo, response.suggestions);
