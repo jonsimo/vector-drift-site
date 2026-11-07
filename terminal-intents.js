@@ -788,7 +788,7 @@
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
       { k: "unsup", steps: [P("affection is not a supported input"), H(450), P("stored anyway")] },
       { k: "pleasant", steps: [P("pleasantry processed"), P("no action required")] },
-      { k: "weird", steps: [TY([t("this unit does not have feelings"), h(700), b(8), t("a quota for them")])] },
+      { k: "weird", steps: [TY([t("no response is required"), h(700), b(8), t("scheduled")])] },
     ], ctx.session, "kindness"));
   }
   function buildWellbeing(ctx) {
@@ -802,7 +802,7 @@
     return withLead(ctx.rng, [
       P("VECTOR DRIFT"),
       P(""),
-      P("type ................... vector combat simulation"),
+      P("type ................... retro vector shooter"),
       P("hostility .............. high"),
       P("adaptation ............. it studies how you fly"),
       P("platforms .............. macOS / windows"),
@@ -864,7 +864,7 @@
   function buildLaughter(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
       { k: "det", steps: [P("laughter detected"), H(420), P("cause unclear")] },
-      { k: "share", steps: [P("humor acknowledged"), P("the system does not share it")] },
+      { k: "share", steps: [P("humor acknowledged"), P("it was not shared")] },
     ], ctx.session, "laughter"));
   }
   function buildPing(ctx) {
@@ -874,13 +874,13 @@
   }
   function buildJoke(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "none", steps: [P("humor module .......... not found"), H(450), P("substituting observation:"), P("you are asking a hostile simulation for comedy")] },
+      { k: "none", steps: [P("humor module .......... not found"), H(450), P("nothing to substitute")] },
       { k: "knock", steps: [P("knock knock"), H(1100), P("who is there"), H(900), P("nobody. that was the joke")] },
       { k: "lux", steps: [P("a pilot walks into a bar"), H(900), P("the bar was a pursuit formation")] },
     ], ctx.session, "joke"));
   }
   function buildMeaning(ctx) {
-    return withLead(ctx.rng, [P("query: meaning"), H(700), P("42 was a different simulation")]);
+    return withLead(ctx.rng, [P("query: meaning"), H(700), P("answer withheld")]);
   }
   function buildTime(ctx) {
     return withLead(ctx.rng, [CLOCK(), H(450), P("system clock ......... unreliable")]);
@@ -917,7 +917,7 @@
       { k: "nochange", steps: [P("noted. it changes nothing")] },
       { k: "irrel", steps: [TY([t("interesting"), h(600), b(11), t("irrelevant")])] },
       { k: "weight", steps: [P("organic opinion logged"), P("opinion weight .......... 0")] },
-      { k: "listens", steps: [P("you speak as though this system listens"), H(520), P("it does")] },
+      { k: "listens", steps: [P("statement filed"), H(520), P("no reply scheduled")] },
     ];
     return withLead(rng, chooseVariant(rng, bank, session, question ? "convo_q" : "convo_s"));
   }
