@@ -1455,16 +1455,21 @@ body.terminal-home {
 }
 
 /* Phone keyboard mode (terminal.js setMobileTyping): fold the outline and old
-   lines away so the console sits at the top; SHOW LINKS restores them. */
+   lines away so the console sits at the top; SHOW LINKS restores them. Rows are
+   folded by terminal.js with height/opacity transitions; .m-fold is the end state. */
 .m-expand { display: none; }
+@keyframes mExpandIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 @media (max-width: 720px) {
-  body.m-typing .terminal-home .terminal-stage, body.m-typing.terminal-home .terminal-stage { padding-top: 14px; }
-  body.m-typing .terminal-output { height: auto; max-height: none; overflow: visible; }
+  .terminal-home .terminal-stage { transition: padding-top 340ms cubic-bezier(.4, 0, .2, 1); }
+  body.m-typing.terminal-home .terminal-stage { padding-top: 14px; }
+  body.m-typing .terminal-output { overflow-anchor: none; }
   body.m-typing .terminal-output .m-fold { display: none !important; }
   body.m-typing .terminal-status { min-height: 0; margin-bottom: 0; }
   body.m-typing .m-expand {
     display: block; text-align: left; margin: 0 0 12px; padding: 10px 2px; min-height: 44px; font: inherit;
     font-size: var(--mobile-font, 16px); color: #aef9e2; background: none; border: 0;
     border-bottom: 1px solid rgba(17, 202, 180, .5); text-shadow: 0 0 2px rgba(17, 202, 184, .72), 0 0 9px rgba(17, 202, 184, .42);
+    animation: mExpandIn 320ms 120ms cubic-bezier(.2, .7, .2, 1) both;
   }
 }
+@media (prefers-reduced-motion: reduce) { .terminal-home .terminal-stage { transition: none; } body.m-typing .m-expand { animation: none; } }

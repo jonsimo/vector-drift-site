@@ -9,12 +9,43 @@
   form.addEventListener("click", function () { input.focus(); });
   // Phone keyboard: on focus fold the links and older lines away so the console
   // sits near the top instead of under the keyboard. SHOW LINKS brings them back.
+  // Rows shrink and fade (and grow back) rather than cutting.
   var ex = document.getElementById("ex"), body = document.body;
-  function fold() { var e = log.children; for (var i = 0; i < e.length - 1; i++) e[i].classList.add("old"); }
+  var T = 340, EASE = "cubic-bezier(.4,0,.2,1)", PROPS = ["height", "opacity", "marginTop", "marginBottom", "paddingTop", "paddingBottom", "overflow", "transition"];
+  function still() { return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+  function clear(n) { PROPS.forEach(function (p) { n.style[p] = ""; }); n._f = 0; }
+  function foldEl(n, d) {
+    if (n.classList.contains("gone") || n._f) return;
+    var h = n.getBoundingClientRect().height;
+    if (!h || still()) { n.classList.add("gone"); return; }
+    var s = n.style, t = T + "ms " + EASE + " " + d + "ms"; n._f = 1;
+    s.height = h + "px"; s.overflow = "hidden"; void n.offsetHeight;
+    s.transition = "height " + t + ",margin " + t + ",padding " + t + ",opacity " + Math.round(T * 0.7) + "ms linear " + d + "ms";
+    s.height = "0px"; s.opacity = "0"; s.marginTop = s.marginBottom = s.paddingTop = s.paddingBottom = "0px";
+    n._t = setTimeout(function () { clear(n); n.classList.add("gone"); }, T + d + 40);
+  }
+  function unfoldEl(n, d) {
+    if (n._f) { clearTimeout(n._t); clear(n); n.classList.add("gone"); }
+    if (!n.classList.contains("gone")) return;
+    n.classList.remove("gone");
+    if (still()) return;
+    var h = n.getBoundingClientRect().height; if (!h) return;
+    var s = n.style, t = T + "ms " + EASE + " " + d + "ms"; n._f = 1;
+    s.height = "0px"; s.overflow = "hidden"; s.opacity = "0"; s.marginTop = s.marginBottom = s.paddingTop = s.paddingBottom = "0px"; void n.offsetHeight;
+    s.transition = "height " + t + ",margin " + t + ",padding " + t + ",opacity " + Math.round(T * 0.8) + "ms linear " + d + "ms";
+    s.height = h + "px"; s.opacity = "1"; s.marginTop = s.marginBottom = s.paddingTop = s.paddingBottom = "";
+    n._t = setTimeout(function () { clear(n); }, T + d + 40);
+  }
+  function statics() { return [].slice.call(document.querySelectorAll(".sub, .sys, .list, .foot")); }
+  function olds() { var e = log.children, r = []; for (var i = 0; i < e.length - 1; i++) r.push(e[i]); return r; }
+  function fold() { olds().concat(statics().reverse()).forEach(function (n, i) { foldEl(n, Math.min(i * 28, 220)); }); }
   function typing(on) {
-    body.classList.toggle("typing", on); if (ex) ex.hidden = !on;
-    if (on) fold(); else [].forEach.call(log.querySelectorAll(".old"), function (n) { n.classList.remove("old"); });
-    [0, 60, 300].forEach(function (ms) { setTimeout(function () { if (body.classList.contains("typing") === on) window.scrollTo(0, on ? 0 : window.scrollY); }, ms); });
+    body.classList.toggle("typing", on);
+    if (on) fold();
+    else [].slice.call(document.querySelectorAll(".gone")).forEach(function (n, i) { unfoldEl(n, Math.min(i * 28, 220)); });
+    if (ex) ex.setAttribute("aria-hidden", on ? "false" : "true"), ex.tabIndex = on ? 0 : -1;
+    window.scrollTo(0, on ? 0 : window.scrollY);
+    if (on) [60, 300].forEach(function (ms) { setTimeout(function () { if (body.classList.contains("typing")) window.scrollTo(0, 0); }, ms); });
   }
   if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
     input.addEventListener("focus", function () { typing(true); });
@@ -37,7 +68,7 @@
       ent.appendChild(s);
     }
     log.appendChild(ent);
-    if (body.classList.contains("typing")) fold();
+    if (body.classList.contains("typing")) olds().forEach(function (n, i) { foldEl(n, Math.min(i * 28, 220)); });
     while (log.children.length > 12) log.removeChild(log.firstChild);
     ent.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }

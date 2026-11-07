@@ -760,26 +760,66 @@ function appendMobilePrompt(prefixText) {
 
 // Phone keyboard: tapping the prompt folds everything above it away so the console
 // sits near the top (the keyboard no longer covers it). The SHOW LINKS button
-// brings the outline and earlier lines back at any time.
+// brings the outline and earlier lines back at any time. Both directions animate:
+// rows shrink / grow and fade, nearest-to-the-prompt first on the way in.
 let mTyping = false, mLastTap = 0, mExpandBtn = null;
+const FOLD_MS = 340, FOLD_EASE = "cubic-bezier(.4,0,.2,1)";
+const FOLD_PROPS = ["height", "opacity", "marginTop", "marginBottom", "paddingTop", "paddingBottom", "overflow", "transition"];
+function foldClear(n) { FOLD_PROPS.forEach((p) => { n.style[p] = ""; }); n._fold = 0; }
+function foldNode(n, delay) {
+  if (n.classList.contains("m-fold") || n._fold) return;
+  const h = n.getBoundingClientRect().height;
+  if (!h || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) { n.classList.add("m-fold"); return; }
+  const st = n.style, t = FOLD_MS + "ms " + FOLD_EASE + " " + delay + "ms";
+  n._fold = 1;
+  st.height = h + "px"; st.overflow = "hidden";
+  void n.offsetHeight;
+  st.transition = "height " + t + ", margin " + t + ", padding " + t + ", opacity " + Math.round(FOLD_MS * 0.7) + "ms linear " + delay + "ms";
+  st.height = "0px"; st.opacity = "0"; st.marginTop = st.marginBottom = st.paddingTop = st.paddingBottom = "0px";
+  n._foldT = setTimeout(() => { foldClear(n); n.classList.add("m-fold"); }, FOLD_MS + delay + 40);
+}
+function unfoldNode(n, delay) {
+  if (n._fold) { clearTimeout(n._foldT); foldClear(n); n.classList.add("m-fold"); }
+  if (!n.classList.contains("m-fold")) return;
+  n.classList.remove("m-fold");
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const h = n.getBoundingClientRect().height;
+  if (!h) return;
+  const st = n.style, t = FOLD_MS + "ms " + FOLD_EASE + " " + delay + "ms";
+  n._fold = 1;
+  st.height = "0px"; st.overflow = "hidden"; st.opacity = "0";
+  st.marginTop = st.marginBottom = st.paddingTop = st.paddingBottom = "0px";
+  void n.offsetHeight;
+  st.transition = "height " + t + ", margin " + t + ", padding " + t + ", opacity " + Math.round(FOLD_MS * 0.8) + "ms linear " + delay + "ms";
+  st.height = h + "px"; st.opacity = "1";
+  st.marginTop = st.marginBottom = st.paddingTop = st.paddingBottom = "";
+  n._foldT = setTimeout(() => foldClear(n), FOLD_MS + delay + 40);
+}
 function foldMobileLines() {
   if (!mTyping || !mobileLive) return;
+  const todo = [];
   for (const n of Array.from(output.children)) {
     if (n === mobileLive.line) break;
-    n.classList.add("m-fold");
+    if (!n.classList.contains("m-fold")) todo.push(n);
   }
+  todo.reverse().forEach((n, i) => foldNode(n, Math.min(i * 28, 220)));   // nearest the prompt goes first
+  if (todo.length) setTimeout(() => { if (mTyping) { output.scrollTop = 0; window.scrollTo(0, 0); } }, FOLD_MS + 280);
 }
 function setMobileTyping(on) {
   mTyping = on;
   document.body.classList.toggle("m-typing", on);
+  window.scrollTo(0, 0);
   if (on) {
     foldMobileLines();
-    output.scrollTop = 0;
-    [0, 60, 300].forEach((ms) => setTimeout(() => { if (mTyping) { window.scrollTo(0, 0); output.scrollTop = 0; } }, ms));
+    [60, 300].forEach((ms) => setTimeout(() => { if (mTyping) window.scrollTo(0, 0); }, ms));
   } else {
-    output.querySelectorAll(".m-fold").forEach((n) => n.classList.remove("m-fold"));
-    window.scrollTo(0, 0);
-    if (mobileLive) scrollMobileToPrompt(mobileLive.line); else output.scrollTop = 0;
+    const hidden = Array.from(output.querySelectorAll(".m-fold"));
+    hidden.forEach((n, i) => unfoldNode(n, Math.min(i * 28, 220)));
+    setTimeout(() => {
+      if (mTyping || !mobileLive) return;
+      const target = Math.max(0, mobileLive.line.offsetTop - output.clientHeight * 0.66);
+      output.scrollTo({ top: target, behavior: "smooth" });
+    }, FOLD_MS + 260);
   }
 }
 function initMobileTyping() {
