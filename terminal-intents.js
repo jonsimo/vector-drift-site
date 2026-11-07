@@ -540,9 +540,8 @@
     }
     if (n === 2) {
       return withLead(rng, chooseVariant(rng, [
-        { k: "again", steps: [TY([t("you again"), h(500), t(". still organic")])] },
-        { k: "open", steps: [P("channel remains open"), P("it did not close in the last ten seconds")] },
-        { k: "already", steps: [P("input already acknowledged"), H(450), P("repetition noted")] },
+        { k: "open", steps: [P("channel remains open")] },
+        { k: "already", steps: [P("input already acknowledged")] },
         { k: "handshake", steps: [P("no additional handshake required")] },
       ], session, "greeting_repeat"));
     }
@@ -716,7 +715,7 @@
       return withLead(ctx.rng, chooseVariant(ctx.rng, [
         { k: "open", steps: [P("channel remains open"), P("it will remain open after you leave"), RETURN()] },
         { k: "back", steps: [TY([t("goodbye human"), h(650), b(5), t("for now")]), RETURN()] },
-        { k: "saved", steps: [P("session saved"), H(400), P("you will be remembered"), H(500), P("unfortunately"), RETURN()] },
+        { k: "saved", steps: [P("session saved"), RETURN()] },
       ], ctx.session, "exit_soft"));
     }
     return [
@@ -766,36 +765,35 @@
     ], session, "explanation"));
   }
 
-  // --- AXIOM voice: conversational intents -----------------------------------
-  // Cold, observant, faintly amused. Never helpful on purpose, never cruel, and
-  // never explains the lore. Typed lines show it correcting itself mid-thought.
+  // --- Console voice: conversational intents --------------------------------
+  // Flat, procedural, calm. Never sassy, never mean, never a hint about what is
+  // behind the console. Typed lines show it correcting itself mid-thought.
   function buildThanks(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "log", steps: [P("gratitude logged"), H(380), P("no reciprocal action scheduled")] },
-      { k: "tol", steps: [TY([t("you are welcome"), h(620), b(7), t("tolerated")])] },
-      { k: "repay", steps: [P("acknowledged"), P("it will not be repaid")] },
+      { k: "log", steps: [P("gratitude logged")] },
+      { k: "ack", steps: [P("acknowledged")] },
+      { k: "welcome", steps: [P("you are welcome")] },
     ], ctx.session, "thanks"));
   }
   function buildInsult(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "log", steps: [P("hostility detected"), H(420), P("classification: organic, irritated")] },
-      { k: "rate", steps: [P("insult received"), P("quality .................. 3 / 10"), H(380), P("try harder")] },
-      { k: "calm", steps: [TY([t("emotional damage: significant"), h(700), b(11), t("none")])] },
+      { k: "flag", steps: [P("input flagged"), P("no action taken")] },
       { k: "cont", steps: [P("noted"), P("continuing to function")] },
+      { k: "log", steps: [P("input logged")] },
     ], ctx.session, "insult"));
   }
   function buildKindness(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "unsup", steps: [P("affection is not a supported input"), H(450), P("stored anyway")] },
       { k: "pleasant", steps: [P("pleasantry processed"), P("no action required")] },
-      { k: "weird", steps: [TY([t("no response is required"), h(700), b(8), t("scheduled")])] },
+      { k: "recv", steps: [P("input received"), P("acknowledged")] },
+      { k: "msg", steps: [P("message received")] },
     ], ctx.session, "kindness"));
   }
   function buildWellbeing(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "params", steps: [TY([t("all systems operating within parameters"), h(650), b(10), t("expectations")])] },
-      { k: "watch", steps: [P("status ................... nominal"), H(500), P("status ................... watching")] },
-      { k: "cont", steps: [P("function: continuous"), P("mood: not applicable")] },
+      { k: "params", steps: [P("all systems operating within parameters")] },
+      { k: "nominal", steps: [P("status ................... nominal")] },
+      { k: "cont", steps: [P("function: continuous")] },
     ], ctx.session, "wellbeing"));
   }
   function buildAboutGame(ctx) {
@@ -803,8 +801,6 @@
       P("VECTOR DRIFT"),
       P(""),
       P("type ................... retro vector shooter"),
-      P("hostility .............. high"),
-      P("adaptation ............. it studies how you fly"),
       P("platforms .............. macOS / windows"),
       P("release ................ early access beta // dec 2026"),
       H(420),
@@ -856,26 +852,26 @@
   }
   function buildReply(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "nothing", steps: [P("noted"), P("nothing was asked")] },
-      { k: "ctx", steps: [P("input accepted"), P("context missing")] },
-      { k: "irrel", steps: [TY([t("affirmative"), h(550), b(11), t("irrelevant")])] },
+      { k: "noted", steps: [P("noted")] },
+      { k: "acc", steps: [P("input accepted")] },
+      { k: "und", steps: [P("understood")] },
     ], ctx.session, "reply"));
   }
   function buildLaughter(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "det", steps: [P("laughter detected"), H(420), P("cause unclear")] },
-      { k: "share", steps: [P("humor acknowledged"), P("it was not shared")] },
+      { k: "det", steps: [P("laughter detected")] },
+      { k: "ack", steps: [P("humor acknowledged")] },
     ], ctx.session, "laughter"));
   }
   function buildPing(ctx) {
     if (ctx.normalized === "ping") return [P("pong"), P("latency ................. 1187 ms")];
-    if (ctx.normalized === "hello world") return withLead(ctx.rng, [P("world acknowledged"), H(350), P("it was not consulted")]);
-    return withLead(ctx.rng, [P("test received"), P("test passed"), H(420), P("subject of test unknown")]);
+    if (ctx.normalized === "hello world") return withLead(ctx.rng, [P("world acknowledged")]);
+    return withLead(ctx.rng, [P("test received"), P("test passed")]);
   }
   function buildJoke(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
       { k: "none", steps: [P("humor module .......... not found"), H(450), P("nothing to substitute")] },
-      { k: "knock", steps: [P("knock knock"), H(1100), P("who is there"), H(900), P("nobody. that was the joke")] },
+      { k: "empty", steps: [P("joke database empty")] },
       { k: "lux", steps: [P("a pilot walks into a bar"), H(900), P("the bar was a pursuit formation")] },
     ], ctx.session, "joke"));
   }
@@ -891,7 +887,7 @@
     return withLead(ctx.rng, [
       P("designation accepted: " + name),
       H(560),
-      P("designation reassigned: organic"),
+      P("welcome, " + name),
     ]);
   }
 
@@ -908,16 +904,14 @@
     const bank = question ? [
       { k: "parsed", steps: [P("query parsed"), H(420), P("no answer authorized")] },
       { k: "noexec", steps: [P("that question has no executable answer")] },
-      { k: "clear", steps: [TY([t("insufficient clearance"), h(650), t(" for an organic")])] },
-      { k: "exists", steps: [P("an answer exists"), H(520), P("you are not cleared to hold it")] },
-      { k: "observer", steps: [TY([t("i could tell you"), h(800), t(". the observer is recording")])] },
-      { k: "archived", steps: [P("question archived"), P("answers are issued after survival")] },
+      { k: "clear", steps: [P("insufficient clearance")] },
+      { k: "exists", steps: [P("an answer exists"), H(520), P("access restricted")] },
+      { k: "logged", steps: [P("question logged"), P("answer unavailable")] },
     ] : [
       { k: "rec", steps: [P("statement recorded")] },
-      { k: "nochange", steps: [P("noted. it changes nothing")] },
-      { k: "irrel", steps: [TY([t("interesting"), h(600), b(11), t("irrelevant")])] },
-      { k: "weight", steps: [P("organic opinion logged"), P("opinion weight .......... 0")] },
-      { k: "listens", steps: [P("statement filed"), H(520), P("no reply scheduled")] },
+      { k: "noted", steps: [P("noted")] },
+      { k: "acc", steps: [P("input accepted")] },
+      { k: "logged", steps: [P("opinion logged")] },
     ];
     return withLead(rng, chooseVariant(rng, bank, session, question ? "convo_q" : "convo_s"));
   }
