@@ -47,7 +47,7 @@
   function fitOutline() {
     var o = out();
     if (!o || document.body.classList.contains("mobile")) return;
-    var cls = ["hand-tight", "hand-nointro", "hand-cols"];
+    var cls = ["hand-snug", "hand-tight", "hand-nointro", "hand-cols"];
     cls.forEach(function (c) { o.classList.remove(c); });
     for (var i = 0; i < cls.length && o.scrollHeight - o.clientHeight > 1; i++) o.classList.add(cls[i]);
     if (o.scrollHeight - o.clientHeight > 1) o.scrollTop = 0; else o.scrollTop = o.scrollHeight;
@@ -58,6 +58,7 @@
   api.printOutline = async function () {
     var o = out();
     if (!o || o.querySelector(".hand-outline")) return;
+    prepClick();
     line("10.0.1.00> click a file to enter", "hand-outline");
     await sleep(160);
     var list = document.createElement("div"); list.className = "hand-list"; o.appendChild(list);
@@ -68,6 +69,9 @@
       var mark = document.createElement("span"); mark.className = "hand-mark";
       var name = document.createElement("span"); name.className = "hand-name"; name.textContent = f[0];
       a.append(mark, name);
+      var head = document.createElement("span"); head.className = "hand-head";
+      var dots = document.createElement("span"); dots.className = "hand-dots"; dots.setAttribute("aria-hidden", "true");
+      head.append(a, dots);
       var desc = document.createElement("span"); desc.className = "hand-desc"; desc.textContent = f[2];
       a.addEventListener("click", function (e) {
         if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -75,7 +79,7 @@
       });
       // the description is part of the same target for a tap or click, but only the name carries the reticle
       desc.addEventListener("click", function () { var r = this.parentNode.querySelector(".hand-row"); api.go(this.parentNode.dataset.go, r); });
-      row.append(a, desc); list.appendChild(row);
+      row.append(head, desc); list.appendChild(row);
       o.scrollTop = o.scrollHeight;
       await sleep(70);
     }
@@ -85,10 +89,19 @@
   // Departure: console lines clear away bottom-up, the logo stays put, and the
   // logo's on-screen box travels with us so the site can pick it up from there.
   // Quiet confirmation beep on a click, unless the visitor turned sound off.
+  // A short, trimmed click (the old beep file had ~0.33 s of near-silence before
+  // the tone, which read as lag) kept loaded so a tap sounds immediately.
+  var clickAudio = null;
+  function prepClick() {
+    if (clickAudio) return;
+    try { clickAudio = new Audio("assets/console_click_v1.mp3"); clickAudio.preload = "auto"; clickAudio.volume = 0.2; clickAudio.load(); } catch (e) {}
+  }
   function clickBeep() {
     try {
       if (localStorage.getItem("vd_sound") === "off") return;
-      var b = new Audio("assets/console_beep_v2.mp3"); b.volume = 0.2; b.play().catch(function () {});
+      prepClick();
+      clickAudio.currentTime = 0;
+      clickAudio.play().catch(function () {});
     } catch (e) {}
   }
   api.go = async function (section, rowEl) {

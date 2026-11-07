@@ -267,7 +267,7 @@ h1 { overflow-wrap:anywhere; }
 .feedback { margin:14px 0 0; min-height:0; max-width:62ch; color:var(--hot); }
 .feedback:empty { display:none; }
 .onward { margin-top:34px; }
-.site-foot { display:flex; flex-wrap:wrap; gap:6px 22px; justify-content:center; padding:14px 16px 18px; font-size:13px; opacity:.85; position:relative; z-index:2; }
+.site-foot { display:flex; justify-content:center; text-align:center; padding:14px 16px 18px; font-size:13px; color:rgba(var(--phos-rgb),.46); text-shadow:none; position:relative; z-index:2; }
 .site-foot a { color:inherit; text-decoration:none; border-bottom:1px solid var(--faint); }
 .site-foot a:hover, .site-foot a:focus-visible { color:var(--hot); }
 
@@ -313,3 +313,23 @@ body[data-bloom="on"] .vd-row.current, body[data-bloom="on"] .vd-row:hover { tex
 .sound-toggle .sound-state { color: var(--hot); text-shadow: 0 0 3px rgba(var(--hot-rgb),.8), 0 0 9px rgba(var(--phos-rgb),.6); }
 .sound-toggle:hover .sound-word, .sound-toggle:focus-visible .sound-word { color: var(--phos); }
 .sound-toggle:focus-visible { outline: 1px solid var(--hot); outline-offset: 2px; }
+
+/* top-right contact icons (instagram, discord, email) */
+.social { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
+.social a { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; color: var(--phos); }
+.social svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgba(var(--phos-rgb),.5)); }
+.social svg .fill { fill: currentColor; stroke: none; }
+.social a:hover, .social a:focus-visible { color: var(--hot); }
+.social a:hover svg, .social a:focus-visible svg { filter: drop-shadow(0 0 2px rgba(var(--hot-rgb),.8)) drop-shadow(0 0 6px rgba(var(--phos-rgb),.5)); }
+.masthead { gap: 24px; }
+.site-status { margin-left: auto; }
+@media (max-width: 680px) {
+  .social { gap: 6px; margin-left: auto; }
+  .social a { width: 40px; height: 40px; }
+}
+
+/* sound toggle: bigger, centered across the rail, sitting at the very bottom */
+.rail-foot { text-align: center; margin-right: -24px; margin-bottom: -12px; padding-top: 20px; }
+.sound-toggle { font-size: 21px; width: 100%; text-align: center; min-height: 44px; padding: 8px 0; letter-spacing: .1em; }
+@media (max-width: 1050px) { .rail-foot { margin-right: -16px; } }
+@media (max-width: 680px) { .rail-foot { margin-right: -20px; margin-bottom: -8px; } }

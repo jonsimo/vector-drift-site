@@ -1,19 +1,25 @@
 /* Boot directory outline + departure animation (handoff.js). */
-.hand-row { display: inline-flex; color: inherit; text-decoration: none; padding: 1px 0; cursor: pointer; }
+.hand-row { display: inline-flex; align-items: baseline; flex: none; color: inherit; text-decoration: none; padding: 1px 0; cursor: pointer; }
 .hand-mark { display: inline-block; width: 2ch; }
+.hand-mark::after { content: ">"; visibility: hidden; }
 .hand-name { display: inline-block; }
 .terminal-home .terminal-output .hand-line { display: grid; grid-template-columns: 19ch 1fr; gap: 0; align-items: baseline; }
-.hand-line .hand-row { justify-self: start; }
+.terminal-home .terminal-output .hand-line { line-height: 1.7; }
+.terminal-home .terminal-output.hand-snug .hand-line { line-height: 1.4; }
+.hand-head { display: flex; align-items: baseline; min-width: 0; }
+.hand-dots { flex: 1 1 0; min-width: 0; overflow: hidden; white-space: nowrap; margin: 0 1ch; color: rgba(17, 202, 184, .46); text-shadow: none; }
+.hand-dots::before { content: "........................................................................"; }
+.hand-line:hover .hand-dots { color: rgba(17, 202, 184, .75); }
 .hand-desc { color: rgba(17, 202, 184, .46); text-shadow: none; text-transform: lowercase; cursor: pointer; }
 .hand-line:hover .hand-desc { color: rgba(17, 202, 184, .75); }
 .hand-row:hover, .hand-row:focus-visible, .hand-row.picked { color: #aef9e2; text-shadow: 0 0 2px rgba(174,249,226,.8), 0 0 7px rgba(17,202,180,.5); outline: 0; }
-.hand-row:hover .hand-mark::after, .hand-row:focus-visible .hand-mark::after, .hand-row.picked .hand-mark::after { content: ">"; }
+.hand-row:hover .hand-mark::after, .hand-row:focus-visible .hand-mark::after, .hand-row.picked .hand-mark::after { visibility: visible; }
 .vd-line-out { opacity: 0; transition: opacity 170ms linear; }
 body.vd-leaving .terminal-header { opacity: 0; transition: opacity 200ms linear; }
 @media (pointer: coarse) { .hand-row { min-height: 40px; align-items: center; } }
 
 /* fit passes (handoff.js fitOutline): keep the big logo whole on short windows */
-.terminal-output.hand-tight .hand-line, .terminal-output.hand-tight .hand-outline { line-height: 1.12; min-height: 0; margin-bottom: 0; }
+.terminal-output.hand-tight .hand-line, .terminal-output.hand-tight .hand-outline, .terminal-home .terminal-output.hand-tight .hand-line { line-height: 1.12; min-height: 0; margin-bottom: 0; }
 .hand-nointro .hand-outline { display: none; }
 .hand-cols .hand-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2ch; grid-auto-flow: column; grid-template-rows: repeat(3, auto); }
 .terminal-home .terminal-output.hand-cols .hand-line { grid-template-columns: 17ch 1fr; }

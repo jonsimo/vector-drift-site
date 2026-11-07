@@ -63,11 +63,15 @@
     init(); wake(); try { if (ctx) ctx.resume(); } catch (e) {}
     play(); ramp(level(), 0.8);
   }
-  var lastBeep = 0;
+  var lastBeep = 0, clickA = null;
+  try { clickA = new Audio("../assets/console_click_v1.mp3"); clickA.preload = "auto"; clickA.volume = BEEP; clickA.load(); } catch (e) {}
   function beep() {
     if (off) return;
     var now = Date.now(); if (now - lastBeep < 90) return; lastBeep = now;
-    try { var b = new Audio("../assets/console_beep_v2.mp3"); b.volume = BEEP; b.play().catch(function () {}); } catch (e) {}
+    try {
+      if (!clickA) { clickA = new Audio("../assets/console_click_v1.mp3"); clickA.preload = "auto"; clickA.volume = BEEP; }
+      clickA.currentTime = 0; clickA.play().catch(function () {});
+    } catch (e) {}
   }
   document.addEventListener("click", function (e) {
     var el = e.target && e.target.closest && e.target.closest("a[href], button, summary, .vd-row, .vd-quick, .thumb");

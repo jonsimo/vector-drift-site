@@ -15,7 +15,7 @@ test('contact is reachable by command and by everyday wording',()=>{
 
 test('contact details are exactly the supplied ones',()=>{
  const js=read('sections.js'),html=read('index.html');
- for(const text of ['yo@jonsimo.com','https://www.jonsimo.com','https://www.instagram.com/jonsimo']){assert.ok(js.includes(text),'sections.js '+text);assert.ok(html.includes(text),'footer '+text);}
+ for(const text of ['yo@jonsimo.com','https://www.jonsimo.com','https://www.instagram.com/jonsimo']){assert.ok(js.includes(text),'sections.js '+text);if(text!=='https://www.jonsimo.com')assert.ok(html.includes(text),'header icons '+text);}
 });
 
 test('a typed address opens signup without echoing, retaining or sending it',()=>{
