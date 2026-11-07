@@ -399,8 +399,8 @@
       onward([["SEE THE GAME","media"],["GET EMAIL UPDATES","email"],["HOME","root"]]);
     } else if (section === "soundtrack") {
       const head = element("div", "section-heading inline-tag");
-      head.append(element("h1", "", "OST.EXE"), element("span", "heading-tag", "[ 45S PREVIEWS ]"));
-      content.append(head);
+      head.append(element("h1", "", "OST.EXE"));
+      content.append(head, element("p", "ost-sub", "ORIGINAL SCORE BY GAME CREATOR JON SIMO"));
       const host = element("div", "ost-host");
       content.append(host);
       ostPlayer = window.VDOst.mount(host, { base: "ost/" });

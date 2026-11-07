@@ -50,7 +50,7 @@ test('soundtrack/ is its own directory entry that mounts the player in the page 
  const html=read('index.html'),js=read('sections.js'),ost=read('ost.js'),prog=read('console-program.js');
  assert.ok(/data-section="soundtrack"[^>]*>[^<]*<span class="mark"> <\/span>audio\//.test(html));
  assert.ok(html.indexOf('ost.js')<html.indexOf('sections.js'),'ost.js loads before sections.js');
- assert.ok(js.includes('"soundtrack"')&&js.includes('VDOst.mount')&&js.includes('[ 45S PREVIEWS ]'));
+ assert.ok(js.includes('"soundtrack"')&&js.includes('VDOst.mount')&&js.includes('ORIGINAL SCORE BY GAME CREATOR JON SIMO')&&ost.includes('45s Preview'));
  assert.ok(!/\bost:\s*\[/.test(prog),'ost no longer runs inside the iframe program frame');
  assert.ok(!/-5S|\+5S|VOL -|VOL \+|QUIT/.test(ost+js.slice(js.indexOf('"soundtrack"'))),'no -5s/+5s/volume/quit buttons');
  assert.ok(ost.includes('ost-gauge')&&ost.includes('ost-ico'));

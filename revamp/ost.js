@@ -60,7 +60,6 @@
     rows.forEach(function (r) { for (var i = 0; i < r.length; i++) ico.append(el("i", r.charAt(i) === "#" ? "on" : "")); });
     return ico;
   }
-  var CELLS = 56;
 
   function mount(out, opts) {
     var base = (opts && opts.base) || "ost/";
@@ -87,7 +86,8 @@
     var list = el("div", "ost-list"); list.setAttribute("role", "list");
     var rows = TRACKS.map(function (t, i) {
       var b = el("button", "ost-row"); b.type = "button"; b.setAttribute("role", "listitem");
-      b.append(el("span", "ost-mark", " "), el("span", "ost-n", pad2(i + 1)), el("span", "ost-t", t[0]), el("span", "ost-d", fmt(t[1])));
+      var lead = el("span", "ost-lead"); lead.setAttribute("aria-hidden", "true");
+      b.append(el("span", "ost-mark", " "), el("span", "ost-n", pad2(i + 1)), el("span", "ost-t", t[0]), lead, el("span", "ost-d", fmt(t[1])));
       b.addEventListener("click", function () { play(i); });
       list.append(b);
       return b;
@@ -97,11 +97,12 @@
     var tCur = el("span", "ost-gt", "0:00");
     var seekBar = el("button", "ost-seek"); seekBar.type = "button";
     seekBar.setAttribute("role", "slider"); seekBar.setAttribute("aria-label", "Seek within preview"); seekBar.setAttribute("aria-valuemin", "0");
-    var cells = [];
-    for (var c = 0; c < CELLS; c++) { var cell = el("i", "e"); cells.push(cell); seekBar.append(cell); }
+    var fill = el("span", "ost-fill"); seekBar.append(fill);
     var tEnd = el("span", "ost-gt ost-gt-end", "--:--");
     gauge.append(tCur, seekBar, tEnd);
-    root.append(now, list, gauge);
+    var side = el("div", "ost-side");
+    side.append(list, gauge);
+    root.append(now, side);
     out.replaceChildren(root);
 
     function setStatus(text) { lblStatus.textContent = text; }
@@ -112,11 +113,8 @@
     }
     function renderBar() {
       var d = audio.duration, c = audio.currentTime || 0;
-      var frac = d > 0 ? Math.min(1, c / d) : 0, lit = frac * CELLS, whole = Math.floor(lit), part = lit - whole;
-      for (var i = 0; i < CELLS; i++) {
-        var cls = i < whole ? "f" : (i === whole && part > 0.12 ? "p" : "e");
-        if (cells[i].className !== cls) cells[i].className = cls;
-      }
+      var frac = d > 0 ? Math.min(1, c / d) : 0;
+      fill.style.width = (frac * 100).toFixed(3) + "%";
       tCur.textContent = fmt(c);
       tEnd.textContent = d > 0 ? fmt(d) : "--:--";
       seekBar.setAttribute("aria-valuemax", String(Math.round(d || 0)));
@@ -125,7 +123,7 @@
     }
     function renderTrack() {
       var t = TRACKS[index];
-      lblTrack.textContent = "TRACK " + pad2(index + 1) + " / " + TRACKS.length + " // PREVIEW CLIP";
+      lblTrack.textContent = "TRACK " + pad2(index + 1) + " | 45s Preview";
       lblTitle.textContent = t[0];
       art.alt = "Cover art for " + t[0];
       art.src = base + pad2(index + 1) + ".jpg";
@@ -173,6 +171,7 @@
     function destroy() {
       if (done) return;
       done = true;
+      if (raf) cancelAnimationFrame(raf);
       document.removeEventListener("keydown", onKey);
       audio.pause(); audio.removeAttribute("src"); audio.load();
       if ("mediaSession" in navigator) { try { navigator.mediaSession.metadata = null; ["play", "pause", "nexttrack", "previoustrack"].forEach(function (a) { navigator.mediaSession.setActionHandler(a, null); }); } catch (e) {} }
@@ -210,8 +209,12 @@
     });
     audio.addEventListener("timeupdate", renderBar);
     audio.addEventListener("loadedmetadata", renderBar);
-    audio.addEventListener("playing", function () { setStatus("PLAYING"); renderPlayIcon(); });
-    audio.addEventListener("pause", function () { if (!audio.ended && !failed && !blocked && !done) setStatus("PAUSED"); renderPlayIcon(); });
+    // timeupdate only fires ~4x a second, so while audio plays the gauge is driven per frame
+    var raf = 0;
+    function frame() { raf = 0; renderBar(); if (!audio.paused && !done) raf = requestAnimationFrame(frame); }
+    function startFrames() { if (!raf && !done) raf = requestAnimationFrame(frame); }
+    audio.addEventListener("playing", function () { setStatus("PLAYING"); renderPlayIcon(); startFrames(); });
+    audio.addEventListener("pause", function () { if (!audio.ended && !failed && !blocked && !done) setStatus("PAUSED"); renderPlayIcon(); renderBar(); });
     audio.addEventListener("waiting", function () { setStatus("LOADING"); });
     audio.addEventListener("ended", function () { play(index + 1); });
     audio.addEventListener("error", function () { if (done) return; failed = true; setStatus("SIGNAL LOST // TRY THE NEXT TRACK"); renderPlayIcon(); });
