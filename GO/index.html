@@ -45,6 +45,8 @@ form.cl{position:relative;display:flex;align-items:baseline;margin:.9em 0 0;font
 form.cl .pf{flex:0 0 auto;white-space:pre}
 form.cl .tx{white-space:pre;color:var(--hot)}
 form.cl .cur{display:inline-block;flex:0 0 auto;width:.42em;height:.92em;margin-left:.04em;transform:translateY(.12em);background:#11cab8;box-shadow:0 0 5px rgba(17,202,184,.86),0 0 13px rgba(17,202,184,.42);animation:bl .815s steps(1) infinite}
+form.cl .hint{margin-left:1ch;color:rgba(17,202,180,.42);text-shadow:none;white-space:nowrap}
+form.cl.has .hint{display:none}
 form.cl input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;font-size:16px;color:transparent;background:transparent;caret-color:transparent}
 .foot{margin:1.4em 0 0;font-size:1em;opacity:.7}
 </style>
@@ -60,7 +62,7 @@ form.cl input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;bo
 <a class="row" href="https://www.instagram.com/jonsimo"><i>&gt;</i><span><b>FOLLOW THE DEV</b><small>jonsimo.lnk</small></span></a>
 </nav>
 <div id="log" role="log" aria-live="polite"></div>
-<form class="cl" id="cf" autocomplete="off"><span class="pf">console&gt;vd_root:/ </span><span class="tx" id="tx"></span><span class="cur" aria-hidden="true"></span><input id="ci" type="text" enterkeyhint="go" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Terminal command"></form>
+<form class="cl" id="cf" autocomplete="off"><span class="pf">console&gt;</span><span class="tx" id="tx"></span><span class="cur" aria-hidden="true"></span><span class="hint" id="hint" aria-hidden="true">type something</span><input id="ci" type="text" enterkeyhint="go" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Terminal command"></form>
 <p class="foot">macOS / WINDOWS // ALPHA DEMO COMING SOON</p>
 </main>
 <script src="/terminal-intents.js" defer></script>

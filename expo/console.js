@@ -4,7 +4,7 @@
   "use strict";
   var Engine = window.VDConsoleEngine, Lang = window.VDConsoleLanguage;
   var form = document.getElementById("cf"), input = document.getElementById("ci"), log = document.getElementById("log"), tx = document.getElementById("tx");
-  function mirror() { tx.textContent = input.value; }
+  function mirror() { tx.textContent = input.value; form.classList.toggle("has", input.value.length > 0); }
   input.addEventListener("input", mirror);
   form.addEventListener("click", function () { input.focus(); });
   if (!Engine || !form) return;
@@ -13,7 +13,7 @@
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function render(res, raw) {
     var ent = el("div", "ent");
-    if (res.echo || raw) ent.appendChild(el("div", "echo", "console>vd_root:/ " + (res.echo || raw)));
+    if (res.echo || raw) ent.appendChild(el("div", "echo", "console> " + (res.echo || raw)));
     (res.lines.length ? res.lines : ["CHANNEL READY."]).forEach(function (l) { ent.appendChild(el("div", "", l || " ")); });
     if (res.suggestions && res.suggestions.length) {
       var s = el("div", "sug");
