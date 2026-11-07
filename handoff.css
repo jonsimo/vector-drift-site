@@ -1,0 +1,11 @@
+/* Boot directory outline + departure animation (handoff.js). */
+.hand-row { display: inline-flex; color: inherit; text-decoration: none; padding: 1px 0; cursor: pointer; }
+.hand-mark { display: inline-block; width: 2ch; }
+.hand-name { display: inline-block; width: 16ch; }
+.hand-desc { opacity: .75; }
+.hand-row:hover, .hand-row:focus-visible, .hand-row.picked { color: #aef9e2; text-shadow: 0 0 2px rgba(174,249,226,.8), 0 0 7px rgba(17,202,180,.5); outline: 0; }
+.hand-row:hover .hand-mark::after, .hand-row:focus-visible .hand-mark::after, .hand-row.picked .hand-mark::after { content: ">"; }
+.hand-row:hover .hand-desc, .hand-row:focus-visible .hand-desc, .hand-row.picked .hand-desc { opacity: 1; }
+.vd-line-out { opacity: 0; transition: opacity 170ms linear; }
+body.vd-leaving .terminal-header { opacity: 0; transition: opacity 200ms linear; }
+@media (pointer: coarse) { .hand-row { min-height: 40px; align-items: center; } }

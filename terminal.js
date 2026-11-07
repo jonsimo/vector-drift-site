@@ -209,6 +209,18 @@ window.addEventListener("keydown", bootEnterWatch, true);
 if (bootParams.has("bootskip")) {
   window.addEventListener("load", function () { setTimeout(triggerBootSkip, 150); });
 }
+// Coming back from the site (Back button, or its "terminal" link) must not replay the boot.
+(function () {
+  let entered = false, back = false;
+  try { entered = !!sessionStorage.getItem("vd_site_entered"); } catch (e) {}
+  try { const nav = performance.getEntriesByType("navigation")[0]; back = !!nav && nav.type === "back_forward"; } catch (e) {}
+  if (entered && (back || bootParams.has("terminal"))) {
+    // Skip from the very start (before the connect gate), so the visitor lands on
+    // the logo + outline + prompt without replaying the boot or pressing a key.
+    bootSkip = true;
+    window.__vdSkip = true;
+  }
+})();
 
 // Wait until `targetMs` (from audio start) has elapsed. Scales with timeScale so
 // dev fast-forward still works; a no-op if the audio clock isn't set.
@@ -387,6 +399,21 @@ function stopHum() {
     bootAudio.hum.pause();
   }
 }
+
+// Leaving for the site: fade the ambient bed out instead of cutting it.
+window.VDFadeOutAudio = function (ms) {
+  try {
+    if (audioCtx && humGain) {
+      const t = audioCtx.currentTime;
+      humGain.gain.cancelScheduledValues(t);
+      humGain.gain.setValueAtTime(humGain.gain.value, t);
+      humGain.gain.linearRampToValueAtTime(0.0001, t + ms / 1000);
+    } else if (bootAudio) {
+      bootAudio.hum.volume = Math.min(bootAudio.hum.volume, 0.2);
+    }
+  } catch (e) {}
+  setTimeout(stopHum, ms + 40);
+};
 
 const HUM_VOLUME = 0.5;
 function startHum(startVol) {
@@ -1476,6 +1503,10 @@ async function activateRootPrompt(startedAt, opts) {
   // Hard clear -> short black-screen hold (skipped when keeping the logo on screen).
   if (!opts.keepOutput) { await sleep(randomBetween(180, 240)); }
 
+  // First console message: the rough directory outline (handoff.js). Clicking a
+  // file carries the big logo into the site.
+  if (window.VDHandoff && opts.keepOutput) { try { await window.VDHandoff.printOutline(); } catch (e) {} }
+
   if (mobileMode) {
     // Mobile: the prompt flows in the output and moves down with each command.
     form.style.display = "none";
@@ -1488,6 +1519,7 @@ async function activateRootPrompt(startedAt, opts) {
     setTerminalState("ready");
     document.documentElement.dataset.bootDuration = String(Math.round(performance.now() - startedAt));
     endBootSkip();
+    window.dispatchEvent(new Event("vd:console-ready"));
     return;
   }
 
@@ -1502,6 +1534,7 @@ async function activateRootPrompt(startedAt, opts) {
   setTerminalState("ready");
   document.documentElement.dataset.bootDuration = String(Math.round(performance.now() - startedAt));
   endBootSkip();
+  window.dispatchEvent(new Event("vd:console-ready"));
 }
 
 async function runBoot() {

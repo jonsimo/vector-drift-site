@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Vector Drift — Retro Vector Space Shooter</title>
+  <meta name="description" content="Vector Drift is a retro vector space shooter for macOS and Windows. Precision. Momentum. Escalating enemy formations.">
+  <link rel="icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" href="../icon.png">
+  <script src="arrive-head.js"></script>
+  <link rel="stylesheet" href="../vd-font.css">
+  <link rel="stylesheet" href="../reticle.css">
+  <link rel="stylesheet" href="sections.css?v=live-1">
+</head>
+<body data-layout="split">
+  <details class="review">
+    <summary>DISPLAY OPTIONS</summary>
+    <nav class="review-controls" aria-label="Display options">
+    <div class="palette-review" aria-label="Colour comparison">
+      <span>COLOUR</span>
+      <button type="button" data-green="0">ORIGINAL</button>
+      <button type="button" data-green="1">GREEN 1</button>
+      <button type="button" data-green="2">GREEN 2</button>
+      <button type="button" class="bloom-toggle" aria-pressed="true">LIGHT: TIGHT</button>
+    </div>
+    </nav>
+  </details>
+  <div class="site-shell">
+    <header class="masthead">
+      <a class="brand vd-banner" href="#root" data-section="root" aria-label="Vector Drift — home"><pre class="small-logo" aria-hidden="true"></pre></a>
+      <span class="site-status">VECTOR_DRIFT:/ROOT <span class="live-dot">*</span> LINK ACTIVE</span>
+      <button class="mobile-toggle" aria-expanded="false" aria-controls="directory">[ /ROOT ]</button>
+    </header>
+    <section class="console-dock" aria-label="Console" data-expanded="false">
+      <div class="console-response sr-only" role="status" aria-atomic="true"></div>
+      <form class="command-form" autocomplete="off">
+        <label for="section-command"><span>console&gt;</span><span id="prompt-path">vector_drift:/root/media</span></label>
+        <div class="console-input-shell">
+          <input id="section-command" type="text" aria-label="Terminal command" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="">
+          <span class="caret-measure" aria-hidden="true"></span><span class="console-caret" aria-hidden="true"></span>
+        </div>
+        <button class="vd-quick console-run" type="submit" disabled>[ RUN ]</button>
+        <button class="vd-quick console-toggle" type="button" aria-label="Open console" aria-expanded="false" aria-controls="console-history">[ OPEN ]</button>
+      </form>
+      <div id="console-history" class="console-history" role="log" aria-live="off" aria-label="Command history" aria-hidden="true" inert><div class="console-lines"></div></div>
+    </section>
+    <div class="site-body">
+      <aside id="directory" class="directory">
+        <div class="rail-heading">DIRECTORY</div>
+        <a class="root-link" href="#root" data-section="root">[ HOME ]</a>
+        <nav class="vd-dir" aria-label="Site directory">
+          <a class="vd-row" href="#about" data-section="about"><span class="mark"> </span>about.txt<span class="dir-description">ABOUT THE GAME</span></a>
+          <a class="vd-row" href="#media" data-section="media"><span class="mark"> </span>media/<span class="dir-description">SCREENSHOTS</span></a>
+          <div class="tree-files" aria-label="Media files"></div>
+          <a class="vd-row" href="#devlog" data-section="devlog"><span class="mark"> </span>devlog/<span class="dir-description">DEVELOPMENT UPDATES</span></a>
+          <a class="vd-row" href="#links" data-section="links"><span class="mark"> </span>links.lnk<span class="dir-description">COMMUNITY + UPDATES</span></a>
+          <a class="vd-row" href="#download" data-section="download"><span class="mark"> </span>download.exe<span class="dir-description">DEMO STATUS</span></a>
+        </nav>
+        <div class="rail-actions">
+          <div class="rail-heading">CONNECT</div>
+          <a class="vd-quick" href="#discord" data-section="discord">[ JOIN DISCORD ]</a>
+          <a class="vd-quick" href="#email" data-section="email">[ EMAIL UPDATES ]</a>
+          <a class="vd-quick" href="#contact" data-section="contact">[ CONTACT ]</a>
+        </div>
+        <a class="vd-quick" href="#reference" data-section="reference">[ CONSOLE GUIDE ]</a>
+        <div class="rail-foot">VECTOR DRIFT<br>macOS / WINDOWS</div>
+      </aside>
+      <main class="content-pane" id="terminal-output" tabindex="-1" aria-label="Section content">
+        <div class="content-top"><span id="section-path">/root/media/</span><span id="section-count">06 FILES</span></div>
+        <div id="section-content" class="section-content"></div>
+      </main>
+    </div>
+    <footer class="site-foot">
+      <span>VECTOR DRIFT // BY JON SIMO</span>
+      <a href="#contact" data-section="contact">CONTACT</a>
+      <a href="mailto:yo@jonsimo.com">yo@jonsimo.com</a>
+      <a href="https://www.jonsimo.com" target="_blank" rel="noopener noreferrer">jonsimo.com</a>
+      <a href="https://www.instagram.com/jonsimo" target="_blank" rel="noopener noreferrer">instagram</a>
+      <a href="https://discord.gg/Z8Kt8cDUX8" target="_blank" rel="noopener noreferrer">discord</a>
+      <a href="../?terminal">terminal</a>
+    </footer>
+  </div>
+  <div class="crt-scanlines" aria-hidden="true"></div>
+  <div class="crt-noise" aria-hidden="true"></div>
+  <script src="../terminal-intents.js"></script>
+  <script src="../uplink.js"></script>
+  <script src="route-state.js?v=live-1"></script>
+  <script src="console-language.js?v=live-1"></script>
+  <script src="console-engine.js?v=live-1"></script>
+  <script src="sections.js?v=live-1"></script>
+  <script src="arrive.js?v=live-2"></script>
+  <script src="../reticle.js"></script>
+</body>
+</html>

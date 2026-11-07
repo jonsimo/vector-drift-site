@@ -1,0 +1,15 @@
+/* Target-lock pointer shared by the boot terminal and the site (reticle.js).
+   Linked as a file, not injected, so it works under the page's style-src 'self'. */
+#vd-cursor-layer { position: fixed; inset: 0; pointer-events: none; z-index: 9999; }
+#vd-cursor-layer > * { position: absolute; left: 0; top: 0; will-change: transform; }
+html.vd-cur-hide, html.vd-cur-hide *, html.vd-cur-boot, html.vd-cur-boot * { cursor: none !important; }
+html.vd-cur-boot #vd-cursor-layer { visibility: hidden; }
+#vd-cursor-layer.idle { opacity: 0; transition: opacity 120ms; }
+.vd-cur-ret { width: 22px; height: 22px; }
+.vd-cur-ret i { position: absolute; width: 7px; height: 7px; border: 0 solid #11cab8; filter: drop-shadow(0 0 3px rgba(17,202,184,.9)); }
+.vd-cur-ret i:nth-child(1) { left: 0; top: 0; border-left-width: 2px; border-top-width: 2px; }
+.vd-cur-ret i:nth-child(2) { right: 0; top: 0; border-right-width: 2px; border-top-width: 2px; }
+.vd-cur-ret i:nth-child(3) { left: 0; bottom: 0; border-left-width: 2px; border-bottom-width: 2px; }
+.vd-cur-ret i:nth-child(4) { right: 0; bottom: 0; border-right-width: 2px; border-bottom-width: 2px; }
+.vd-cur-dot { width: 3px; height: 3px; background: #aef9e6; box-shadow: 0 0 5px #aef9e6; }
+.vd-cur-ret.lock i { border-color: #aef9e6; }

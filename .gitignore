@@ -10,3 +10,9 @@ previews/
 # generated at deploy time by worker/deploy.sh -- never committed, so a plain
 # `wrangler deploy` fails in the shell instead of shipping an unstamped build
 worker/version.js
+
+# local agent context -- repo root is publicly served, never commit
+CLAUDE.md
+
+# layout mockups -- local review only
+mockups/

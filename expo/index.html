@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#040807">
+<meta name="description" content="Vector Drift, a retro vector space shooter. Join the Discord, visit the site, follow the dev.">
+<title>Vector Drift // Expo</title>
+<link rel="icon" href="/favicon.ico?v=2" sizes="any">
+<link rel="preload" href="/assets/Glass_TTY_VT220.ttf" as="font" type="font/ttf" crossorigin>
+<style>
+@font-face{font-family:"Glass TTY VT220";src:url("/assets/Glass_TTY_VT220.ttf") format("truetype");font-display:swap}
+:root{--bg:#040807;--phos:#11cab4;--hot:#aef9e2;--drift:#8ff5d8;--fs:clamp(13px,calc((100vw - 60px) / 23.3),24px)}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:flex-start;padding:max(5vh,env(safe-area-inset-top)) max(30px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(30px,env(safe-area-inset-left));color:var(--phos);font:var(--fs)/1.4 "Glass TTY VT220","Courier New",monospace;letter-spacing:0;text-shadow:0 0 2px rgba(17,202,184,.72),0 0 9px rgba(17,202,184,.42),0 0 20px rgba(17,202,184,.16);-webkit-text-size-adjust:100%;background:var(--bg)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:9;background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}
+main{width:100%;max-width:460px;margin:0 auto;position:relative;z-index:1}
+h1{margin:0;font-weight:normal;line-height:1;letter-spacing:.06em;color:var(--hot);text-shadow:0 0 3px rgba(174,249,226,.8),0 0 14px rgba(17,202,180,.6)}
+h1 span{color:var(--drift)}
+a{-webkit-tap-highlight-color:transparent;text-decoration:none}
+@keyframes bl{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+h1{font-size:min(62px,calc((100vw - 60px) / 7.4));margin-top:0;white-space:nowrap}
+.sub{margin:8px 0 1.2em;font-size:1em;opacity:.8}
+.sys{margin:0 0 .4em;font-size:1em;opacity:.9}
+.list{border-top:1px solid rgba(17,202,180,.35)}
+a.row{display:grid;grid-template-columns:2ch 1fr;column-gap:1ch;align-items:center;min-height:72px;padding:9px 4px;color:var(--phos);border-bottom:1px solid rgba(17,202,180,.35)}
+a.row b{display:block;font-weight:normal;font-size:1.6em;line-height:1.2;color:var(--hot)}
+a.row small{display:block;margin-top:3px;font-size:1em;opacity:.8}
+a.row i{font-style:normal;opacity:.55;font-size:1.3em}
+a.row:active,a.row:focus-visible{background:var(--phos);color:#010604;text-shadow:none;outline:0}
+a.row:active b,a.row:focus-visible b{color:#010604}
+a.row:active i,a.row:focus-visible i{opacity:1}
+#log{font-size:1.2em;line-height:1.4}
+.ent{margin:.9em 0 0;animation:ln .2s ease-out both;overflow-wrap:anywhere}
+.ent .echo{opacity:.85}
+.ent div{white-space:pre-wrap}
+.sug{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:6px}
+.sug button{font:inherit;color:var(--hot);background:none;border:0;border-bottom:1px solid rgba(17,202,180,.5);padding:10px 2px;min-height:44px;text-shadow:inherit}
+@keyframes ln{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+form.cl{position:relative;display:flex;align-items:baseline;margin:.9em 0 0;font-size:1.2em;line-height:1.4;min-height:44px;padding-top:4px;cursor:text}
+form.cl .pf{flex:0 0 auto;white-space:pre}
+form.cl .tx{white-space:pre;color:var(--hot)}
+form.cl .cur{display:inline-block;flex:0 0 auto;width:.42em;height:.92em;margin-left:.04em;transform:translateY(.12em);background:#11cab8;box-shadow:0 0 5px rgba(17,202,184,.86),0 0 13px rgba(17,202,184,.42);animation:bl .815s steps(1) infinite}
+form.cl input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;font-size:16px;color:transparent;background:transparent;caret-color:transparent}
+.foot{margin:1.4em 0 0;font-size:1em;opacity:.7}
+</style>
+</head>
+<body>
+<main>
+<h1>VECTOR <span>DRIFT</span></h1>
+<p class="sub">vector_drift.sim // alpha build</p>
+<p class="sys">10.0.1.00&gt; select a file</p>
+<nav class="list" aria-label="Vector Drift links">
+<a class="row" href="https://discord.gg/Z8Kt8cDUX8"><i>&gt;</i><span><b>JOIN THE DISCORD</b><small>discord.lnk</small></span></a>
+<a class="row" href="https://vectordrift.io/?ref=expo"><i>&gt;</i><span><b>VISIT THE SITE</b><small>vectordrift.exe</small></span></a>
+<a class="row" href="https://www.instagram.com/jonsimo"><i>&gt;</i><span><b>FOLLOW THE DEV</b><small>jonsimo.lnk</small></span></a>
+</nav>
+<div id="log" role="log" aria-live="polite"></div>
+<form class="cl" id="cf" autocomplete="off"><span class="pf">console&gt;vd_root:/ </span><span class="tx" id="tx"></span><span class="cur" aria-hidden="true"></span><input id="ci" type="text" enterkeyhint="go" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Terminal command"></form>
+<p class="foot">macOS / WINDOWS // ALPHA DEMO COMING SOON</p>
+</main>
+<script src="/terminal-intents.js" defer></script>
+<script src="/revamp/console-language.js" defer></script>
+<script src="/revamp/console-engine.js" defer></script>
+<script src="/expo/console.js" defer></script>
+</body>
+</html>
