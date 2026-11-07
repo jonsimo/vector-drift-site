@@ -22,7 +22,7 @@
     logo.style.transform = "none";
     setTimeout(function () {
       var targets = [].concat(
-        [].slice.call(document.querySelectorAll(".site-status, .social, .mobile-toggle, .command-form")),
+        [].slice.call(document.querySelectorAll(".tagline, .site-status, .social, .mobile-toggle, .command-form")),
         [].slice.call(document.querySelectorAll("#directory .rail-heading, #directory .root-link, #directory .vd-row, #directory .rail-actions > *, #directory > .vd-quick")),
         [].slice.call(document.querySelectorAll(".content-top > *, #section-content > *")),
         [].slice.call(document.querySelectorAll(".site-foot > *"))

@@ -333,3 +333,8 @@ body[data-bloom="on"] .vd-row.current, body[data-bloom="on"] .vd-row:hover { tex
 .sound-toggle { font-size: 21px; width: 100%; text-align: center; min-height: 44px; padding: 8px 0; letter-spacing: .1em; }
 @media (max-width: 1050px) { .rail-foot { margin-right: -16px; } }
 @media (max-width: 680px) { .rail-foot { margin-right: -20px; margin-bottom: -8px; } }
+
+/* subtitle under the small logo */
+.masthead { position: relative; padding-bottom: 32px; }
+.tagline { position: absolute; left: 0; bottom: 9px; font-size: 12px; letter-spacing: .2em; white-space: nowrap; color: rgba(var(--phos-rgb),.6); text-shadow: none; pointer-events: none; }
+@media (max-width: 680px) { .masthead, body[data-layout="desk"] .masthead { padding-bottom: 26px; } .tagline { font-size: 10px; letter-spacing: .14em; bottom: 7px; } }

@@ -437,7 +437,9 @@
       statusLine("");
       onward([["GET EMAIL UPDATES","email"],["SEE THE GAME","media"],["HOME","root"]]);
     } else if (section === "email") {
-      copy("EMAIL UPDATES", ["Get Vector Drift news.", "Alpha demo and release announcements by email. Unsubscribe any time."]);
+      const emailPage = copy("EMAIL UPDATES", ["Get Vector Drift news.", "Alpha demo and release announcements by email."]);
+      // "Unsubscribe any time." always sits on its own second line, at any width
+      const sub = emailPage.children[1]; sub.append(document.createElement("br"), "Unsubscribe any time.");
       const form = element("form", "email-form"); form.noValidate = true;
       const label = element("label", "sr-only", "Email address"); label.htmlFor = "email-address";
       const field = element("input"); field.id = "email-address"; field.type = "email"; field.required = true; field.autocomplete = "email"; field.inputMode = "email"; field.autocapitalize = "none"; field.spellcheck = false; field.placeholder = "you@example.com";
