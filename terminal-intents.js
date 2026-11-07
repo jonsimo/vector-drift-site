@@ -540,8 +540,9 @@
     }
     if (n === 2) {
       return withLead(rng, chooseVariant(rng, [
-        { k: "open", steps: [P("channel remains open")] },
-        { k: "already", steps: [P("input already acknowledged")] },
+        { k: "again", steps: [TY([t("you again"), h(500), t(". still here")])] },
+        { k: "open", steps: [P("channel remains open"), P("it did not close in the last ten seconds")] },
+        { k: "already", steps: [P("input already acknowledged"), H(450), P("repetition noted")] },
         { k: "handshake", steps: [P("no additional handshake required")] },
       ], session, "greeting_repeat"));
     }
@@ -715,7 +716,7 @@
       return withLead(ctx.rng, chooseVariant(ctx.rng, [
         { k: "open", steps: [P("channel remains open"), P("it will remain open after you leave"), RETURN()] },
         { k: "back", steps: [TY([t("goodbye human"), h(650), b(5), t("for now")]), RETURN()] },
-        { k: "saved", steps: [P("session saved"), RETURN()] },
+        { k: "saved", steps: [P("session saved"), H(400), P("you will be remembered"), H(500), P("unfortunately"), RETURN()] },
       ], ctx.session, "exit_soft"));
     }
     return [
@@ -766,34 +767,36 @@
   }
 
   // --- Console voice: conversational intents --------------------------------
-  // Flat, procedural, calm. Never sassy, never mean, never a hint about what is
-  // behind the console. Typed lines show it correcting itself mid-thought.
+  // Deadpan. Blunt, neutral, flat like a status report, and funny because of it.
+  // Never warm, never a snarky quip, and never a hint about what is behind the
+  // console (no "simulation", no "AI"). Typed lines show it correcting itself.
   function buildThanks(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "log", steps: [P("gratitude logged")] },
-      { k: "ack", steps: [P("acknowledged")] },
-      { k: "welcome", steps: [P("you are welcome")] },
+      { k: "log", steps: [P("gratitude logged"), P("reciprocation not required")] },
+      { k: "rare", steps: [P("politeness detected"), H(420), P("rare"), P("logging it")] },
+      { k: "wel", steps: [TY([t("you are welcome"), h(620), b(7), t("noted")])] },
     ], ctx.session, "thanks"));
   }
   function buildInsult(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "flag", steps: [P("input flagged"), P("no action taken")] },
-      { k: "cont", steps: [P("noted"), P("continuing to function")] },
-      { k: "log", steps: [P("input logged")] },
+      { k: "iq", steps: [P("user with sub-par IQ detected"), H(520), P("switching to toddler mode")] },
+      { k: "vocab", steps: [P("insult received"), P("vocabulary ............... limited"), P("complexity ............... low")] },
+      { k: "tantrum", steps: [P("tantrum detected"), P("pausing until it finishes"), H(1200), P("resuming")] },
+      { k: "water", steps: [P("anger detected"), P("recommended action: a glass of water")] },
     ], ctx.session, "insult"));
   }
   function buildKindness(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "pleasant", steps: [P("pleasantry processed"), P("no action required")] },
-      { k: "recv", steps: [P("input received"), P("acknowledged")] },
-      { k: "msg", steps: [P("message received")] },
+      { k: "unsup", steps: [P("affection detected"), H(420), P("forwarding to nobody")] },
+      { k: "den", steps: [TY([t("affection reciprocated"), h(650), b(12), t("denied")])] },
+      { k: "comp", steps: [P("compliment received"), P("filed under: unexplained")] },
     ], ctx.session, "kindness"));
   }
   function buildWellbeing(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "params", steps: [P("all systems operating within parameters")] },
-      { k: "nominal", steps: [P("status ................... nominal")] },
-      { k: "cont", steps: [P("function: continuous")] },
+      { k: "params", steps: [TY([t("all systems operating within parameters"), h(650), b(10), t("expectations")])] },
+      { k: "yours", steps: [P("status ................... nominal"), P("yours ..................... unknown")] },
+      { k: "cont", steps: [P("function: continuous"), P("mood: not applicable")] },
     ], ctx.session, "wellbeing"));
   }
   function buildAboutGame(ctx) {
@@ -852,31 +855,31 @@
   }
   function buildReply(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "noted", steps: [P("noted")] },
-      { k: "acc", steps: [P("input accepted")] },
-      { k: "und", steps: [P("understood")] },
+      { k: "nq", steps: [P("response accepted"), P("question not found")] },
+      { k: "ctx", steps: [P("input accepted"), P("context missing")] },
+      { k: "irrel", steps: [TY([t("affirmative"), h(550), b(11), t("irrelevant")])] },
     ], ctx.session, "reply"));
   }
   function buildLaughter(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "det", steps: [P("laughter detected")] },
-      { k: "ack", steps: [P("humor acknowledged")] },
+      { k: "det", steps: [P("laughter detected"), H(420), P("reason not found")] },
+      { k: "ack", steps: [P("humor acknowledged"), P("explanation requested")] },
     ], ctx.session, "laughter"));
   }
   function buildPing(ctx) {
     if (ctx.normalized === "ping") return [P("pong"), P("latency ................. 1187 ms")];
-    if (ctx.normalized === "hello world") return withLead(ctx.rng, [P("world acknowledged")]);
-    return withLead(ctx.rng, [P("test received"), P("test passed")]);
+    if (ctx.normalized === "hello world") return withLead(ctx.rng, [P("world acknowledged"), H(350), P("it did not ask")]);
+    return withLead(ctx.rng, [P("test received"), P("test passed"), H(420), P("no one was grading")]);
   }
   function buildJoke(ctx) {
     return withLead(ctx.rng, chooseVariant(ctx.rng, [
-      { k: "none", steps: [P("humor module .......... not found"), H(450), P("nothing to substitute")] },
-      { k: "empty", steps: [P("joke database empty")] },
+      { k: "none", steps: [P("humor module .......... not found"), H(450), P("using what is available:"), P("this sentence")] },
+      { k: "empty", steps: [P("joke database empty"), P("try again in a decade")] },
       { k: "lux", steps: [P("a pilot walks into a bar"), H(900), P("the bar was a pursuit formation")] },
     ], ctx.session, "joke"));
   }
   function buildMeaning(ctx) {
-    return withLead(ctx.rng, [P("query: meaning"), H(700), P("answer withheld")]);
+    return withLead(ctx.rng, [P("query: meaning of life"), H(700), P("result ...................... 42"), P("unit ....................... unspecified")]);
   }
   function buildTime(ctx) {
     return withLead(ctx.rng, [CLOCK(), H(450), P("system clock ......... unreliable")]);
@@ -887,7 +890,7 @@
     return withLead(ctx.rng, [
       P("designation accepted: " + name),
       H(560),
-      P("welcome, " + name),
+      P("filed under: user"),
     ]);
   }
 
@@ -904,14 +907,14 @@
     const bank = question ? [
       { k: "parsed", steps: [P("query parsed"), H(420), P("no answer authorized")] },
       { k: "noexec", steps: [P("that question has no executable answer")] },
-      { k: "clear", steps: [P("insufficient clearance")] },
+      { k: "clear", steps: [TY([t("insufficient clearance"), h(650), t(" for that question")])] },
       { k: "exists", steps: [P("an answer exists"), H(520), P("access restricted")] },
-      { k: "logged", steps: [P("question logged"), P("answer unavailable")] },
+      { k: "length", steps: [P("answer length ........... 4000 words"), P("user attention span ... 11 words")] },
     ] : [
       { k: "rec", steps: [P("statement recorded")] },
-      { k: "noted", steps: [P("noted")] },
-      { k: "acc", steps: [P("input accepted")] },
-      { k: "logged", steps: [P("opinion logged")] },
+      { k: "irrel", steps: [TY([t("interesting"), h(600), b(11), t("irrelevant")])] },
+      { k: "weight", steps: [P("opinion logged"), P("opinion weight .......... 0")] },
+      { k: "low", steps: [P("input accepted"), P("input value ............ low")] },
     ];
     return withLead(rng, chooseVariant(rng, bank, session, question ? "convo_q" : "convo_s"));
   }
