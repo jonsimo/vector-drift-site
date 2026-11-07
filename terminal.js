@@ -75,7 +75,7 @@ let lastResponseMs = 0;
 
 const locateCommand = "find /opt -iname 'vector_drift' $>/dev/null";
 const loadCommand = "load /opt/unknown/vectordrift.sim";
-const finalPrompt = "console>vector_drift:/root";
+const finalPrompt = "console>root:/";
 const initialCursorCycleMs = 815;
 // List endpoint (newest-first), NOT /releases/latest — /latest skips prereleases,
 // and the alpha builds are published as prereleases. resolveLatestPackage() takes
@@ -209,6 +209,7 @@ window.addEventListener("keydown", bootEnterWatch, true);
 if (bootParams.has("bootskip")) {
   window.addEventListener("load", function () { setTimeout(triggerBootSkip, 150); });
 }
+let returnedFromSite = false;
 // Coming back from the site (Back button, or its "terminal" link) must not replay the boot.
 (function () {
   let entered = false, back = false;
@@ -219,6 +220,7 @@ if (bootParams.has("bootskip")) {
     // the logo + outline + prompt without replaying the boot or pressing a key.
     bootSkip = true;
     window.__vdSkip = true;
+    returnedFromSite = true;
   }
 })();
 
@@ -385,6 +387,9 @@ let humBedStarted = false;
 let mainSource = null;
 let mainGain = null;
 
+// Shared with the site (revamp/ambient.js): the visitor's sound choice survives page loads.
+function soundOff() { try { return localStorage.getItem("vd_sound") === "off"; } catch (e) { return false; } }
+
 function stopHum() {
   if (humSource) {
     try {
@@ -415,8 +420,9 @@ window.VDFadeOutAudio = function (ms) {
   setTimeout(stopHum, ms + 40);
 };
 
-const HUM_VOLUME = 0.5;
+const HUM_VOLUME = 0.397;   // 0.5 trimmed by 2 dB (Jon 2026-11-07)
 function startHum(startVol) {
+  if (soundOff()) return;
   const vol = startVol === undefined ? HUM_VOLUME : startVol;
   // Gapless sample-accurate loop via Web Audio when the buffer is decoded;
   // HTMLAudio (which has an mp3 loop gap) is only the pre-gesture fallback.
@@ -523,7 +529,7 @@ function setupBootAudio() {
   const beep = new Audio("assets/console_beep_v2.mp3");
   hum.loop = true;
   initial.volume = 0.75;
-  hum.volume = 0.5;
+  hum.volume = HUM_VOLUME;
   main.volume = 0.85;
   beep.volume = 0.6;
   initial.addEventListener("ended", () => {
@@ -539,7 +545,7 @@ function setupBootAudio() {
 }
 
 function playConsoleBeep() {
-  if (!bootAudio) {
+  if (!bootAudio || soundOff()) {
     return;
   }
   // Play a clone rather than the single shared element: reusing one <audio> is
@@ -720,7 +726,7 @@ function appendCommandLine(command, prefixText) {
   consolePart.textContent = "console>";
   const pathPart = document.createElement("span");
   pathPart.className = "prompt-path";
-  pathPart.textContent = "vector_drift:/root";
+  pathPart.textContent = "root:/";
   line.append(consolePart, pathPart, commandPart);
   return line;
 }
@@ -775,7 +781,7 @@ function setPromptPrefix() {
   consolePart.textContent = "console>";
   const pathPart = document.createElement("span");
   pathPart.className = "prompt-path";
-  pathPart.textContent = "vector_drift:/root";
+  pathPart.textContent = "root:/";
   promptPrefix.append(consolePart, pathPart);
 }
 
@@ -1512,7 +1518,7 @@ async function activateRootPrompt(startedAt, opts) {
     form.style.display = "none";
     playConsoleBeep();
     await sleep(consoleBeepLeadMs);
-    appendMobilePrompt("console>vd_root:/");   // short path so it fits narrow screens
+    appendMobilePrompt("console>root:/");   // short path so it fits narrow screens
     await sleep(randomBetween(150, 190));
     input.disabled = false;
     input.focus();
@@ -1535,6 +1541,26 @@ async function activateRootPrompt(startedAt, opts) {
   document.documentElement.dataset.bootDuration = String(Math.round(performance.now() - startedAt));
   endBootSkip();
   window.dispatchEvent(new Event("vd:console-ready"));
+  resumeAmbientOnReturn();
+}
+
+// Back from the site there was no connect gate, so no audio was ever started here.
+// Start the hum bed anyway (browsers that already trust the page play it at once;
+// the rest start on the first tap or key) so the ambience carries on.
+function resumeAmbientOnReturn() {
+  if (!returnedFromSite || soundOff() || humBedStarted) return;
+  try { setupBootAudio(); initAudio(); } catch (e) { return; }
+  let tries = 0;
+  const begin = () => {
+    if (humBedStarted || soundOff()) return;
+    if (!humBuffer && tries++ < 40) { setTimeout(begin, 150); return; }
+    humBedStarted = true;
+    startHum(0);
+    try { if (audioCtx && humGain) { const now = audioCtx.currentTime; humGain.gain.setValueAtTime(0.0001, now); humGain.gain.linearRampToValueAtTime(HUM_VOLUME, now + 1.8); } } catch (e) {}
+  };
+  begin();
+  const wake = () => { try { resumeAudio(); } catch (e) {} };
+  ["pointerdown", "keydown", "touchend"].forEach((ev) => window.addEventListener(ev, wake, { once: true, capture: true }));
 }
 
 async function runBoot() {
@@ -2602,6 +2628,44 @@ function responseLines(lines, className = "terminal-response") {
   }
 }
 
+// A line that types itself, can backspace over its own words, and retype them.
+// Honors the boot skip (sleep() short-circuits) and reduced motion (final text only).
+async function typeLine(step) {
+  const el = appendResponse("", step.className || "terminal-response");
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    rewriteLine(el, step.text || "");
+    return;
+  }
+  let text = "";
+  for (const op of step.ops) {
+    if (op.k === "t") {
+      for (const ch of op.s) { text += ch; rewriteLine(el, text); output.scrollTop = output.scrollHeight; await sleep(randomBetween(26, 48)); }
+    } else if (op.k === "b") {
+      for (let i = 0; i < op.n; i += 1) { text = text.slice(0, -1); rewriteLine(el, text); await sleep(randomBetween(34, 52)); }
+    } else if (op.k === "h") {
+      await sleep(op.ms || 0);
+    }
+  }
+  rewriteLine(el, step.text || text);
+}
+
+// Clickable response line: a site section (handoff) or an outside link.
+function appendLinkLine(step) {
+  const line = appendResponse("", "terminal-response");
+  const a = document.createElement("a");
+  a.className = "hand-row resp-link";
+  a.textContent = step.text;
+  if (step.type === "open" && window.VDHandoff) {
+    a.href = window.VDHandoff.urlFor(step.section);
+    a.addEventListener("click", (e) => { e.preventDefault(); window.VDHandoff.go(step.section, a); });
+  } else {
+    a.href = step.href || "#";
+    if (/^https?:/.test(a.href)) { a.target = "_blank"; a.rel = "noopener noreferrer"; }
+  }
+  line.appendChild(a);
+  output.scrollTop = output.scrollHeight;
+}
+
 // Interpret the structured step data returned by the intent layer. Response
 // text is chosen once (at commit, in VDIntents.selectResponse) — this only
 // renders. Steps: print / hold / rewrite / historyRender / returnPrompt.
@@ -2625,6 +2689,15 @@ async function runResponse(steps) {
       }
     } else if (step.type === "historyRender") {
       renderHistoryDisplay();
+    } else if (step.type === "typed") {
+      await typeLine(step);
+    } else if (step.type === "open" || step.type === "link") {
+      appendLinkLine(step);
+    } else if (step.type === "goto") {
+      if (window.VDHandoff) { window.VDHandoff.go(step.section); await sleep(2000); }
+    } else if (step.type === "clock") {
+      const d = new Date();
+      appendResponse("local clock ............ " + d.toLocaleTimeString([], { hour12: false }) + "  " + d.toLocaleDateString(), "terminal-response");
     }
     // "returnPrompt" is a no-op marker; the prompt returns after runCommand.
   }
@@ -2809,7 +2882,7 @@ async function runLoreOrUnknown(normalized) {
   // Unknown-command bank + the one-per-session "...not designed for
   // conversation" / "yet" beat live in the intent layer (session owns the
   // counters). Lore hits above never reach here, so they never count as unknown.
-  const { steps } = VDI.selectUnknown(session, rng);
+  const { steps } = VDI.selectUnknown(session, rng, normalized);
   await runResponse(steps);
 }
 

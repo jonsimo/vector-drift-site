@@ -90,13 +90,13 @@
     document.body.dataset.bloom = bloom ? "on" : "off";
     document.querySelectorAll("[data-green]").forEach(button => button.setAttribute("aria-pressed", String(+button.dataset.green === greenStep)));
     const toggle = document.querySelector(".bloom-toggle");
-    toggle.setAttribute("aria-pressed", String(bloom));
-    toggle.textContent = bloom ? "LIGHT: TIGHT" : "LIGHT: ORIGINAL";
+    if (toggle) { toggle.setAttribute("aria-pressed", String(bloom)); toggle.textContent = bloom ? "LIGHT: TIGHT" : "LIGHT: ORIGINAL"; }
     writeRoute("replace");
     updateReviewLinks();
   }
   document.querySelectorAll("[data-green]").forEach(button => button.addEventListener("click", () => { greenStep = +button.dataset.green; applyPalette(); }));
-  document.querySelector(".bloom-toggle").addEventListener("click", () => { bloom = !bloom; applyPalette(); });
+  const bloomToggle = document.querySelector(".bloom-toggle");
+  if (bloomToggle) bloomToggle.addEventListener("click", () => { bloom = !bloom; applyPalette(); });
   applyPalette();
 
   function updateCaret() {
@@ -181,11 +181,7 @@
   ["input", "keyup", "click", "select", "scroll"].forEach(name => input.addEventListener(name, updateCaret));
   new ResizeObserver(() => sizeHistory()).observe(consoleLines);
   new ResizeObserver(() => updateCaret()).observe(document.querySelector(".console-input-shell"));
-  const review = document.querySelector(".review");
-  new ResizeObserver(() => {
-    document.documentElement.style.setProperty("--review-height", `${review.getBoundingClientRect().height}px`);
-    sizeHistory();
-  }).observe(review);
+  document.documentElement.style.setProperty("--review-height", "0px");
   window.addEventListener("resize", () => sizeHistory());
 
   function openReader(lines, title) {
@@ -478,9 +474,10 @@
       const mark=a.querySelector(".mark"); if(mark)mark.textContent=active?">":" ";
     });
     document.getElementById("section-path").textContent="/root/"+(PROGRAMS.includes(current)?current+".exe":paths[current]);
-    document.getElementById("prompt-path").textContent="vector_drift:/root"+(current === "root" || PROGRAMS.includes(current) ? "" : "/"+paths[current].replace(/\/$/,""));
+    document.getElementById("prompt-path").textContent="root:/"+(current === "root" || PROGRAMS.includes(current) ? "" : paths[current].replace(/\/$/,""));
     document.getElementById("section-count").textContent=current === "media"?"06 FILES":"";
     tree.hidden=current !== "media";
+    if (window.VDAmbient) window.VDAmbient.setDuck(current === "ost");
   }
   function closeDirectory() {
     document.body.classList.remove("nav-open");

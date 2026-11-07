@@ -48,3 +48,19 @@ test('previous and next step through the framegrabs and wrap',()=>{
  const f=(q,frame)=>run(q,fresh(),{section:'media',frame}).effects.find(e=>e.type==='frame').number;
  assert.equal(f('previous',4),3);assert.equal(f('prev',1),6);assert.equal(f('next',6),1);assert.equal(f('next',2),3);
 });
+
+test('sound: ambient is 2 dB down, the toggle persists, and the display-options bar is gone',()=>{
+ const amb=read('ambient.js'),html=read('index.html');
+ assert.ok(/VOL = 0\.397/.test(amb)&&/vd_sound/.test(amb)&&/BEEP = 0\.2/.test(amb));
+ assert.ok(/HUM_VOLUME = 0\.397/.test(fs.readFileSync(path.join(__dirname,'..','..','terminal.js'),'utf8')));
+ assert.ok(/id="sound-toggle"[\s\S]*sound-state">\[ON\]/.test(html));
+ assert.ok(!/DISPLAY OPTIONS|class="review"/.test(html));
+ assert.ok(html.indexOf('ambient.js')>0&&html.indexOf('ambient.js')<html.indexOf('sections.js')+1000);
+});
+
+test('the logo goes back to the start page, and the prompt reads console>root:/',()=>{
+ const html=read('index.html');
+ assert.ok(/class="brand vd-banner" href="\.\.\/\?terminal"/.test(html));
+ assert.ok(/root:\//.test(read('sections.js'))&&!/vector_drift:\/root/.test(read('sections.js')));
+ assert.ok(/finalPrompt = "console>root:\/"/.test(fs.readFileSync(path.join(__dirname,'..','..','terminal.js'),'utf8')));
+});

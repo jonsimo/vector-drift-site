@@ -153,10 +153,23 @@
       while(at<tokens.length&&(priority[tokens[at]]||0)>min){const op=tokens[at++],p=priority[op],right=expr(op==='^'?p-1:p);left=op==='+'?left+right:op==='-'?left-right:op==='*'?left*right:op==='/'?left/right:op==='%'?left%right:left**right;if(!Number.isFinite(left))throw Error('Result is not finite; check division by zero or exponent size.');}return left;}
     const value=expr();if(at!==tokens.length)throw Error('Unexpected token: '+tokens[at]);if(!Number.isFinite(value))throw Error('Result is not finite.');return value;
   }
+  // Intent steps -> console lines. Typed lines read as their final text; a goto step
+  // becomes a real navigation, a link step shows the destination.
+  function fromSteps(s,steps,context={}){
+    const lines=[],byId=new Map(),effects=[];
+    for(const step of steps){
+      if(step.type==='print'){if(step.id)byId.set(step.id,lines.length);lines.push(step.text);}
+      else if(step.type==='rewrite'&&byId.has(step.targetId))lines[byId.get(step.targetId)]=step.text;
+      else if(step.type==='typed'){let cur='',before=null;for(const op of step.ops){if(op.k==='t')cur+=op.s;else if(op.k==='b'){if(before===null)before=cur;cur=cur.slice(0,-op.n);}}if(before!==null)lines.push(before);lines.push(step.text);}
+      else if(step.type==='open'||step.type==='link')lines.push(step.text.replace(/^>\s*/,''));
+      else if(step.type==='clock'){const d=new Date(context.now??Date.now());lines.push('local clock ............ '+(context.time||d.toLocaleTimeString())+'  '+(context.date||d.toLocaleDateString()));}
+      else if(step.type==='goto')effects.push({type:'navigate',section:step.section});
+    }
+    return result(lines.length?lines:['Channel remains open.'],effects,nextSteps(s).slice(0,2));
+  }
   function legacyResponse(s,resolution){
     const response=VDI.selectResponse(resolution,s.legacy,s.rng),lines=[],byId=new Map();
-    for(const step of response.steps){if(step.type==='print'){if(step.id)byId.set(step.id,lines.length);lines.push(step.text);}else if(step.type==='rewrite'&&byId.has(step.targetId))lines[byId.get(step.targetId)]=step.text;}
-    return result(lines.length?lines:['Channel remains open.'],[],nextSteps(s).slice(0,2));
+    return fromSteps(s,response.steps);
   }
   function endFlight(s){
     const f=s.flight;s.lastFlight={...f};s.flight=null;
@@ -237,6 +250,7 @@
       const matches=/^[a-z][a-z0-9_.-]*$/.test(n)?COMMANDS.map(c=>({id:c.id,d:distance(head,c.id)})).filter(x=>x.d<=1||transposed(head,x.id)).sort((a,b)=>a.d-b.d||a.id.localeCompare(b.id)):[];
       if(matches.length)return finish(result([`UNRESOLVED: ${original}`,`Did you mean ${matches.slice(0,3).map(x=>x.id).join(', ')}? Nothing was auto-executed.`],[],matches.slice(0,3).map(x=>x.id)));
       const hooks=s.scanCount?nextSteps(s):Language.START;
+      if(VDI.isConversational(n)){const r=fromSteps(s,VDI.selectUnknown(s.legacy,s.rng,n).steps,context);r.suggestions=hooks.slice(0,3);return finish(r);}
       return finish(result([rotate(s,'unknown',[
         'REQUEST NOT RECOGNIZED. Try one of the requests below.',
         'No matching action found. You can choose a request below or type help.',

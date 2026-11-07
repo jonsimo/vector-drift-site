@@ -13,28 +13,16 @@
   <link rel="stylesheet" href="sections.css?v=live-1">
 </head>
 <body data-layout="split">
-  <details class="review">
-    <summary>DISPLAY OPTIONS</summary>
-    <nav class="review-controls" aria-label="Display options">
-    <div class="palette-review" aria-label="Colour comparison">
-      <span>COLOUR</span>
-      <button type="button" data-green="0">ORIGINAL</button>
-      <button type="button" data-green="1">GREEN 1</button>
-      <button type="button" data-green="2">GREEN 2</button>
-      <button type="button" class="bloom-toggle" aria-pressed="true">LIGHT: TIGHT</button>
-    </div>
-    </nav>
-  </details>
   <div class="site-shell">
     <header class="masthead">
-      <a class="brand vd-banner" href="#root" data-section="root" aria-label="Vector Drift — home"><pre class="small-logo" aria-hidden="true"></pre></a>
+      <a class="brand vd-banner" href="../?terminal" aria-label="Vector Drift — back to the start"><pre class="small-logo" aria-hidden="true"></pre></a>
       <span class="site-status">VECTOR_DRIFT:/ROOT <span class="live-dot">*</span> LINK ACTIVE</span>
       <button class="mobile-toggle" aria-expanded="false" aria-controls="directory">[ /ROOT ]</button>
     </header>
     <section class="console-dock" aria-label="Console" data-expanded="false">
       <div class="console-response sr-only" role="status" aria-atomic="true"></div>
       <form class="command-form" autocomplete="off">
-        <label for="section-command"><span>console&gt;</span><span id="prompt-path">vector_drift:/root/media</span></label>
+        <label for="section-command"><span>console&gt;</span><span id="prompt-path">root:/media</span></label>
         <div class="console-input-shell">
           <input id="section-command" type="text" aria-label="Terminal command" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="">
           <span class="caret-measure" aria-hidden="true"></span><span class="console-caret" aria-hidden="true"></span>
@@ -63,7 +51,7 @@
           <a class="vd-quick" href="#contact" data-section="contact">[ CONTACT ]</a>
         </div>
         <a class="vd-quick" href="#reference" data-section="reference">[ CONSOLE GUIDE ]</a>
-        <div class="rail-foot">VECTOR DRIFT<br>macOS / WINDOWS</div>
+        <div class="rail-foot"><button type="button" class="sound-toggle" id="sound-toggle" aria-pressed="true" aria-label="Sound is on. Turn sound off"><span class="sound-word">sound</span> <span class="sound-state">[ON]</span></button></div>
       </aside>
       <main class="content-pane" id="terminal-output" tabindex="-1" aria-label="Section content">
         <div class="content-top"><span id="section-path">/root/media/</span><span id="section-count">06 FILES</span></div>
@@ -88,6 +76,7 @@
   <script src="console-language.js?v=live-1"></script>
   <script src="console-engine.js?v=live-1"></script>
   <script src="sections.js?v=live-1"></script>
+  <script src="ambient.js?v=snd-1"></script>
   <script src="arrive.js?v=live-2"></script>
   <script src="../reticle.js"></script>
 </body>

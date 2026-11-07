@@ -284,3 +284,49 @@ test("no forbidden story terms in intent response banks", () => {
     }
   }
 });
+
+// --- AXIOM voice (2026-11-07) ------------------------------------------------
+const respond = (input, seed = 3) => {
+  const s = VDI.createSession(), n = norm(input), r = VDI.resolveCommand(n);
+  const out = r.kind === "intent" ? VDI.selectResponse(r, s, VDI.makeRng(seed)) : VDI.selectUnknown(s, VDI.makeRng(seed), n);
+  return { r, steps: out.steps, text: out.steps.filter((x) => x.text !== undefined).map((x) => x.text) };
+};
+
+test("first hello is the signature beat: detect, directive, then a self-correcting greeting", () => {
+  const { steps, text } = respond("hello");
+  assert.deepEqual(text.slice(0, 2), ["human input detected", "initialize response directive"]);
+  const typed = steps.find((x) => x.type === "typed");
+  assert.equal(typed.text, "greetings humans");
+  const written = typed.ops.filter((o) => o.k === "t").map((o) => o.s).join("");
+  assert.equal(written, "greetings hairless monkeyhumans");
+  assert.equal(typed.ops.find((o) => o.k === "b").n, "hairless monkey".length);
+});
+
+test("everyday phrases get an in-voice answer instead of 'command not found'", () => {
+  const cases = ["thanks", "fuck you", "i love you", "how are you", "what is vector drift", "when is the demo", "who made this", "discord", "bored", "lol", "ping", "tell me a joke", "what time is it", "my name is bob", "yes", "good night"];
+  for (const c of cases) {
+    const { r, text } = respond(c);
+    assert.equal(r.kind, "intent", c);
+    assert.ok(text.length > 0 && !text.includes("command not found"), c);
+  }
+});
+
+test("sentences and questions get a deflection, short junk keeps the terse bank", () => {
+  assert.ok(respond("why is the sky blue").steps.length > 0 && !respond("why is the sky blue").text.includes("command not found"));
+  assert.ok(VDI.isConversational("i like turtles because they are slow"));
+  assert.ok(!VDI.isConversational("zzz"));
+  assert.equal(respond("zzz").text[0], "command not found");
+});
+
+test("site sections and contact answers carry the real destinations", () => {
+  assert.ok(respond("links.lnk").steps.some((x) => x.type === "goto" && x.section === "links"));
+  assert.ok(respond("media").steps.some((x) => x.type === "goto" && x.section === "media"));
+  const c = respond("contact").steps.filter((x) => x.type === "link").map((x) => x.href);
+  assert.deepEqual(c, ["mailto:yo@jonsimo.com", "https://www.jonsimo.com", "https://www.instagram.com/jonsimo"]);
+  assert.ok(respond("discord").steps.some((x) => x.href === "https://discord.gg/Z8Kt8cDUX8"));
+  assert.ok(respond("when is the demo").text.join(" ").includes("dec 2026"));
+});
+
+test("no duplicate aliases across the grown registry", () => {
+  assert.deepEqual(VDI.findDuplicateAliases(), []);
+});

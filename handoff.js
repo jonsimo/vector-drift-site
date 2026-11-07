@@ -41,34 +41,60 @@
     return d;
   }
 
+  // The outline must never push the big logo off the top. Fit it to the room the
+  // console has: tighter rows, then no intro line, then two columns. Mobile flows
+  // naturally (the page scrolls), so it is left alone.
+  function fitOutline() {
+    var o = out();
+    if (!o || document.body.classList.contains("mobile")) return;
+    var cls = ["hand-tight", "hand-nointro", "hand-cols"];
+    cls.forEach(function (c) { o.classList.remove(c); });
+    for (var i = 0; i < cls.length && o.scrollHeight - o.clientHeight > 1; i++) o.classList.add(cls[i]);
+    if (o.scrollHeight - o.clientHeight > 1) o.scrollTop = 0; else o.scrollTop = o.scrollHeight;
+  }
+  var fitTimer = 0;
+  window.addEventListener("resize", function () { if (document.querySelector(".hand-outline")) { clearTimeout(fitTimer); fitTimer = setTimeout(fitOutline, 120); } });
+
   api.printOutline = async function () {
     var o = out();
     if (!o || o.querySelector(".hand-outline")) return;
     line("10.0.1.00> click a file to enter", "hand-outline");
     await sleep(160);
+    var list = document.createElement("div"); list.className = "hand-list"; o.appendChild(list);
     for (var i = 0; i < OUTLINE.length; i++) {
       var f = OUTLINE[i];
-      var row = document.createElement("div"); row.className = "output-line";
+      var row = document.createElement("div"); row.className = "output-line hand-line"; row.dataset.go = f[1];
       var a = document.createElement("a"); a.className = "hand-row"; a.href = urlFor(f[1]); a.dataset.go = f[1];
       var mark = document.createElement("span"); mark.className = "hand-mark";
       var name = document.createElement("span"); name.className = "hand-name"; name.textContent = f[0];
+      a.append(mark, name);
       var desc = document.createElement("span"); desc.className = "hand-desc"; desc.textContent = f[2];
-      a.append(mark, name, desc);
       a.addEventListener("click", function (e) {
         if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
         e.preventDefault(); api.go(this.dataset.go, this);
       });
-      row.appendChild(a); o.appendChild(row);
+      // the description is part of the same target for a tap or click, but only the name carries the reticle
+      desc.addEventListener("click", function () { var r = this.parentNode.querySelector(".hand-row"); api.go(this.parentNode.dataset.go, r); });
+      row.append(a, desc); list.appendChild(row);
       o.scrollTop = o.scrollHeight;
       await sleep(70);
     }
+    fitOutline();
   };
 
   // Departure: console lines clear away bottom-up, the logo stays put, and the
   // logo's on-screen box travels with us so the site can pick it up from there.
+  // Quiet confirmation beep on a click, unless the visitor turned sound off.
+  function clickBeep() {
+    try {
+      if (localStorage.getItem("vd_sound") === "off") return;
+      var b = new Audio("assets/console_beep_v2.mp3"); b.volume = 0.2; b.play().catch(function () {});
+    } catch (e) {}
+  }
   api.go = async function (section, rowEl) {
     if (leaving) return;
     leaving = true;
+    clickBeep();
     var o = out();
     var logo = o && (o.querySelector(".vd-banner #logo") || o.querySelector(".vd-banner"));
     var now = Date.now();

@@ -2,6 +2,7 @@
    black instead of a flash of the finished page. arrive.js does the animation;
    the timer below guarantees the page can never stay hidden. */
 (function () {
+  try { sessionStorage.setItem("vd_site_entered", "1"); } catch (e) {}
   try {
     if (!new URLSearchParams(location.search).has("from")) return;
     var raw = sessionStorage.getItem("vd_handoff");
