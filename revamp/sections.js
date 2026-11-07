@@ -24,7 +24,7 @@
   const DISCORD_URL = "https://discord.gg/Z8Kt8cDUX8"; // permanent invite (no expiry), supplied by Jon 2026-11-06
   let pendingPrefill = "";
   const sections = ["root", "about", "media", "soundtrack", "devlog", "links", "download", "discord", "email", "contact", "reference"];
-  const paths = { root: "", about: "about.txt", media: "media/", soundtrack: "soundtrack/", devlog: "devlog/", links: "links.lnk", download: "download.exe", discord: "discord", email: "email", contact: "contact", reference: "console/reference" };
+  const paths = { root: "", about: "about.txt", media: "media/", soundtrack: "audio/", devlog: "devlog/", links: "links.lnk", download: "download.exe", discord: "discord", email: "email", contact: "contact", reference: "console/reference" };
   const Routes = window.VDRouteState;
   const parseHash = (hash = location.hash) => Routes.parseHash(hash, sections);
   const routeKey = Routes.routeKey;

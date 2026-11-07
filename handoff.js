@@ -12,7 +12,8 @@
   // [file name shown, site section, description]
   var OUTLINE = [
     ["about.txt", "about", "ABOUT THE GAME"],
-    ["media/", "media", "SCREENSHOTS"],
+    ["media/", "media", "STILLS + VIDEO"],
+    ["audio/", "soundtrack", "SYNTH SOUNDTRACK"],
     ["devlog/", "devlog", "DEVELOPMENT UPDATES"],
     ["links.lnk", "links", "COMMUNITY + UPDATES"],
     ["download.exe", "download", "DEMO STATUS"],

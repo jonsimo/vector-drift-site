@@ -6,8 +6,8 @@ const path=require('node:path');
 const H=require('../../handoff.js');
 const root=f=>fs.readFileSync(path.join(__dirname,'..','..',f),'utf8');
 
-test('the boot outline lists exactly the five directory entries and each leads to a real site section',()=>{
- assert.deepEqual(H.OUTLINE.map(r=>r[0]),['about.txt','media/','devlog/','links.lnk','download.exe']);
+test('the boot outline lists exactly the six directory entries and each leads to a real site section',()=>{
+ assert.deepEqual(H.OUTLINE.map(r=>r[0]),['about.txt','media/','audio/','devlog/','links.lnk','download.exe']);
  const sections=root('revamp/sections.js').match(/const sections = \[([^\]]+)\]/)[1];
  for(const [,section] of H.OUTLINE){assert.ok(sections.includes('"'+section+'"'),section);assert.equal(H.urlFor(section),'revamp/?from=boot#'+section);}
 });
