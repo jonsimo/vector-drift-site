@@ -822,6 +822,9 @@ function setMobileTyping(on) {
     }, FOLD_MS + 260);
   }
 }
+// Taps on the outline rows (name, dots or description), links and buttons are
+// navigation, never "start typing": they must not fold the page or open the keyboard.
+function isLinkTap(t) { return !!(t && t.closest && t.closest("a, button, .hand-line, .m-expand")); }
 function initMobileTyping() {
   if (mExpandBtn) return;
   mExpandBtn = document.createElement("button");
@@ -833,10 +836,10 @@ function initMobileTyping() {
   // A tap on empty console space (not a link or button) starts typing. The input is
   // usually already focused after the boot, so no focus event would follow. Done on
   // click, after the tap has landed, so the layout change cannot steal the focus.
-  document.addEventListener("pointerdown", () => { mLastTap = Date.now(); }, true);
+  document.addEventListener("pointerdown", (e) => { mLastTap = isLinkTap(e.target) ? 0 : Date.now(); }, true);
   document.addEventListener("click", (e) => {
     if (!mobileLive || mTyping || input.disabled) return;
-    if (e.target.closest && e.target.closest("a, button")) return;
+    if (isLinkTap(e.target)) return;
     if (!e.target.closest || !e.target.closest(".terminal-content")) return;
     input.focus();
     setMobileTyping(true);
@@ -3396,7 +3399,8 @@ input.addEventListener("keydown", (event) => {
   }
 });
 
-document.querySelector(".terminal-content").addEventListener("pointerdown", () => {
+document.querySelector(".terminal-content").addEventListener("pointerdown", (e) => {
+  if (mobileMode && isLinkTap(e.target)) return;   // a tap on a link must not open the keyboard
   if (!input.disabled) {
     input.focus();
   }

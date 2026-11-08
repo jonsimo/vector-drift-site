@@ -79,7 +79,9 @@
         e.preventDefault(); api.go(this.dataset.go, this);
       });
       // the description is part of the same target for a tap or click, but only the name carries the reticle
-      desc.addEventListener("click", function () { var r = this.parentNode.querySelector(".hand-row"); api.go(this.parentNode.dataset.go, r); });
+      var viaRow = function () { var r = this.closest(".hand-line").querySelector(".hand-row"); api.go(this.closest(".hand-line").dataset.go, r); };
+      desc.addEventListener("click", viaRow);
+      dots.addEventListener("click", viaRow);
       row.append(head, desc); list.appendChild(row);
       o.scrollTop = o.scrollHeight;
       await sleep(70);

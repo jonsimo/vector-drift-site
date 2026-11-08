@@ -73,3 +73,10 @@ test('phone console: prompt is always console> and the keyboard mode can be undo
  assert.ok(t.includes('[ SHOW LINKS ]')&&t.includes('setMobileTyping'));
  for(const f of ['GO/index.html','expo/index.html']){const h=fs.readFileSync(path.join(root,f),'utf8');assert.ok(h.includes('id="ex"')&&h.includes('SHOW LINKS'),f);}
 });
+
+test('phone: tapping an outline link (name, dots, description) is navigation, not typing',()=>{
+ const root=path.join(__dirname,'..','..');
+ const t=fs.readFileSync(path.join(root,'terminal.js'),'utf8'),h=fs.readFileSync(path.join(root,'handoff.js'),'utf8');
+ assert.ok(t.includes('function isLinkTap')&&t.includes('mobileMode && isLinkTap(e.target)'));
+ assert.ok(h.includes('dots.addEventListener("click", viaRow)')&&h.includes('desc.addEventListener("click", viaRow)'));
+});
