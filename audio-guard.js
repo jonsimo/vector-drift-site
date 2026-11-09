@@ -2,7 +2,9 @@
    screen (background tab, minimised window, locked phone). Loaded first on the
    site pages; it wraps HTMLMediaElement.play and AudioContext so every sound the
    site makes is covered, now or later, and puts it back when the page returns.
-   A play() that arrives while hidden is held, not dropped, and starts on return. */
+   A play() that arrives while hidden is held, not dropped, and starts on return.
+   The one exception is the OST player: it sets audio.vdKeepPlaying so a listener
+   can switch tabs and keep the music. */
 (function () {
   "use strict";
   var seen = new Set();        // every media element that has been played
@@ -15,7 +17,7 @@
   if (realPlay) {
     proto.play = function () {
       seen.add(this);
-      if (document.hidden) { held.add(this); return Promise.resolve(); }
+      if (document.hidden && !this.vdKeepPlaying) { held.add(this); return Promise.resolve(); }
       return realPlay.apply(this, arguments);
     };
   }
@@ -37,7 +39,7 @@
     contexts.forEach(function (c) {
       if (c.state === "running") { try { c.suspend(); suspended.add(c); } catch (e) {} }
     });
-    seen.forEach(function (m) { if (!m.paused) { held.add(m); try { m.pause(); } catch (e) {} } });
+    seen.forEach(function (m) { if (!m.paused && !m.vdKeepPlaying) { held.add(m); try { m.pause(); } catch (e) {} } });
   }
   function show() {
     suspended.forEach(function (c) { try { c.resume(); } catch (e) {} });

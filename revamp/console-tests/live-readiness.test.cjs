@@ -95,3 +95,10 @@ test('audio guard: every page that makes sound loads it first, and it covers med
  assert.ok(main.indexOf('audio-guard.js')>0&&main.indexOf('audio-guard.js')<main.indexOf('terminal.js'));
  assert.ok(rv.indexOf('audio-guard.js')>0&&rv.indexOf('audio-guard.js')<rv.indexOf('ambient.js'));
 });
+
+test('audio guard exempts only the OST player',()=>{
+ const root=path.join(__dirname,'..','..');
+ assert.ok(fs.readFileSync(path.join(root,'revamp','ost.js'),'utf8').includes('audio.vdKeepPlaying = true'));
+ assert.equal((fs.readFileSync(path.join(root,'audio-guard.js'),'utf8').match(/vdKeepPlaying/g)||[]).length>=3,true);
+ for(const f of ['terminal.js','handoff.js','logo-reveal.js','revamp/ambient.js'])assert.ok(!fs.readFileSync(path.join(root,f),'utf8').includes('vdKeepPlaying'),f);
+});

@@ -65,6 +65,7 @@
     var base = (opts && opts.base) || "ost/";
     var audio = new Audio();
     audio.preload = "auto";
+    audio.vdKeepPlaying = true;   // the one sound the audio guard lets run in a background tab
     audio.volume = 0.8;
     var index = 0, played = 0, done = false, blocked = false, failed = false;
     var heard = {};
