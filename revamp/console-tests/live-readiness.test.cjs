@@ -80,3 +80,9 @@ test('phone: tapping an outline link (name, dots, description) is navigation, no
  assert.ok(t.includes('function isLinkTap')&&t.includes('mobileMode && isLinkTap(e.target)'));
  assert.ok(h.includes('dots.addEventListener("click", viaRow)')&&h.includes('desc.addEventListener("click", viaRow)'));
 });
+
+test('boot outline recovers when Back restores it mid-departure or the connection stalls',()=>{
+ const h=fs.readFileSync(path.join(__dirname,'..','..','handoff.js'),'utf8'),t=fs.readFileSync(path.join(__dirname,'..','..','terminal.js'),'utf8');
+ assert.ok(h.includes('function resetDeparture')&&h.includes('"pageshow"')&&h.includes('setTimeout(resetDeparture, 6000)'));
+ assert.ok(t.includes('window.VDResumeAmbient'));
+});

@@ -107,6 +107,26 @@
       clickAudio.play().catch(function () {});
     } catch (e) {}
   }
+  // Back/forward can restore this page frozen mid-departure (bfcache), and a slow
+  // connection can leave it half faded: put the outline back so it is usable.
+  var resetTimer = 0;
+  function resetDeparture() {
+    clearTimeout(resetTimer);
+    if (!leaving && !document.body.classList.contains("vd-leaving")) return;
+    leaving = false;
+    document.body.classList.remove("vd-leaving");
+    var o = out();
+    if (o) {
+      [].forEach.call(o.querySelectorAll(".vd-line-out"), function (n) { n.classList.remove("vd-line-out"); n.style.transitionDelay = ""; });
+      [].forEach.call(o.querySelectorAll(".picked"), function (n) { n.classList.remove("picked"); });
+    }
+    var input = document.getElementById("terminal-input");
+    if (input) { input.disabled = false; }
+    try { sessionStorage.removeItem(KEY); } catch (e) {}
+    if (window.VDResumeAmbient) { try { window.VDResumeAmbient(); } catch (e) {} }
+  }
+  window.addEventListener("pageshow", function (e) { if (e.persisted || leaving) resetDeparture(); });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && leaving) resetDeparture(); });
   api.go = async function (section, rowEl) {
     if (leaving) return;
     leaving = true;
@@ -128,6 +148,8 @@
     lines.forEach(function (n, i) { n.style.transitionDelay = Math.round(i * step) + "ms"; n.classList.add("vd-line-out"); });
     await new Promise(function (r) { setTimeout(r, reduced() ? 0 : Math.min(760, lines.length * step + 320)); });
     location.assign(urlFor(section));
+    // if the page is still here after a few seconds (poor connection), make it usable again
+    resetTimer = setTimeout(resetDeparture, 6000);
   };
   return api;
 });

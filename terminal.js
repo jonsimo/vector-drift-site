@@ -1654,6 +1654,14 @@ function resumeAmbientOnReturn() {
   ["pointerdown", "keydown", "touchend"].forEach((ev) => window.addEventListener(ev, wake, { once: true, capture: true }));
 }
 
+// Back button restored this page from the browser cache after the hum was faded out.
+window.VDResumeAmbient = function () {
+  if (soundOff()) return;
+  humBedStarted = false;
+  returnedFromSite = true;
+  resumeAmbientOnReturn();
+};
+
 async function runBoot() {
   if (bootStarted) {
     return;
