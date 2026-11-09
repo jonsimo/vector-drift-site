@@ -86,3 +86,12 @@ test('boot outline recovers when Back restores it mid-departure or the connectio
  assert.ok(h.includes('function resetDeparture')&&h.includes('"pageshow"')&&h.includes('setTimeout(resetDeparture, 6000)'));
  assert.ok(t.includes('window.VDResumeAmbient'));
 });
+
+test('audio guard: every page that makes sound loads it first, and it covers media and audio contexts',()=>{
+ const root=path.join(__dirname,'..','..');
+ const g=fs.readFileSync(path.join(root,'audio-guard.js'),'utf8');
+ assert.ok(g.includes('visibilitychange')&&g.includes('pagehide')&&g.includes('HTMLMediaElement')&&g.includes('AudioContext'));
+ const main=fs.readFileSync(path.join(root,'index.html'),'utf8'),rv=fs.readFileSync(path.join(root,'revamp','index.html'),'utf8');
+ assert.ok(main.indexOf('audio-guard.js')>0&&main.indexOf('audio-guard.js')<main.indexOf('terminal.js'));
+ assert.ok(rv.indexOf('audio-guard.js')>0&&rv.indexOf('audio-guard.js')<rv.indexOf('ambient.js'));
+});
