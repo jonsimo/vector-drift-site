@@ -56,12 +56,12 @@
   ["pointerdown", "keydown", "touchend", "click"].forEach(function (ev) { window.addEventListener(ev, wake, true); });
 
   function paint() {
-    var btn = document.getElementById("sound-toggle");
-    if (!btn) return;
-    btn.setAttribute("aria-pressed", String(!off));
-    btn.setAttribute("aria-label", off ? "Sound is off. Turn sound on" : "Sound is on. Turn sound off");
-    var st = btn.querySelector(".sound-state");
-    if (st) st.textContent = off ? "[OFF]" : "[ON]";
+    Array.prototype.forEach.call(document.querySelectorAll(".sound-toggle"), function (btn) {
+      btn.setAttribute("aria-pressed", String(!off));
+      btn.setAttribute("aria-label", off ? "Sound is off. Turn sound on" : "Sound is on. Turn sound off");
+      var st = btn.querySelector(".sound-state");
+      if (st) st.textContent = off ? "[OFF]" : "[ON]";
+    });
   }
   function set(on) {
     off = !on;
@@ -75,8 +75,9 @@
   function beep() {}
   document.addEventListener("DOMContentLoaded", function () {
     paint();
-    var btn = document.getElementById("sound-toggle");
-    if (btn) btn.addEventListener("click", function () { set(off); beep(); });
+    Array.prototype.forEach.call(document.querySelectorAll(".sound-toggle"), function (btn) {
+      btn.addEventListener("click", function () { set(off); beep(); });
+    });
   });
   window.VDAmbient = {
     setDuck: function (v) { duck = !!v; ramp(level(), 0.6); },

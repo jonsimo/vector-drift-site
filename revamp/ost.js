@@ -143,6 +143,18 @@
       }
       renderBar(); renderPlayIcon();
     }
+    // Scrolled the list away and gone quiet for 5 s: bring the current track back into view.
+    var idleTimer = null;
+    function recentre() {
+      var row = rows[index];
+      if (!row || !list.isConnected || list.scrollHeight <= list.clientHeight) return;
+      var top = row.offsetTop, h = row.offsetHeight;
+      if (top >= list.scrollTop && top + h <= list.scrollTop + list.clientHeight) return;
+      var to = Math.max(0, top - list.clientHeight / 2 + h / 2);
+      try { list.scrollTo({ top: to, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch (e) { list.scrollTop = to; }
+    }
+    function armIdle() { clearTimeout(idleTimer); idleTimer = setTimeout(recentre, 5000); }
+    ["scroll", "wheel", "touchstart", "touchmove", "pointerdown", "pointermove", "keydown"].forEach(function (ev) { list.addEventListener(ev, armIdle, { passive: true }); });
     function play(i) {
       if (done) return;
       index = (i + TRACKS.length) % TRACKS.length;
@@ -173,6 +185,7 @@
       if (done) return;
       done = true;
       if (raf) cancelAnimationFrame(raf);
+      clearTimeout(idleTimer);
       document.removeEventListener("keydown", onKey);
       audio.pause(); audio.removeAttribute("src"); audio.load();
       if ("mediaSession" in navigator) { try { navigator.mediaSession.metadata = null; ["play", "pause", "nexttrack", "previoustrack"].forEach(function (a) { navigator.mediaSession.setActionHandler(a, null); }); } catch (e) {} }

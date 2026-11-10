@@ -142,6 +142,9 @@
   function focusConsole() {
     dismissedWhileHovered = false;
     setConsoleOpen(true, true);
+    // iOS keeps focus on the field after the keyboard is dismissed, and focus() on a focused field does
+    // nothing, so the keyboard never returned. Blur first so the tap inside the gesture raises it again.
+    if (document.activeElement === input) input.blur();
     input.focus({ preventScroll: true });
   }
   function closeConsole() {
@@ -152,7 +155,7 @@
   function scheduleCollapse() {
     clearTimeout(collapseTimer);
     collapseTimer = setTimeout(() => {
-      if (!programName && !pointerInConsole && !pointerHeld && !consoleDock.contains(document.activeElement)) setConsoleOpen(false);
+      if (!programName && !pointerInConsole && !pointerHeld && !consoleDock.contains(document.activeElement) && !(input.value && matchMedia("(max-width: 680px)").matches)) setConsoleOpen(false);
     }, 280);
   }
   consoleDock.addEventListener("pointerenter", e => {
@@ -562,6 +565,7 @@
   // The OPEN button is gone, so the console row itself is the way in: a tap anywhere on it opens and focuses the console.
   document.querySelector(".command-form").addEventListener("click",e=>{
     if(e.target.closest("button"))return;
+    if(e.target===input&&document.activeElement===input)return;   // already typing: leave the keyboard alone
     focusConsole();
   });
   document.getElementById("section-path").addEventListener("click",e=>{

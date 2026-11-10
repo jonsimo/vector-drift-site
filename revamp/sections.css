@@ -618,3 +618,15 @@ body.console-used .command-form label > span:first-child { display: none; }
   .social svg { width: 35px; height: 35px; }
   .social a { padding: 3px; }
 }
+
+/* phones: a sound toggle that is always on screen, pinned to the right of the console row (the dock is sticky) */
+.sound-mobile { display: none; }
+@media (max-width: 680px) {
+  .console-dock { position: sticky; }
+  .sound-mobile { display: inline-flex; align-items: center; position: absolute; right: 0; top: -1px; z-index: 90; min-height: 44px; min-width: 44px; width: auto; padding: 0 2px 0 8px; gap: .45em; font-size: 16px; }
+  .console-dock[data-expanded="true"] .sound-mobile { top: 1px; font-size: 16px; }
+}
+
+/* no flicker animation on the console row while typing: a continuously animated ancestor makes iOS drop the keyboard */
+.command-form:focus-within, .console-dock:focus-within { animation: none; }
+.ost-list { position: relative; }   /* rows measure offsetTop from the list, not the page */
