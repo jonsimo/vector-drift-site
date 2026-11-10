@@ -133,6 +133,7 @@
     if (!open) consoleDock.style.height = "";
     consoleState = !open ? "collapsed" : engage || consoleState === "active" ? "active" : "preview";
     consoleDock.dataset.expanded = String(open);
+    document.body.classList.toggle("console-open", open);
     consoleDock.dataset.mode = consoleState;
     consoleHistory.setAttribute("aria-hidden", String(!open));
     consoleHistory.inert = !open;

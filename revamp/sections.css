@@ -579,3 +579,8 @@ body[data-bloom="on"] { --glow: 0 0 2px rgba(var(--phos-rgb),.72), 0 0 13px rgba
 .console-program .vd-pi-body { overflow-wrap: anywhere; }
 .program-keys { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-top: 6px; }
 .program-keys button { font-size: 16px; }
+
+/* the rest of the site dims while the console is open, and fades back when it closes */
+body::after { content: ""; position: fixed; inset: 0; z-index: 65; background: rgba(0, 3, 2, .5); opacity: 0; pointer-events: none; transition: opacity 260ms ease; }
+body.console-open::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { body::after { transition: none; } }
