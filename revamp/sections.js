@@ -638,6 +638,22 @@
     const [name, text] = FILE_TEXT[nav.section];
     return { ...response, lines: ["load " + name, ...text], suggestions: [], effects: response.effects.filter(e => e !== nav) };
   }
+  // Centre "sound" across the whole bottom-left strip (window edge to the directory divider).
+  const railFoot = document.querySelector(".rail-foot"), directoryEl = document.getElementById("directory");
+  function placeFoot() {
+    if (!railFoot) return;
+    if (!matchMedia("(min-width: 681px)").matches) { railFoot.classList.remove("floated"); return; }
+    const d = directoryEl.getBoundingClientRect(), f = railFoot.getBoundingClientRect();
+    railFoot.classList.add("floated");
+    railFoot.style.setProperty("--foot-w", Math.round(d.right) + "px");
+    railFoot.style.setProperty("--foot-top", Math.round(f.top) + "px");
+  }
+  if (railFoot) {
+    new ResizeObserver(placeFoot).observe(directoryEl);
+    window.addEventListener("resize", placeFoot);
+    directoryEl.addEventListener("scroll", placeFoot, { passive: true });
+    placeFoot();
+  }
   async function executeConsole(raw) {
     expireChoices();
     const epoch = ++commandEpoch;

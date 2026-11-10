@@ -589,11 +589,16 @@ body.console-open::after { opacity: 1; }
 body:not(.console-used) #prompt-path { display: none; }
 body.console-used .command-form label > span:first-child { display: none; }
 
-/* ASCII speaker left of "sound"; fixed width so the group never shifts when it toggles, and the
-   trailing letter-spacing is cancelled so the whole group sits dead centre under the directory */
-.sound-toggle { padding-left: .1em; }
-.sound-ico { display: inline-block; width: 4ch; margin-right: 1.4ch; text-align: left; color: var(--hot); text-shadow: 0 0 3px rgba(var(--hot-rgb),.8), 0 0 9px rgba(var(--phos-rgb),.6); letter-spacing: 0; white-space: pre; }
-.sound-toggle[aria-pressed="false"] .sound-ico { color: rgba(var(--phos-rgb),.45); text-shadow: none; }
-
-/* 1980s terminal look for the social icons: straight edges only, square corners, hard pixels */
-.social svg { stroke-linejoin: miter; stroke-linecap: square; shape-rendering: crispEdges; stroke-width: 1.5; }
+/* angular speaker icon left of "sound". The group is centred across the whole bottom-left strip,
+   window edge to the divider: the button is fixed-positioned (sections.js sets --foot-w / --foot-top)
+   and the in-flow .rail-foot only reserves its room. Phones keep it in the flow. */
+.sound-toggle { display: inline-flex; align-items: center; justify-content: center; gap: .55em; padding-left: .1em; }
+.sound-ico { width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: miter; stroke-linecap: square; shape-rendering: crispEdges; color: var(--hot); filter: drop-shadow(0 0 3px rgba(var(--hot-rgb),.7)); }
+.sound-ico .mute { display: none; }
+.sound-toggle[aria-pressed="false"] .sound-ico { color: rgba(var(--phos-rgb),.45); filter: none; }
+.sound-toggle[aria-pressed="false"] .sound-ico .waves { display: none; }
+.sound-toggle[aria-pressed="false"] .sound-ico .mute { display: block; }
+@media (min-width: 681px) {
+  .rail-foot.floated { visibility: hidden; }
+  .rail-foot.floated .sound-toggle { visibility: visible; position: fixed; left: 0; top: var(--foot-top, auto); width: var(--foot-w, auto); text-align: center; z-index: 60; }
+}
