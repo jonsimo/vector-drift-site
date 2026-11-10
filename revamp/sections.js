@@ -344,14 +344,8 @@
     a.append(element("span", "", label), element("span", "ext-value", value), element("span", "", tag));
     return a;
   }
-  function onward(targets) {
-    const row = element("div", "home-actions onward");
-    for (const [label, target] of targets) {
-      const b = element("button", "vd-quick", `[ ${label} ]`); b.type = "button";
-      b.addEventListener("click", () => showSection(target)); row.append(b);
-    }
-    content.append(row);
-  }
+  // The directory is the navigation now; the repeated bottom link row was on every page and Jon cut it (2026-11-10).
+  function onward() {}
   if (DISCORD_URL) document.querySelectorAll('a[data-section="discord"]').forEach(a => { a.removeAttribute("data-section"); a.href = DISCORD_URL; a.target = "_blank"; a.rel = "noopener noreferrer"; });
   function copy(title, paragraphs) {
     content.append(heading(title));
@@ -390,7 +384,18 @@
       [["PLATFORMS", "macOS / WINDOWS / LINUX"], ["DOWNLOAD", "NOT YET AVAILABLE"]].forEach(([a,b])=>{
         const row = element("div", "fact-row"); row.append(element("span","",a),element("span","",b)); page.append(row);
       });
-      onward([["SEE THE GAME","media"],["GET EMAIL UPDATES","email"],["HOME","root"]]);
+      // Three gameplay clips. Placeholder slots until clip_0N.gif are dropped into revamp/media/ (Jon 2026-11-10).
+      const clips = element("div", "about-clips");
+      [["01","DRIFT + DODGE"],["02","FORMATION BREAK"],["03","BOSS RUN"]].forEach(([n,cap])=>{
+        const fig = element("figure", "about-clip missing");
+        const img = element("img", "clip-gif"); img.loading = "lazy"; img.decoding = "async"; img.alt = cap;
+        img.addEventListener("load", ()=>fig.classList.remove("missing"));
+        img.addEventListener("error", ()=>fig.classList.add("missing"));
+        img.src = `media/clip_${n}.gif`;
+        fig.append(img, element("span","clip-slot",`[ CLIP ${n} // GIF ]`), element("figcaption","clip-cap",cap));
+        clips.append(fig);
+      });
+      content.append(clips);
     } else if (section === "soundtrack") {
       const head = element("div", "section-heading inline-tag");
       head.append(element("h1", "", "OST.EXE"));
@@ -516,7 +521,9 @@
       const mark=a.querySelector(".mark"); if(mark)mark.textContent=active?">":" ";
     });
     document.getElementById("section-path").textContent="/root/"+(PROGRAMS.includes(current)?current+".exe":paths[current]);
-    document.getElementById("prompt-path").textContent="root:/"+(current === "root" || PROGRAMS.includes(current) ? "" : paths[current].replace(/\/$/,""));
+    // the prompt shows the directory you are in: a file (about.txt, links.lnk, download.exe ...) leaves you in root:/
+    { const p = paths[current] || "", dir = current === "root" || PROGRAMS.includes(current) ? "" : p.endsWith("/") ? p.slice(0, -1) : p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
+      document.getElementById("prompt-path").textContent = "root:/" + dir; }
     document.getElementById("section-count").textContent=current === "media"?"06 FILES":current === "soundtrack"?"23 TRACKS":"";
     document.getElementById("terminal-output").classList.toggle("is-soundtrack",current === "soundtrack");
     tree.hidden=current !== "media";
@@ -677,6 +684,8 @@
     const now = new Date();
     const logged = window.VDCmdLog ? window.VDCmdLog.command(raw) : null;
     if (logged) { report(logged, String(raw).trim()); markUsed(); updateCaret(); return; }
+    // a bare Enter does what a shell does: a fresh prompt line, nothing printed
+    if (!String(raw).trim()) { report([], " "); markUsed(); updateCaret(); return; }
     let response = Engine.execute(raw, consoleSession, { section: current === "soundtrack" ? "ost" : current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
     // anything the site's own commands do not know is answered by the shared topics layer
     let fromTopics = false;
@@ -693,7 +702,7 @@
     historyIndex = consoleSession.history.length;
     draft = "";
     if (window.VDCmdLog) window.VDCmdLog.add(raw, /^REQUEST NOT RECOGNIZED/.test(response.lines[0] || "") ? "none" : "ok", "site");
-    if (response.lines.length || response.echo || response.suggestions.length) report(response.lines.length ? response.lines : ["CHANNEL READY."], response.echo, response.suggestions);
+    if (response.lines.length || response.echo || response.suggestions.length) report(response.lines, response.echo || String(raw).trim(), response.suggestions);
     markUsed();
     updateCaret();
     for (const effect of response.effects) {

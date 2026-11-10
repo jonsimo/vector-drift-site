@@ -21,7 +21,7 @@ a:focus-visible,button:focus-visible,input:focus-visible { outline: 1px solid va
 .site-shell { width: min(1440px, calc(100% - 72px)); margin: 24px auto; display: grid; grid-template-rows: auto auto minmax(0,1fr) auto; height: calc(100dvh - var(--review-height,42px) - 48px); min-height: 0; }
 .masthead { display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line); padding: 0 0 18px; min-width: 0; }
 .brand { display: block; width: max-content; max-width: 100%; }
-.small-logo { font: 7px/1.02 "VD Logo Mono", monospace; letter-spacing: 0; white-space: pre; margin: 0; color: var(--phos); text-shadow: 0 0 1px rgba(var(--hot-rgb),.7), 0 0 5px rgba(var(--phos-rgb),.4); }
+.small-logo { font: 8.5px/1.02 "VD Logo Mono", monospace; letter-spacing: 0; white-space: pre; margin: 0; color: var(--phos); text-shadow: 0 0 1px rgba(var(--hot-rgb),.7), 0 0 5px rgba(var(--phos-rgb),.4); }
 .small-logo .drift { color: var(--logo-drift); }
 .site-status { font-size: 14px; white-space: nowrap; }
 .live-dot { color: var(--hot); margin-left: 1.5ch; }
@@ -341,8 +341,8 @@ body[data-bloom="on"] .vd-row.current, body[data-bloom="on"] .vd-row:hover { tex
 @media (max-width: 680px) { .rail-foot { margin-right: -20px; margin-bottom: -8px; } }
 
 /* subtitle under the small logo */
-.masthead { position: relative; padding-bottom: 32px; }
-.tagline { position: absolute; left: 0; bottom: 9px; font-size: 12px; letter-spacing: .2em; white-space: nowrap; color: rgba(var(--phos-rgb),.6); text-shadow: none; pointer-events: none; }
+.masthead { position: relative; padding-bottom: 22px; }
+.tagline { position: absolute; left: 0; bottom: 4px; font-size: 12px; letter-spacing: .2em; white-space: nowrap; color: rgba(var(--phos-rgb),.6); text-shadow: none; pointer-events: none; }
 @media (max-width: 680px) { .masthead, body[data-layout="desk"] .masthead { padding-bottom: 26px; } .tagline { font-size: 10px; letter-spacing: .14em; bottom: 7px; } }
 
 /* ---- audio/ (soundtrack): the OST player lives in the page itself ---- */
@@ -622,7 +622,7 @@ body.console-used .command-form label > span:first-child { display: none; }
 @media (max-width: 680px) {
   .tagline { display: none; }
   .masthead, body[data-layout="desk"] .masthead { padding-bottom: 16px; gap: 6px; align-items: center; }
-  .small-logo { font-size: 1.08vw; }
+  .small-logo { font-size: 1.28vw; }
   .social { gap: 0; margin-left: auto; justify-content: flex-end; }
   .social svg { width: 35px; height: 35px; }
   .social a { padding: 3px; }
@@ -639,3 +639,15 @@ body.console-used .command-form label > span:first-child { display: none; }
 /* no flicker animation on the console row while typing: a continuously animated ancestor makes iOS drop the keyboard */
 .command-form:focus-within, .console-dock:focus-within { animation: none; }
 .ost-list { position: relative; }   /* rows measure offsetTop from the list, not the page */
+
+@media (max-width: 680px) { body.nav-open .directory .rail-foot { display: none; } }
+
+/* about page gameplay clips (placeholder slots until media/clip_0N.gif exist) */
+.about-clips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0 8px; }
+.about-clip { position: relative; margin: 0; aspect-ratio: 16 / 10; border: 1px solid var(--line); overflow: hidden; background: rgba(var(--phos-rgb),.04); }
+.about-clip .clip-gif { display: block; width: 100%; height: 100%; object-fit: cover; }
+.about-clip.missing .clip-gif { visibility: hidden; }
+.about-clip .clip-slot { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; font-size: 13px; letter-spacing: .12em; color: rgba(var(--phos-rgb),.6); text-align: center; }
+.about-clip.missing .clip-slot { display: flex; }
+.about-clip .clip-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 8px; font-size: 12px; letter-spacing: .1em; color: var(--hot); background: linear-gradient(transparent, rgba(0,0,0,.72)); }
+@media (max-width: 680px) { .about-clips { grid-template-columns: 1fr; gap: 12px; } }

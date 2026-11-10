@@ -25,7 +25,7 @@
     "no confirmed release date, price or steam page is configured here": "release date ........... dec 2026 // price: none yet // steam page: none yet",
     "no release date is confirmed here": "release date ........... dec 2026",
     "use email for announcements; the demo remains held": "type email for updates",
-    "pick a request, or type help all for every command": "type help all for every command",
+    "pick a request, or type help all for every command": ["files ................. about media soundtrack devlog links download", "games ................ snake pi", "contact .............. email discord contact", "type help all for every command"],
     "no matching action found. you can choose a request below or type help": "__NF__",
     "unknown category. try help, help all, or man <command>": "help: unknown category // try: help all",
     "opening the ost previews": "load soundtrack/",
@@ -105,7 +105,11 @@
   function apply(lines, raw) {
     var head = String(raw || "").trim().split(/\s+/)[0] || "";
     var out = [];
-    (lines || []).forEach(function (l) { var v = one(l, raw, head); if (v !== null && v !== undefined) out.push(v); });
+    (lines || []).forEach(function (l) {
+      var v = one(l, raw, head);
+      if (Array.isArray(v)) v.forEach(function (x) { out.push(x); });
+      else if (v !== null && v !== undefined) out.push(v);
+    });
     return out.length || !(lines || []).length ? out : ["ok"];
   }
   return { apply: apply, one: one };
