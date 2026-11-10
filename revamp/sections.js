@@ -664,11 +664,17 @@
     if (logged) { report(logged, String(raw).trim()); markUsed(); updateCaret(); return; }
     let response = Engine.execute(raw, consoleSession, { section: current === "soundtrack" ? "ost" : current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
     // anything the site's own commands do not know is answered by the shared topics layer
+    let fromTopics = false;
     if (/^REQUEST NOT RECOGNIZED/.test(response.lines[0] || "")) {
       const extra = topicAnswer(raw);
-      if (extra) response = { lines: extra.lines, echo: response.echo, suggestions: [], effects: extra.effects };
+      if (extra) { response = { lines: extra.lines, echo: response.echo, suggestions: [], effects: extra.effects }; fromTopics = true; }
     }
     response = openInline(response);
+    // bare-bones terminal voice for the engine's own sentences (file contents and data output stay as they are)
+    const rawHead = String(raw).trim().split(/\s+/)[0].toLowerCase();
+    if (!fromTopics && window.VDConsoleVoice && !/^load /.test(response.lines[0] || "") && !["echo", "cat", "history", "tree", "ls", "dir", "list", "banner", "stars", "calc", "hex", "binary", "rot13", "decode", "find", "apropos", "man"].includes(rawHead)) {
+      response = { ...response, lines: window.VDConsoleVoice.apply(response.lines, String(raw).trim()) };
+    }
     historyIndex = consoleSession.history.length;
     draft = "";
     if (window.VDCmdLog) window.VDCmdLog.add(raw, /^REQUEST NOT RECOGNIZED/.test(response.lines[0] || "") ? "none" : "ok", "site");
