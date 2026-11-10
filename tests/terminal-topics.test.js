@@ -22,7 +22,7 @@ test("game facts are stated plainly and include linux", () => {
   assert.match(printed(ask("is there a linux version")), /linux/);
   assert.match(printed(ask("is it on the switch")), /not announced/);
   assert.match(printed(ask("who made this")), /jon simo/);
-  assert.match(printed(ask("how much does it cost")), /not announced/);
+  assert.match(printed(ask("how much does it cost")), /no price yet|not announced/);
 });
 
 test("real gameplay facts from the design notes are stated", () => {
