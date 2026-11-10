@@ -251,7 +251,7 @@
     [/\b(saves?|save game|saving|checkpoints?|progress saving|autosave)\b/, "saves"],
     [/\b(co-?op|coop|multiplayer|multi player|two player|2 player|online|pvp|versus|local play|split screen|friends)\b/, "coop"],
     [/\b(leaderboards?|rankings?|ranks?|high ?scores?|scores?|scoreboard|achievements?|trophies|stats|top (rank|score|player))\b/, "board"],
-    [/\b(price|cost|how much|free|paid|pay|purchase|steam|itch|epic|store|microtransactions?|dlc|subscription|ads)\b/, "price"],
+    [/\b(price|cost|how much|free|paid|pay|purchase|steam(?! deck)|itch|epic|store|microtransactions?|dlc|subscription|ads)\b/, "price"],
     [/\b(platforms?|mac|macos|osx|windows|win10|win11|pc|linux|steam deck|switch|nintendo|playstation|ps4|ps5|xbox|console version|ios|iphone|ipad|android|mobile|phone|tablet|browser|web version|chrome|safari|firefox)\b/, "platform"],
     [/\b(who (made|makes|built|created|developed|designed|wrote|is behind)|developer|dev|creator|author|studio|team|jon|simo|credits)\b/, "creator"],
     [/\b(discord|server|community|join|chat|forum|reddit|subreddit)\b/, "discord"],
@@ -293,11 +293,11 @@
       return lines(compose(c, ["persistence query detected", "save-data query detected", "checkpoint query detected"], ["save system ............ not published", "saves ................... details arrive with the beta", "progress ................ stored by the game, not by this console"], function (x) { return x; })).concat([OPEN("> devlog/", "devlog")]);
     },
     coop: function (c) {
-      return lines(compose(c, ["multiplayer query detected", "co-op query detected", "social play query detected"], ["co-op exists // two ships, teal and orange", "two pilots // one shared score and a team rank", "no second pad: an AI partner flies the other ship"], function (x) { return x; })).concat([DOT("team power-ups", "death tether / fusion beam / firebomb / more"), DOT("revive", "a downed partner can be brought back"), DOT("online", "not announced")]);
+      return lines(compose(c, ["multiplayer query detected", "co-op query detected", "social play query detected"], ["co-op exists // two ships, teal and orange", "two pilots // one shared score and a team rank", "no second pad: an AI partner flies the other ship"], function (x) { return x; })).concat([DOT("team power-ups", "death tether / fusion beam / firebomb / more"), DOT("revive", "a downed partner can be brought back"), DOT("online co-op", "not announced")]);
     },    board: function (c) {
       return lines(compose(c, ["ranking query detected", "score query detected", "rank query detected"], ["pilot rank is a file permission // safe-mode up to root", "score and rank are recorded // leaderboards are not announced", "every run ends in a recap: score, rating, bonuses, rank"], function (x) { return x; })).concat([DOT("rank ladder", "safe-mode > read-only > user > read/write > sys_admin > root"), META("the only open scoreboard is snake.exe // type snake")]);
     },    price: function (c) {
-      return lines(compose(c, ["pricing query detected", "cost query detected", "store query detected"], ["price .................. not announced", "pricing ................ unpublished // the demo is not out yet", "store page ............. none // no purchase is possible yet"], function (x) { return x; })).concat([META("updates reach you first by email: type email.exe")]);
+      return lines(compose(c, ["pricing query detected", "cost query detected", "store query detected"], ["price .................. not announced yet", "no price yet // the demo is not out yet", "steam page ............. none yet // no purchase is possible yet", "store page ............. none yet // price: not announced yet"], function (x) { return x; })).concat([META("updates reach you first by email: type email.exe")]);
     },
     platform: function (c, n) {
       var other = /\b(switch|nintendo|playstation|ps4|ps5|xbox|ios|iphone|ipad|android|mobile|phone|tablet|browser|web|steam deck|chrome|safari|firefox)\b/.test(n);

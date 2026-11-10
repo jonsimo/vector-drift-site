@@ -58,12 +58,28 @@
     }
     return best;
   }
+  // Rows have a tall hit-area (easy to press); the reticle frames just their text, without the marker glyph.
+  var SNUG = ".vd-row, .hand-row, .file-link";
+  function snug(t) {
+    if (t.matches && t.matches(SNUG)) {
+      var w = document.createTreeWalker(t, NodeFilter.SHOW_TEXT, { acceptNode: function (n) {
+        return /\S/.test(n.nodeValue) && !(n.parentElement && n.parentElement.closest(".mark, .hand-mark")) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
+      var first = w.nextNode(), last = first, n;
+      while ((n = w.nextNode())) last = n;
+      if (first) {
+        var rg = document.createRange(); rg.setStartBefore(first); rg.setEndAfter(last);
+        var rr = rg.getBoundingClientRect();
+        if (rr.width && rr.height) return rr;
+      }
+    }
+    return t.getBoundingClientRect();
+  }
   function aim(el) {
     var t = el && el.closest && el.closest(CLICKABLE);
     if (!t) t = magnet();
     rets[rets.length - 1].classList.toggle("lock", !!t);
     if (t) {
-      var r = t.getBoundingClientRect(), pad = 5;
+      var r = snug(t), pad = 4;
       target = { x: r.left - pad, y: r.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 };
     } else target = { x: mx - 11, y: my - 11, w: 22, h: 22 };
   }
