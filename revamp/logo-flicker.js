@@ -1,7 +1,7 @@
 /* Vector Drift — small logo, now and then. Every so often the masthead logo
    redraws itself the way the big boot logo appears: row by row, each character
    scrambles through glyphs and then locks into place, left to right, with a
-   brief bright flash as it lands. About a second long. Skipped for reduced
+   brief bright flash as it lands. About a second long, at random intervals with at least 10 s between. Skipped for reduced
    motion, while the tab is hidden and while the boot handoff is still arriving. */
 (function () {
   "use strict";
@@ -79,8 +79,9 @@
     requestAnimationFrame(frame);
   }
 
-  // first one a few seconds after arriving, then every 20-30 s
-  function later(ms) { setTimeout(function () { play(); later(20000 + Math.random() * 10000); }, ms); }
-  later(8000);
+  // At random intervals, never closer than 10 s of stillness between redraws. The redraw itself takes
+  // about 1.3 s, so the gap is counted from its start: 11.5 s minimum, up to about 35 s.
+  function later(ms) { setTimeout(function () { play(); later(11500 + Math.random() * 23500); }, ms); }
+  later(10000 + Math.random() * 8000);
   window.VDLogoFlicker = { play: play };
 })();
