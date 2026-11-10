@@ -14,6 +14,7 @@
   const consoleRun = document.querySelector(".console-run");
   const consoleDock = document.querySelector(".console-dock");
   const consoleLines = document.querySelector(".console-lines");
+  const commandForm = document.querySelector(".command-form");
   const caretMeasure = document.querySelector(".caret-measure");
   const caret = document.querySelector(".console-caret");
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -40,7 +41,7 @@
   let generation = 0;
   let directoryIndex = 1;
   let commandEpoch = 0;
-  let activeProgram = null;
+  let programName = null;   // "snake" | "pi" while a console program owns the window
   let historyIndex = 0;
   let draft = "";
   // Up / Down in an empty console cycles through commands that do something fun.
@@ -113,8 +114,10 @@
     // Never move or resize the transcript between a press and its release:
     // a target that shifts under the pointer turns the click into nothing.
     if (pointerHeld) { sizePending = true; return; }
-    const lineHeight = parseFloat(getComputedStyle(consoleLines).lineHeight);
-    const height = consoleState !== "collapsed" ? Math.min(consoleLines.scrollHeight, lineHeight * 6, innerHeight * .26) : 0;
+    // the transcript sits above the prompt, so the prompt drops down as lines arrive; once the window is full it scrolls
+    const formH = programName ? 0 : commandForm.offsetHeight + 20;
+    const room = Math.max(80, innerHeight * (programName ? .8 : .56) - formH);
+    const height = consoleState !== "collapsed" ? Math.min(consoleLines.scrollHeight, room) : 0;
     if (instant) consoleHistory.style.transition = "none";
     consoleHistory.style.height = `${height}px`;
     if (instant) { void consoleHistory.offsetHeight; requestAnimationFrame(() => { consoleHistory.style.transition = ""; }); }
@@ -128,6 +131,8 @@
   function setConsoleOpen(open, engage = false) {
     clearTimeout(collapseTimer);
     const reopening = open && consoleState === "collapsed";
+    if (open && consoleDock.dataset.expanded !== "true") consoleDock.style.height = consoleDock.offsetHeight + "px";
+    if (!open) consoleDock.style.height = "";
     consoleState = !open ? "collapsed" : engage || consoleState === "active" ? "active" : "preview";
     consoleDock.dataset.expanded = String(open);
     consoleDock.dataset.mode = consoleState;
@@ -152,13 +157,12 @@
   function scheduleCollapse() {
     clearTimeout(collapseTimer);
     collapseTimer = setTimeout(() => {
-      if (!pointerInConsole && !pointerHeld && !consoleDock.contains(document.activeElement)) setConsoleOpen(false);
+      if (!programName && !pointerInConsole && !pointerHeld && !consoleDock.contains(document.activeElement)) setConsoleOpen(false);
     }, 280);
   }
   consoleDock.addEventListener("pointerenter", e => {
     if (e.pointerType !== "mouse" || !matchMedia("(min-width: 681px) and (hover: hover)").matches) return;
     pointerInConsole = true;
-    if (!dismissedWhileHovered) setConsoleOpen(true);
   });
   consoleDock.addEventListener("pointerleave", () => {
     pointerInConsole = false;
@@ -217,7 +221,7 @@
     }
     consoleLines.append(entry);
     while (consoleLines.childElementCount > 80) consoleLines.firstElementChild.remove();
-    transcriptAnchor = entry;
+    transcriptAnchor = "bottom";
     setConsoleOpen(true);
     sizeHistory(false, true);
     consoleResponse.textContent = lengthy ? lines.slice(0,2).join("\n")+" Full response available with Read all." : lines.join("\n");
@@ -383,8 +387,8 @@
     }
     if (section === "media") { media(); return; }
     if (section === "about") {
-      const page = copy("VECTOR DRIFT", ["A retro vector space shooter.", "Precision. Momentum. Escalating enemy formations.", "Vector Drift is being built for macOS and Windows. The alpha demo is not available yet."]);
-      [["PLATFORMS", "macOS / WINDOWS"], ["DOWNLOAD", "NOT YET AVAILABLE"]].forEach(([a,b])=>{
+      const page = copy("VECTOR DRIFT", ["A retro vector space shooter.", "Precision. Momentum. Escalating enemy formations.", "Vector Drift is being built for macOS, Windows and Linux. The alpha demo is not available yet."]);
+      [["PLATFORMS", "macOS / WINDOWS / LINUX"], ["DOWNLOAD", "NOT YET AVAILABLE"]].forEach(([a,b])=>{
         const row = element("div", "fact-row"); row.append(element("span","",a),element("span","",b)); page.append(row);
       });
       onward([["SEE THE GAME","media"],["GET EMAIL UPDATES","email"],["HOME","root"]]);
@@ -470,7 +474,7 @@
     const beta = element("div", "home-beta", "EARLY ACCESS BETA ON DISCORD // DEC 2026");
     const text = element("div", "home-text");
     text.append(element("h1", "home-title", "A RETRO VECTOR SPACE SHOOTER"), element("p", "home-lede", "Precision. Momentum. Escalating enemy formations."));
-    text.append(element("p", "home-sub", "Built for macOS and Windows. The alpha demo is not out yet."));
+    text.append(element("p", "home-sub", "Built for macOS, Windows and Linux. The alpha demo is not out yet."));
     const actions = element("div", "home-actions");
     const join = element("a", "vd-quick home-primary", "[ JOIN THE DISCORD ]"); join.href = DISCORD_URL; join.target = "_blank"; join.rel = "noopener noreferrer";
     const mail = element("button", "vd-quick", "[ GET EMAIL UPDATES ]"); mail.type = "button"; mail.addEventListener("click", () => showSection("email"));
@@ -527,7 +531,7 @@
     if (!sections.includes(section)) return;
     if (source !== "console") { commandEpoch++;expireChoices(true); }
     if (section !== "reference") lastSiteSection = section;
-    activeProgram = null;
+    endProgram();
     stopOst();
     stopHome();
     const id=++generation;
@@ -556,40 +560,73 @@
   document.querySelector(".mobile-toggle").addEventListener("click",e=>{
     const open=document.body.classList.toggle("nav-open");e.currentTarget.setAttribute("aria-expanded",String(open));
   });
-  function launchProgram(name, routeMode="push", autoFocus=true) {
-    if (name === "ost") { showSection("soundtrack", false, "console", routeMode === "none" ? "none" : routeMode === "replace" ? "replace" : "push"); return; }
-    const launchEpoch = commandEpoch;
-    ++generation;
-    activeProgram = null;
-    current = name;
-    currentReader = null;
-    routeNotice = "";
-    writeRoute(routeMode);
-    updateReviewLinks();
-    content.replaceChildren();
-    content.classList.remove("changing");
-    content.append(heading(name.toUpperCase()+".EXE"));
-    const close = element("button", "vd-quick", "[ CLOSE PROGRAM ]");
-    close.type = "button";
-    close.addEventListener("click", () => showSection("root"));
-    const frame = element("iframe", "console-program");
-    frame.title = {snake:"ASCII Snake",pi:"Pi digit stream",ost:"Vector Drift OST previews"}[name];
-    if (name === "ost") frame.allow = "autoplay";
-    frame.src = `console-program.html?program=${name}`;
-    content.append(close, frame);
-    activeProgram = frame;
-    syncNavigation();
-    closeDirectory();
-    frame.addEventListener("load", () => { if (autoFocus && activeProgram === frame && commandEpoch === launchEpoch && !input.value) frame.focus({preventScroll:true}); }, {once:true});
+  // Snake and pi run inside the console window itself: the prompt steps aside, the
+  // program draws in the transcript, and the prompt comes back when it ends.
+  let programEntry = null;
+  const PROGRAM_KEYS = {
+    snake: [["UP","ArrowUp"],["LEFT","ArrowLeft"],["DOWN","ArrowDown"],["RIGHT","ArrowRight"],["PAUSE","p"],["RESTART","Enter"],["QUIT","Escape"]],
+    pi: [["STOP","Escape"]]
+  };
+  const pressKey = key => document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+  function endProgram() { if (programName) pressKey("Escape"); }
+  function fitProgram() {
+    // snake is 48 columns by ~22 lines of text: size the type so the whole board fits the window
+    const w = Math.max(160, consoleLines.clientWidth - 8), h = innerHeight * .8 - 70;
+    consoleDock.style.setProperty("--program-font", Math.max(6, Math.min(18, w / (50 * .6), h / (23 * 1.1))) + "px");
   }
-  window.addEventListener("message", event => {
-    if (event.origin !== location.origin || event.source !== activeProgram?.contentWindow || event.data?.type !== "vd:program-ended") return;
-    const name = current;
-    showSection("root");
-    const [statKey, statLabel] = {snake:["score","score"], pi:["digits","digits"], ost:["played","tracks heard"]}[name];
-    const stat = event.data[statKey];
-    report(name+".exe // session ended"+(Number.isFinite(stat)?` // ${statLabel} ${stat}`:""));
-  });
+  async function runProgram(name) {
+    if (programName) return;
+    const runner = name === "snake" ? window.VDSnake : window.VDPi;
+    if (!runner) { report(name.toUpperCase() + ".EXE NOT AVAILABLE."); return; }
+    const entry = element("div", "console-entry console-program");
+    const out = element("div", "program-out");
+    const keys = element("div", "program-keys");
+    for (const [label, key] of PROGRAM_KEYS[name]) {
+      const b = element("button", "vd-quick", `[ ${label} ]`); b.type = "button";
+      b.addEventListener("click", () => pressKey(key));
+      keys.append(b);
+    }
+    entry.append(out, keys);
+    consoleLines.append(entry);
+    programEntry = entry; programName = name;
+    consoleDock.dataset.program = name;
+    if (document.activeElement === input) input.blur();
+    fitProgram();
+    setConsoleOpen(true, true);
+    sizeHistory(true, true);
+    let result = {};
+    try { result = await runner.launch({ output: out, base: "ost/" }) || {}; } catch (e) {}
+    programEntry = null; programName = null;
+    delete consoleDock.dataset.program;
+    entry.remove();
+    const stat = name === "snake" ? result.score : result.digits;
+    report(name + ".exe // session ended" + (Number.isFinite(stat) ? ` // ${name === "snake" ? "score" : "digits"} ${stat}` : ""));
+    focusConsole();
+    sizeHistory(true, true);
+  }
+  window.addEventListener("resize", () => { if (programName) fitProgram(); });
+  function launchProgram(name) {
+    if (name === "ost") { showSection("soundtrack", false, "console"); return; }
+    runProgram(name);
+  }
+  const topicSession = window.VDIntents ? window.VDIntents.createSession() : null;
+  function topicAnswer(raw) {
+    if (!topicSession) return null;
+    const normalized = window.VDIntents.normalizeTerminalInput(raw).normalized;
+    if (!normalized) return null;
+    const { steps } = window.VDIntents.selectUnknown(topicSession, Math.random, normalized, raw);
+    const lines = [], effects = [];
+    for (const st of steps) {
+      if (st.type === "print" || st.type === "typed") lines.push(st.text || "");
+      else if (st.type === "link" || st.type === "open") lines.push(st.text || "");
+      else if (st.type === "goto") effects.push({ type: "navigate", section: st.section });
+      else if (st.type === "run") {
+        if (st.command === "email.exe") effects.push({ type: "navigate", section: "email" });
+        else if (st.command === "snake" || st.command === "pi") effects.push({ type: "program", name: st.command });
+      }
+    }
+    return lines.length ? { lines, effects } : null;
+  }
   async function executeConsole(raw) {
     expireChoices();
     const epoch = ++commandEpoch;
@@ -598,7 +635,12 @@
     const now = new Date();
     const logged = window.VDCmdLog ? window.VDCmdLog.command(raw) : null;
     if (logged) { report(logged, String(raw).trim()); updateCaret(); return; }
-    const response = Engine.execute(raw, consoleSession, { section: current === "soundtrack" ? "ost" : current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
+    let response = Engine.execute(raw, consoleSession, { section: current === "soundtrack" ? "ost" : current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
+    // anything the site's own commands do not know is answered by the shared topics layer
+    if (/^REQUEST NOT RECOGNIZED/.test(response.lines[0] || "")) {
+      const extra = topicAnswer(raw);
+      if (extra) response = { lines: extra.lines, echo: response.echo, suggestions: [], effects: extra.effects };
+    }
     historyIndex = consoleSession.history.length;
     draft = "";
     if (window.VDCmdLog) window.VDCmdLog.add(raw, /^REQUEST NOT RECOGNIZED/.test(response.lines[0] || "") ? "none" : "ok", "site");
@@ -676,14 +718,12 @@
     const state = event?.state?.section ? event.state : null;
     const route = state ? { section: state.section, reader: state.reader || null } : parseHash();
     if (routeKey(route) === currentKey()) return;
-    if (PROGRAMS.includes(route.section)) { commandEpoch++; expireChoices(true); launchProgram(route.section,"none",false); return; }
     const resolved = Routes.resolveRoute(route, readers);
     if (route.section === "media" && Number.isInteger(state?.frame)) selectedFile = state.frame;
     showSection(resolved.route.section,false,"history",resolved.notice?"replace":"none",{ reader: resolved.route.reader, notice: resolved.notice });
   }
   window.addEventListener("popstate",restoreRoute);
   window.addEventListener("hashchange",()=>restoreRoute());
-  if(PROGRAMS.includes(current))launchProgram(current,"replace",false);
-  else showSection(current,true,"ui","push",initialRoute.reader?{notice:Routes.MISSING}:{});
+  showSection(current,true,"ui","push",initialRoute.reader?{notice:Routes.MISSING}:{});
   window.addEventListener("load",()=>window.dispatchEvent(new Event("vd:console-ready")),{once:true});
 })();

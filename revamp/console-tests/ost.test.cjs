@@ -17,7 +17,7 @@ test('music wording, CLI or everyday, opens the OST previews',()=>{
 test('music wording does not disturb the games or the unknown bank',()=>{
  assert.deepEqual(run('play snake').effects,[{type:'program',name:'snake'}]);
  assert.deepEqual(run('play something').effects,[]);
- assert.deepEqual(run('tell me about the music').effects,[]);
+ assert.deepEqual(run('tell me about the music').effects,[{type:'navigate',section:'soundtrack'}]); // topics layer: music means the soundtrack page
  assert.deepEqual(run('play banjo').effects,[]);
 });
 
@@ -52,7 +52,7 @@ test('soundtrack/ is its own directory entry that mounts the player in the page 
  assert.ok(html.indexOf('ost.js')<html.indexOf('sections.js'),'ost.js loads before sections.js');
  assert.ok(js.includes('"soundtrack"')&&js.includes('VDOst.mount')&&js.includes('ORIGINAL SCORE BY GAME CREATOR JON SIMO')&&ost.includes('45s Preview'));
  assert.ok(!/\bost:\s*\[/.test(prog),'ost no longer runs inside the iframe program frame');
- assert.ok(!/-5S|\+5S|VOL -|VOL \+|QUIT/.test(ost+js.slice(js.indexOf('"soundtrack"'))),'no -5s/+5s/volume/quit buttons');
+ assert.ok(!/-5S|\+5S|VOL -|VOL \+|QUIT/.test(ost+js.slice(js.indexOf('"soundtrack"')).replace(/const PROGRAM_KEYS[\s\S]*?\n  \};/,'')),'no -5s/+5s/volume/quit buttons');
  assert.ok(ost.includes('ost-gauge')&&ost.includes('ost-ico'));
  assert.ok(R.parseHash('#soundtrack',['root','soundtrack']).section==='soundtrack');
 });

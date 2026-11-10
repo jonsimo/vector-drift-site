@@ -298,7 +298,7 @@
         "when is it released", "when does the beta start", "is it out", "is it out yet", "when can i play",
         "when can i play it", "can i play it", "can i play", "early access", "beta", "demo", "alpha",
         "is there a demo", "is there a beta", "how do i get the beta", "how do i play", "how do i play it",
-        "how do i get it", "where can i get it", "how much", "price", "is it free", "how much is it", "how much does it cost",
+        "how do i get it", "where can i get it",
       ],
       build: buildRelease,
     },
@@ -475,7 +475,34 @@
       normalized: resolution.normalized,
       n: session.intentCounts[resolution.id],
     };
-    return { intentId: resolution.id, steps: intent.build(ctx) };
+    return { intentId: resolution.id, steps: noRepeat(session, function () { return intent.build(ctx); }) };
+  }
+
+  // Nothing is shown twice in one session. A reply is rebuilt (the builders vary on their
+  // own) until it is new; a builder with only one possible answer gets a plain repeat marker.
+  function replyKey(steps) {
+    return steps.filter(function (st) { return st.type !== "hold" && st.type !== "rewrite"; }).map(function (st) { return st.type + ":" + (st.text || st.section || st.command || ""); }).join("\n");
+  }
+  function noRepeat(session, produce, rebuild) {
+    const seen = session.seenReplies || (session.seenReplies = {});
+    let steps = produce(), key = replyKey(steps), tries = 0;
+    // rebuilding is only safe for pure builders; the intent builders spend once-per-session claims
+    while (rebuild && seen[key] && tries++ < 12) { steps = produce(); key = replyKey(steps); }
+    if (seen[key]) {
+      const n = (seen[key] = seen[key] + 1);
+      steps = [P("repeat query detected // instance " + n)].concat(steps);
+      key = replyKey(steps);
+    }
+    seen[key] = seen[key] || 1;
+    return steps;
+  }
+  let topicsModule;
+  function topicsApi() {
+    if (topicsModule !== undefined) return topicsModule;
+    try {
+      topicsModule = (typeof module !== "undefined" && module.exports) ? require("./terminal-topics.js") : (typeof self !== "undefined" && self.VDTopics) || null;
+    } catch (e) { topicsModule = null; }
+    return topicsModule;
   }
 
   // --- Unknown-command bank --------------------------------------------------
@@ -489,7 +516,14 @@
     "instruction ignored",
   ];
 
-  function selectUnknown(session, rng, normalized) {
+  function selectUnknown(session, rng, normalized, raw) {
+    const topics = normalized && topicsApi();
+    if (topics) {
+      session.unknownCount += 1;
+      const r = rng || Math.random;
+      const steps = noRepeat(session, function () { return withLead(r, topics.respond(raw == null ? normalized : raw, normalized, session, r)); }, true);
+      return { steps: steps, topic: true };
+    }
     if (normalized && isConversational(normalized)) {
       return { steps: converse(session, rng || Math.random, normalized), conversational: true };
     }
@@ -553,7 +587,7 @@
       H(randRange(rng, 380, 520)),
       P("initialize response directive"),
       H(randRange(rng, 520, 760)),
-      TY([t("greetings hairless monkey"), h(randRange(rng, 620, 900)), b("hairless monkey".length), h(260), t("humans")]),
+      TY([t("greetings hairless monkey"), h(randRange(rng, 620, 900)), b("hairless monkey".length), h(260), t("human")]),
     ];
   }
 
@@ -805,7 +839,7 @@
       P("VECTOR DRIFT"),
       P(""),
       P("type ................... retro vector shooter"),
-      P("platforms .............. macOS / windows"),
+      P("platforms .............. macOS / windows / linux"),
       P("release ................ early access beta // dec 2026"),
       H(420),
       OPEN("> about.txt", "about"),

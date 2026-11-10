@@ -429,8 +429,8 @@ body[data-bloom="on"] { --glow: 0 0 2px rgba(var(--phos-rgb),.72), 0 0 13px rgba
   35% { opacity: .8; } 40% { opacity: .98; } 45% { opacity: 1; } 50% { opacity: .86; } 55% { opacity: 1; } 60% { opacity: .95; } 65% { opacity: .78; }
   70% { opacity: 1; } 75% { opacity: .92; } 80% { opacity: 1; } 85% { opacity: .85; } 90% { opacity: 1; } 95% { opacity: .9; } 100% { opacity: 1; }
 }
-.content-pane, .directory, .console-dock { animation: phosphorFlicker .15s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .content-pane, .directory, .console-dock { animation: none; } }
+.content-pane, .directory, .console-history, .command-form { animation: phosphorFlicker .15s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .content-pane, .directory, .console-history, .command-form { animation: none; } }
 
 /* no footer, no status text: three grid rows */
 .site-shell { grid-template-rows: auto auto minmax(0, 1fr); }
@@ -459,20 +459,6 @@ body[data-bloom="on"] { --glow: 0 0 2px rgba(var(--phos-rgb),.72), 0 0 13px rgba
   .social a { padding: 4px; }
   .social .t { display: none; }
 }
-
-/* small logo: every ~11 s it glitches for a moment (DRIFT flares, the logo shudders a pixel) */
-.small-logo { animation: vdBrandShudder 11s steps(1, end) infinite 4s; }
-.small-logo .drift { animation: vdBrandFlare 11s steps(1, end) infinite 4s; }
-@keyframes vdBrandShudder { 0%, 94% { transform: none; } 94.5% { transform: translateX(-1px); } 95.5% { transform: translateX(2px); } 96.5% { transform: translateX(-1px); } 97.5%, 100% { transform: none; } }
-@keyframes vdBrandFlare {
-  0%, 94% { opacity: 1; text-shadow: inherit; }
-  94.5% { opacity: .55; }
-  95% { opacity: 1; text-shadow: -2px 0 rgba(36,245,207,.85), 2px 0 rgba(17,202,184,.6), 0 0 12px rgba(var(--hot-rgb), .9); }
-  96% { opacity: .7; }
-  96.5% { opacity: 1; text-shadow: 0 0 3px rgba(var(--hot-rgb), 1), 0 0 16px rgba(var(--hot-rgb), .85), 0 0 30px rgba(var(--phos-rgb), .6); }
-  98%, 100% { opacity: 1; text-shadow: inherit; }
-}
-@media (prefers-reduced-motion: reduce) { .small-logo, .small-logo .drift { animation: none; } }
 
 /* ===== directory without subheadings; targets hug their text so the reticle fits ===== */
 .dir-description { display: none !important; }
@@ -575,3 +561,21 @@ body[data-bloom="on"] { --glow: 0 0 2px rgba(var(--phos-rgb),.72), 0 0 13px rgba
   .social a { padding: 3px; }
   .masthead { gap: 8px; }
 }
+
+/* small logo re-draw (logo-flicker.js): scrambling glyphs, then a flash as each lands, like the big logo */
+.small-logo .lg { color: var(--glitch, #24f5cf); text-shadow: 0 0 2px rgba(36,245,207,.7); opacity: .9; }
+.small-logo .lh { color: var(--hot); text-shadow: 0 0 2px rgba(var(--hot-rgb),.95), 0 0 7px rgba(var(--phos-rgb),.7); }
+
+/* ===== console as a real command line: transcript above, prompt below, window floats over the page ===== */
+.console-dock, .console-dock[data-expanded="true"] { padding: 0; }
+.console-window { padding: 8px 0; display: flex; flex-direction: column; }
+.console-dock[data-expanded="true"] .console-window { position: absolute; left: 0; right: 0; top: 0; z-index: 80; background: #010604; border-bottom: 1px solid var(--line); box-shadow: 0 14px 22px rgba(0, 0, 0, .55); }
+.console-history, .console-dock[data-expanded="true"] .console-history { position: static; top: auto; left: auto; right: auto; background: none; box-shadow: none; border: 0; margin: 0 !important; }
+.console-dock[data-program] .command-form { display: none; }
+.console-dock[data-program] .console-window { padding-bottom: 4px; }
+/* programs draw inside the transcript */
+.console-program .vd-snake { font-family: inherit; font-size: var(--program-font, 12px); line-height: 1.1; color: inherit; white-space: pre; text-shadow: inherit; margin: 4px auto; width: max-content; }
+.console-program .vd-snake .snake-head, .console-program .vd-snake .snake-food { color: var(--hot); }
+.console-program .vd-pi-body { overflow-wrap: anywhere; }
+.program-keys { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-top: 6px; }
+.program-keys button { font-size: 16px; }

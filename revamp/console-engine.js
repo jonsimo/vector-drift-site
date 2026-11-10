@@ -104,7 +104,7 @@
   const TAKES_ARGS=new Set(COMMANDS.filter(c=>c.usage!==c.id).map(c=>c.id));
   const FILLER=/^(?:please|pls|now|again|thanks|thank you|for me|for me please|now please|please now)$/;
   const FILES=Object.assign(Object.create(null),{
-    '/root/about.txt':['VECTOR DRIFT','A retro vector space shooter.','Platforms: macOS / Windows.','Use media for visuals or email for release updates.'],
+    '/root/about.txt':['VECTOR DRIFT','A retro vector space shooter.','Platforms: macOS / Windows / Linux.','Use media for visuals or email for release updates.'],
     '/root/readme.txt':['VECTOR DRIFT RELAY','Ask normally or use commands. Use help all for the full catalog; Tab completes names.','This console is a self-contained interface.','Nothing typed here runs on your computer as a shell command.'],
     '/root/controls.txt':['CONSOLE CONTROLS','/ focus console | Tab complete | Up/Down history','Ctrl+C cancel current input | Escape fold console','Scroll up for older output. Read all opens long answers in the content pane.'],
     '/root/media/index.txt':['MEDIA ARCHIVE','frame_01.jpg ... frame_06.jpg','Six framegrabs. There is no trailer yet.'],
@@ -232,7 +232,7 @@
     if(!id&&/\b(?:ai|chatgpt|chatbot|llm)\b/.test(n))return finish(result(['This is a scripted, stateful terminal.','No remote AI service interprets your commands.'],[],['help','privacy']));
     if(!id&&/\b(?:secret|mystery|hidden)\b/.test(n))return finish(result(['The directory is a complete inventory.','Nothing is hidden here.'],[],nextSteps(s)));
     if(!id&&/\b(?:download|install)\b/.test(n))return finish(result(['LOOKING FOR THE DEMO?','ALPHA DEMO IS NOT YET AVAILABLE.'],[],['email','download']));
-    if(!id&&/\b(?:mac|macos|windows|linux|steam deck|iphone|android|mobile)\b/.test(n))return finish(result(['The currently listed game platforms are macOS and Windows.','Other platforms have not been confirmed.'],[],['about','email']));
+    if(!id&&/\b(?:mac|macos|windows|linux|steam deck|iphone|android|mobile)\b/.test(n))return finish(result(['The currently listed game platforms are macOS, Windows and Linux.','Other platforms have not been confirmed.'],[],['about','email']));
     if(!id&&/\b(?:play a game|play something|mini games|minigames)\b/.test(n))return finish(result(['AVAILABLE DIVERSIONS','A text flight trial, number lock, rock-paper-scissors, dice, and ASCII Snake.'],[],['simulate','guess','rps rock','snake']));
     if(!id&&/^(?:fuck|shit|damn|wtf|fuck you|this sucks)$/.test(n))return finish(result(['FRUSTRATION ACKNOWLEDGED.','Try something with a more predictable outcome.'],[],['joke','simulate','help']));
     if(!id&&/\b(release date|when .*release|when .*available|how much|price|steam|wishlist)\b/.test(n))return finish(result(['No confirmed release date, price or Steam page is configured here.','Use email for announcements; the demo remains held.'],[],['email','download']));
@@ -364,7 +364,7 @@
         r.lines.push(`HULL ${f.hull} / LUX ${f.lux} / WEAPON ${f.weapon} / SHIELD ${f.shield}`);
         if(f.hull<=0){r.lines.push('TRIAL TERMINATED. No real ship was harmed.');s.flight=null;r.suggestions=['simulate'];}else r.suggestions=['fire','evade','upgrade shield','dock'];break;
       }
-      case 'snake':case 'pi':r=result(`LOADING ${id}.exe — the console remains available outside the program.`,[{type:'program',name:id}]);break;
+      case 'snake':case 'pi':r=result(`LOADING ${id}.exe`,[{type:'program',name:id}]);break;
       case 'ost':r=result(['OPENING THE OST PREVIEWS.','23 tracks, 45-second clips, each with its own cover. Space pauses, N skips, Esc leaves.'],[{type:'program',name:'ost'}]);break;
       case 'sudo':r=result(rotate(s,'sudo',['LOCAL AUTHORITY UNAVAILABLE.','REMOTE AUTHORITY DECLINED.','REQUEST RECORDED. No privileges changed.']),[],['whoami','privacy']);break;
       case 'privacy':r=result(['LOCAL CONSOLE STATE','Commands, discoveries and text games live in this page memory.','No analytics, real gameplay telemetry, AI service or network calls power this console.','A typed email address opens signup, filled in. It is sent to the mailing list (Kit) only when you press SIGN UP, and is never added to history.','Narrative observation refers to this fictional relay.','Reload clears this session.']);break;

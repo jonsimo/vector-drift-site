@@ -7,7 +7,7 @@
 (function () {
   "use strict";
   var ROOTS = [".content-pane", ".directory", ".console-lines", ".masthead .tagline"];
-  var SKIP = "script, style, svg, input, textarea, pre, .small-logo, .sr-only, .caret-measure, .ost-host, .sound-toggle, .console-hint, .pb";
+  var SKIP = "script, style, svg, input, textarea, pre, .small-logo, .sr-only, .caret-measure, .ost-host, .sound-toggle, .console-hint, .console-program, .pb";
   var counter = 0, observer = null, busy = false;
 
   function wrap(node) {

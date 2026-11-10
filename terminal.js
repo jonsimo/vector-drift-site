@@ -2794,6 +2794,8 @@ async function runResponse(steps) {
       appendLinkLine(step);
     } else if (step.type === "goto") {
       if (window.VDHandoff) { window.VDHandoff.go(step.section); await sleep(2000); }
+    } else if (step.type === "run") {
+      await runCommand(step.command, step.command);
     } else if (step.type === "clock") {
       const d = new Date();
       appendResponse("local clock ............ " + d.toLocaleTimeString([], { hour12: false }) + "  " + d.toLocaleDateString(), "terminal-response");
@@ -2922,10 +2924,10 @@ async function runCommand(command, normalized) {
     return;
   }
 
-  await runLoreOrUnknown(normalized);
+  await runLoreOrUnknown(normalized, command);
 }
 
-async function runLoreOrUnknown(normalized) {
+async function runLoreOrUnknown(normalized, rawCommand) {
   const cmdlogLines = window.VDCmdLog ? window.VDCmdLog.command(normalized) : null;
   if (cmdlogLines) { responseLines(cmdlogLines); return; }
   if (normalized === "axiom") {
@@ -2983,8 +2985,8 @@ async function runLoreOrUnknown(normalized) {
   // Unknown-command bank + the one-per-session "...not designed for
   // conversation" / "yet" beat live in the intent layer (session owns the
   // counters). Lore hits above never reach here, so they never count as unknown.
-  const { steps, conversational } = VDI.selectUnknown(session, rng, normalized);
-  if (window.VDCmdLog) { try { window.VDCmdLog.mark(conversational ? "generic" : "none"); } catch (e) {} }
+  const { steps, conversational, topic } = VDI.selectUnknown(session, rng, normalized, rawCommand);
+  if (window.VDCmdLog) { try { window.VDCmdLog.mark(topic ? "ok" : conversational ? "generic" : "none"); } catch (e) {} }
   await runResponse(steps);
 }
 
@@ -3013,8 +3015,9 @@ async function handleNukeInput(command) {
     return;
   }
   if (typed.toLowerCase() !== NUKE_SUDO_PASSWORD) {
+    nukeStage = null;   // one wrong password and the gate closes: back to the console
     appendResponse("sudo: access denied", "terminal-error");
-    return;   // stay in the gate (blank Enter cancels)
+    return;
   }
 
   nukeStage = null;

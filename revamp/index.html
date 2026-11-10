@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vector Drift — Retro Vector Space Shooter</title>
-  <meta name="description" content="Vector Drift is a retro vector space shooter for macOS and Windows. Precision. Momentum. Escalating enemy formations.">
+  <meta name="description" content="Vector Drift is a retro vector space shooter for macOS, Windows and Linux. Precision. Momentum. Escalating enemy formations.">
   <link rel="icon" href="../favicon.ico">
   <link rel="icon" type="image/png" href="../icon.png">
   <script src="arrive-head.js"></script>
@@ -28,17 +28,19 @@
     </header>
     <section class="console-dock" aria-label="Console" data-expanded="false">
       <div class="console-response sr-only" role="status" aria-atomic="true"></div>
-      <form class="command-form" autocomplete="off">
-        <label for="section-command"><span>console&gt;</span><span id="prompt-path">root:/media</span></label>
-        <div class="console-input-shell">
-          <span class="console-hint" aria-hidden="true">input command here</span>
-          <input id="section-command" type="text" aria-label="Terminal command" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="">
-          <span class="caret-measure" aria-hidden="true"></span><span class="console-caret" aria-hidden="true"></span>
-        </div>
-        <button class="vd-quick console-run" type="submit" disabled>[ RUN ]</button>
-        <button class="vd-quick console-toggle" type="button" aria-label="Open console" aria-expanded="false" aria-controls="console-history">[ OPEN ]</button>
-      </form>
-      <div id="console-history" class="console-history" role="log" aria-live="off" aria-label="Command history" aria-hidden="true" inert><div class="console-lines"></div></div>
+      <div class="console-window">
+        <div id="console-history" class="console-history" role="log" aria-live="off" aria-label="Command history" aria-hidden="true" inert><div class="console-lines"></div></div>
+        <form class="command-form" autocomplete="off">
+          <label for="section-command"><span>console&gt;</span><span id="prompt-path">root:/media</span></label>
+          <div class="console-input-shell">
+            <span class="console-hint" aria-hidden="true">input command here</span>
+            <input id="section-command" type="text" aria-label="Terminal command" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="">
+            <span class="caret-measure" aria-hidden="true"></span><span class="console-caret" aria-hidden="true"></span>
+          </div>
+          <button class="vd-quick console-run" type="submit" disabled>[ RUN ]</button>
+          <button class="vd-quick console-toggle" type="button" aria-label="Open console" aria-expanded="false" aria-controls="console-history">[ OPEN ]</button>
+        </form>
+      </div>
     </section>
     <div class="site-body">
       <aside id="directory" class="directory">
@@ -69,15 +71,20 @@
   </div>
   <div class="crt-scanlines" aria-hidden="true"></div>
   <div class="crt-noise" aria-hidden="true"></div>
+  <script src="../terminal-lexicon.js"></script>
+  <script src="../terminal-topics.js"></script>
   <script src="../terminal-intents.js"></script>
   <script src="../uplink.js"></script>
   <script src="route-state.js?v=live-1"></script>
   <script src="console-language.js?v=live-1"></script>
   <script src="console-engine.js?v=live-1"></script>
+  <script src="../snake.js"></script>
+  <script src="../pi.js"></script>
   <script src="ost.js?v=ost-2"></script>
   <script src="sections.js?v=live-2"></script>
   <script src="ambient.js?v=snd-1"></script>
   <script src="phosphor.js?v=1"></script>
+  <script src="logo-flicker.js?v=1"></script>
   <script src="arrive.js?v=live-2"></script>
   <script src="../reticle.js"></script>
 </body>
