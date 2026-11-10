@@ -49,10 +49,10 @@ test('previous and next step through the framegrabs and wrap',()=>{
  assert.equal(f('previous',4),3);assert.equal(f('prev',1),6);assert.equal(f('next',6),1);assert.equal(f('next',2),3);
 });
 
-test('sound: ambient is 2 dB down, the toggle persists, and the display-options bar is gone',()=>{
+test('sound: ambient is 3 dB down, phones start off, the toggle persists, and the display-options bar is gone',()=>{
  const amb=read('ambient.js'),html=read('index.html');
- assert.ok(/VOL = 0\.5,/.test(amb)&&/vd_sound/.test(amb)&&/BEEP = 0\.2/.test(amb));
- assert.ok(/HUM_VOLUME = 0\.5;/.test(fs.readFileSync(path.join(__dirname,'..','..','terminal.js'),'utf8')));
+ assert.ok(/VOL = 0\.354,/.test(amb)&&/vd_sound/.test(amb)&&/BEEP = 0\.2/.test(amb));
+ assert.ok(/HUM_VOLUME = 0\.354;/.test(fs.readFileSync(path.join(__dirname,'..','..','terminal.js'),'utf8')));
  assert.ok(/id="sound-toggle"[\s\S]*sound-state">\[ON\]/.test(html));
  assert.ok(!/DISPLAY OPTIONS|class="review"/.test(html));
  assert.ok(html.indexOf('ambient.js')>0&&html.indexOf('ambient.js')<html.indexOf('sections.js')+1000);

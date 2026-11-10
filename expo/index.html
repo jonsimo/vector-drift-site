@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-sound-default="off">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#040807">
 <meta name="description" content="Vector Drift, a retro vector space shooter. Join the Discord, visit the site, follow the dev.">
@@ -24,7 +24,16 @@ a{-webkit-tap-highlight-color:transparent;text-decoration:none}
 @keyframes bl{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 h1{font-size:min(62px,calc((100vw - 60px) / 7.4));margin-top:0;white-space:nowrap}
-.sub{margin:8px 0 1.2em;font-size:1em;opacity:.8}
+.subrow{display:flex;align-items:center;justify-content:space-between;margin:8px 0 1.2em}
+.sub{margin:0;font-size:1em;opacity:.8}
+.sound-toggle{font:inherit;font-size:1em;letter-spacing:.08em;color:var(--hot);background:none;border:0;padding:0 2px;min-height:44px;min-width:44px;display:inline-flex;align-items:center;gap:.5em;cursor:pointer;-webkit-tap-highlight-color:transparent;text-shadow:0 0 3px rgba(174,249,226,.6)}
+.sound-ico{width:1.3em;height:1.3em;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:miter;stroke-linecap:square;shape-rendering:crispEdges;filter:drop-shadow(0 0 3px rgba(174,249,226,.6))}
+.sound-ico .mute{display:none}
+.sound-toggle[aria-pressed="false"]{color:rgba(17,202,180,.55);text-shadow:none}
+.sound-toggle[aria-pressed="false"] .sound-ico{filter:none}
+.sound-toggle[aria-pressed="false"] .sound-ico .waves{display:none}
+.sound-toggle[aria-pressed="false"] .sound-ico .mute{display:block}
+.sound-toggle:focus-visible{outline:1px solid var(--hot);outline-offset:2px}
 .sys{margin:0 0 .4em;font-size:1em;opacity:.9}
 .list{border-top:1px solid rgba(17,202,180,.35)}
 a.row{display:grid;grid-template-columns:2ch 1fr;column-gap:1ch;align-items:center;min-height:72px;padding:9px 4px;color:var(--phos);border-bottom:1px solid rgba(17,202,180,.35)}
@@ -64,7 +73,7 @@ body.typing .ex{max-height:60px;opacity:1;visibility:visible;padding:10px 2px;mi
 <body>
 <main>
 <h1>VECTOR <span>DRIFT</span></h1>
-<p class="sub">vector_drift.sim // alpha build</p>
+<div class="subrow"><p class="sub">vector_drift.sim</p><button type="button" class="sound-toggle" id="sound-toggle" aria-pressed="false" aria-label="Sound is off. Turn sound on"><svg class="sound-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5H7.5L13 5V19L7.5 14.5H3.5Z"/><path class="waves" d="M16 9.5L18 12L16 14.5M19 6.5L22 12L19 17.5"/><path class="mute" d="M16 9.5L21.5 15M21.5 9.5L16 15"/></svg><span class="sound-state">[OFF]</span></button></div>
 <p class="sys">10.0.1.00&gt; select a file</p>
 <nav class="list" aria-label="Vector Drift links">
 <a class="row" href="https://discord.gg/Z8Kt8cDUX8"><i>&gt;</i><span><b>JOIN THE DISCORD</b><small>discord.lnk</small></span></a>
@@ -82,6 +91,7 @@ body.typing .ex{max-height:60px;opacity:1;visibility:visible;padding:10px 2px;mi
 <script src="/revamp/console-language.js" defer></script>
 <script src="/revamp/console-engine.js" defer></script>
 <script src="/revamp/console-voice.js" defer></script>
+<script src="/revamp/ambient.js" defer></script>
 <script src="/cmdlog.js" defer></script>
 <script src="/expo/console.js" defer></script>
 </body>

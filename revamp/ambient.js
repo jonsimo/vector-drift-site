@@ -1,13 +1,21 @@
 /* Vector Drift — ambient hum + quiet click beeps for the site. Window.VDAmbient.
-   Same loop as the boot page's hum bed (assets/computer_hum_looping_v5.mp3, -2 dB),
+   Same loop as the boot page's hum bed (assets/computer_hum_looping_v5.mp3, -3 dB from the original level),
    so the sound carries on after the boot hands over. The sound toggle persists in
    localStorage ("vd_sound"), shared with the boot page. Browsers that block audio
    before a gesture start the hum on the first tap or key. */
 (function () {
   "use strict";
-  var KEY = "vd_sound", VOL = 0.5, FADE = 1.8, DUCK = 0.1, BEEP = 0.2;
+  var KEY = "vd_sound", VOL = 0.354, FADE = 1.8, DUCK = 0.1, BEEP = 0.2;
   var off = false, duck = false, ctx = null, gain = null, src = null, buf = null, loading = false;
-  try { off = localStorage.getItem(KEY) === "off"; } catch (e) {}
+  // Phones start with the ambient bed off; a stored choice (on or off) always wins.
+  function phoneDefaultOff() {
+    try {
+      var ua = navigator.userAgent || "";
+      return /Android|iPhone|iPad|iPod|IEMobile|Opera Mini|Mobile|Silk/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ||
+        (matchMedia("(pointer: coarse)").matches && matchMedia("(max-width: 820px)").matches) || document.documentElement.dataset.soundDefault === "off";
+    } catch (e) { return false; }
+  }
+  try { var stored = localStorage.getItem(KEY); off = stored === "off" || (stored === null && phoneDefaultOff()); } catch (e) {}
 
   function makeLoop(buffer, fadeSec) {
     try {

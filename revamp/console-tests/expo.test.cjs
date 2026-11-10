@@ -17,9 +17,9 @@ test('expo page: exactly the three links, in order, with the supplied destinatio
 
 test('expo page is instant: links are plain HTML, scripts are deferred same-origin, nothing external',()=>{
  const scripts=[...html.matchAll(/<script([^>]*)>/g)].map(m=>m[1]);
- assert.equal(scripts.length,8);
+ assert.equal(scripts.length,9);
  for(const s of scripts){assert.ok(/defer/.test(s)&&/src="\//.test(s),s);}
- assert.ok(/script-src 'self'/.test(html)&&/connect-src 'none'/.test(html)&&/noindex/.test(html)&&/viewport-fit=cover/.test(html));
+ assert.ok(/script-src 'self'/.test(html)&&/connect-src 'self'/.test(html)&&/noindex/.test(html)&&/viewport-fit=cover/.test(html));
  assert.ok(!/https?:\/\/[^"' )]*\.(js|css|png|jpg|svg)/i.test(html));
  assert.ok(Buffer.byteLength(html)<9000,'page under 9 KB');
 });

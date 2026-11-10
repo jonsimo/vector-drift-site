@@ -412,7 +412,17 @@ let mainSource = null;
 let mainGain = null;
 
 // Shared with the site (revamp/ambient.js): the visitor's sound choice survives page loads.
-function soundOff() { try { return localStorage.getItem("vd_sound") === "off"; } catch (e) { return false; } }
+// Phones start with the ambient bed off (Jon 2026-11-10); a stored on/off choice always wins.
+function soundOff() {
+  try {
+    const v = localStorage.getItem("vd_sound");
+    if (v === "off") return true;
+    if (v === "on") return false;
+  } catch (e) {}
+  return mobileMode || isMobileDevice();
+}
+// Console beep only honours an explicit off.
+function soundPrefOff() { try { return localStorage.getItem("vd_sound") === "off"; } catch (e) { return false; } }
 
 function stopHum() {
   if (humSource) {
@@ -444,7 +454,7 @@ window.VDFadeOutAudio = function (ms) {
   setTimeout(stopHum, ms + 40);
 };
 
-const HUM_VOLUME = 0.5;      // original level (2 dB trim reverted, Jon 2026-11-07)
+const HUM_VOLUME = 0.354;    // original 0.5 minus 3 dB (Jon 2026-11-10)
 function startHum(startVol) {
   if (soundOff()) return;
   const vol = startVol === undefined ? HUM_VOLUME : startVol;
@@ -569,7 +579,7 @@ function setupBootAudio() {
 }
 
 function playConsoleBeep() {
-  if (!bootAudio || soundOff()) {
+  if (!bootAudio || soundPrefOff()) {
     return;
   }
   // Play a clone rather than the single shared element: reusing one <audio> is
