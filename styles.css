@@ -1081,11 +1081,15 @@ body.terminal-home {
   animation: phosphorDrift 2.1s linear infinite;
 }
 
-.terminal-home .terminal-status,
-.terminal-home .terminal-output,
-.terminal-home .terminal-form {
-  animation: phosphorFlicker 0.15s linear infinite;
+@keyframes phosphorBurst {
+  0%, 95% { opacity: 1; }
+  95.6% { opacity: .86; } 96.2% { opacity: 1; } 96.8% { opacity: .8; } 97.4% { opacity: .96; }
+  98% { opacity: .84; } 98.6% { opacity: 1; } 99.2% { opacity: .9; } 100% { opacity: 1; }
 }
+/* the flicker comes now and then, not constantly (Jon 2026-11-10) */
+.terminal-home .terminal-status { animation: phosphorBurst 13s linear infinite; }
+.terminal-home .terminal-output { animation: phosphorBurst 17s linear -6s infinite; }
+.terminal-home .terminal-form { animation: phosphorBurst 23s linear -3s infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .terminal-home .screen-scanlines,

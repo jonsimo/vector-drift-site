@@ -55,12 +55,12 @@
   }
 
   // The outline must never push the big logo off the top. Fit it to the room the
-  // console has: tighter rows, then no intro line, then two columns. Mobile flows
+  // console has: tighter rows, then no intro line. The list stays one column (Jon 2026-11-10); a very short window scrolls instead. Mobile flows
   // naturally (the page scrolls), so it is left alone.
   function fitOutline() {
     var o = out();
     if (!o || document.body.classList.contains("mobile")) return;
-    var cls = ["hand-snug", "hand-tight", "hand-nointro", "hand-cols"];
+    var cls = ["hand-snug", "hand-tight", "hand-nointro"];
     cls.forEach(function (c) { o.classList.remove(c); });
     o.classList.remove("pin-off");
     var pin = o.querySelector(".vd-pin");

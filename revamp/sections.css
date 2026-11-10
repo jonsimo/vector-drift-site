@@ -435,7 +435,16 @@ body[data-bloom="on"] { --glow: 0 0 2px rgba(var(--phos-rgb),.72), 0 0 13px rgba
   35% { opacity: .8; } 40% { opacity: .98; } 45% { opacity: 1; } 50% { opacity: .86; } 55% { opacity: 1; } 60% { opacity: .95; } 65% { opacity: .78; }
   70% { opacity: 1; } 75% { opacity: .92; } 80% { opacity: 1; } 85% { opacity: .85; } 90% { opacity: 1; } 95% { opacity: .9; } 100% { opacity: 1; }
 }
-.content-pane, .directory, .console-history, .command-form { animation: phosphorFlicker .15s linear infinite; }
+@keyframes phosphorBurst {
+  0%, 95% { opacity: 1; }
+  95.6% { opacity: .86; } 96.2% { opacity: 1; } 96.8% { opacity: .8; } 97.4% { opacity: .96; }
+  98% { opacity: .84; } 98.6% { opacity: 1; } 99.2% { opacity: .9; } 100% { opacity: 1; }
+}
+/* the flicker comes now and then, not constantly (Jon 2026-11-10): a short burst once every ~13-23 s, each block on its own cycle */
+.content-pane { animation: phosphorBurst 13s linear infinite; }
+.directory { animation: phosphorBurst 17s linear -6s infinite; }
+.console-history { animation: phosphorBurst 19s linear -11s infinite; }
+.command-form { animation: phosphorBurst 23s linear -3s infinite; }
 @media (prefers-reduced-motion: reduce) { .content-pane, .directory, .console-history, .command-form { animation: none; } }
 
 /* no footer, no status text: three grid rows */
