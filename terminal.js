@@ -1315,7 +1315,7 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine, reveal = 
     for (const entry of snapshot) {
       const base = oscillateGlitch(frozen.get(entry.line), frame, unstable.get(entry.line) || []);
       const embed = activeWords.get(entry.line);
-      if (embed && Math.random() > 0.28) {
+      if (embed && Math.random() > 0.12) {
         renderGlitchLine(entry.line, base, embed);
       } else {
         setPhosphorText(entry.line, base);
@@ -1336,12 +1336,12 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine, reveal = 
   const wordOrder = [...embeds.entries()];
   for (const [line, embed] of wordOrder) {
     activeWords.set(line, embed);
-    await liveSleep(randomBetween(110, 150));
+    await liveSleep(randomBetween(230, 290));      // each word lands slowly enough to be read
   }
-  await liveSleep(randomBetween(160, 220));
+  await liveSleep(randomBetween(1000, 1250));       // all four held on screen together (was ~0.2 s)
   for (const [line] of wordOrder) {
     activeWords.delete(line);
-    await liveSleep(randomBetween(100, 140));
+    await liveSleep(randomBetween(150, 200));
   }
   await liveSleep(150);
 
