@@ -242,7 +242,9 @@
     [/\b(release|come out|comes out|coming out|launch|launches|out yet|available yet|available|when is|when does|when will|when can|eta|date)\b.*\b(game|demo|beta|vector drift|it|play|alpha)\b|\bwhen can i play\b|\brelease date\b/, "release"],
     [/\b(how|where)\b.*\b(download|get|install|play|try|buy|obtain)\b|\b(download|install|beta|alpha|demo|early access|playtest)\b|\b(can i|could i|may i)\b.*\b(play|try)\b|\bhow (do|can) i play\b/, "demo"],
     [/\b(control|controls|keybind|keybinds|key bindings|buttons|keyboard|gamepad|controller|joystick|how to play|how do i play|how to fly|steer|steering|aim)\b/, "controls"],
-    [/\b(power ?ups?|pickups?|upgrades?|weapons?|guns?|items?|loot|shields?|bombs?|abilities|ship upgrades|skills?)\b/, "powerups"],
+    [/\b(upgrade bay|the bay|bay|lux|currency|coins?|shop|store upgrades|upgrades?|buy upgrades|spend)\b/, "bay"],
+    [/\b(lives|health|hp|hull|shield|armou?r|extra lives?|continues?|die|dying|respawn|game over|damage)\b/, "survive"],
+    [/\b(power ?ups?|pickups?|weapons?|guns?|items?|loot|bombs?|abilities|skills?|berserker|tri-?shot|bfg|black hole|cloak|deflector|hologram|bullet time|mind control|missiles?|lasers?|slicer|combos?)\b/, "powerups"],
     [/\b(enemies|enemy|bosses|boss|monsters?|aliens?|foes?|opponents?|swarm|formations?|skulls?|xenophage|varrax|nethyr|megaboss|mega)\b/, "enemies"],
     [/\b(levels?|stages?|worlds?|missions?|campaign|waves?|how long is|how many (levels|stages|worlds)|endless|story|plot|lore|narrative|ending|characters?)\b/, "levels"],
     [/\b(difficulty|difficulties|easy mode|hard mode|normal mode|game modes?|modes?)\b/, "modes"],
@@ -271,30 +273,30 @@
       return lines(compose(c, ["acquisition request detected", "download query detected", "demo request detected"], ["alpha demo ............ not yet available", "demo status ............ not yet available // beta ships on discord, dec 2026", "installer ............... not published // the demo is not out yet"], function (x) { return x; })).concat([OPEN("> download.exe", "download"), META("or type email.exe to be told the moment it is")]);
     },
     controls: function (c) {
-      return lines(compose(c, ["control query detected", "input scheme query detected", "how-to-play request detected"], ["control scheme ........ not published yet // the beta will teach it", "manual .................. not released // movement is momentum-based", "bindings ................ unpublished // see media/ for the heads-up display"], function (x) { return x; })).concat([OPEN("> media/", "media")]);
+      return lines(compose(c, ["control query detected", "input scheme query detected", "how-to-play request detected"], ["steer, shoot, bank, fire", "arcade controls // easy to learn, then it escalates", "keyboard or gamepad // a second pad makes a second pilot"], function (x) { return x; })).concat([DOT("move + shoot", "momentum-based"), DOT("use", "fires a banked power-up"), DOT("secondary fire", "missiles, flares, dashes"), DOT("stored slots", "3 per ship"), OPEN("> media/", "media")]);
+    },    powerups: function (c) {
+      return lines(compose(c, ["equipment query detected", "power-up query detected", "pickup query detected"], ["20+ power-ups exist // 3 are carried at once", "pickups bank into 3 slots // use fires them", "arsenal ................ varied // some combine"], function (x) { return x; })).concat([DOT("guns", "berserker / tri-shot / heat seeker / missile swarm / bfg"), DOT("blades + beams", "orbit slicer / laser strike / ricochet"), DOT("defence", "shield / deflector / cloak / hologram"), DOT("time + mind", "bullet time / mind control / black hole"), META("combinations get names // find them"), OPEN("> media/", "media")]);
     },
-    powerups: function (c) {
-      return lines(compose(c, ["equipment query detected", "upgrade query detected", "pickup query detected"], ["inventory ............... not published", "items ................... classified until the beta", "weapons and pickups ..... revealed in the beta // not before"], function (x) { return x; })).concat([META("sightings: media/ // rumours: discord"), OPEN("> media/", "media")]);
+    bay: function (c) {
+      return lines(compose(c, ["upgrade query detected", "currency query detected", "progression query detected"], ["LUX is the currency // an upgrade bay opens after each boss", "after every boss a portal leads to the upgrade bay", "LUX buys permanent upgrades // the bay is a ritual, not a shop"], function (x) { return x; })).concat([DOT("examples", "magnetosphere / hull armour / charge cannon / rail gun"), DOT("also", "shield regen / missile swarm / orbit slicer / bfg"), META("some rows read UNKNOWN // not built yet"), OPEN("> media/", "media")]);
     },
-    enemies: function (c) {
-      return lines(compose(c, ["hostile query detected", "enemy query detected", "threat query detected"], ["formations escalate // names withheld", "enemy roster ........... partially classified", "threat level ............ rising // identities: restricted"], function (x) { return x; })).concat([META("observed formations: media/"), OPEN("> media/", "media")]);
-    },
-    levels: function (c) {
-      return lines(compose(c, ["progression query detected", "level query detected", "campaign query detected"], ["level count ............ not published", "structure ............... escalating // details withheld", "story .................. not published // the beta is the first chapter"], function (x) { return x; })).concat([OPEN("> devlog/", "devlog")]);
-    },
-    modes: function (c) {
+    survive: function (c) {
+      return lines(compose(c, ["survivability query detected", "damage query detected", "health query detected"], ["two layers: shield, then hull", "shield recharges between levels // hull does not", "four lives to start // solo caps at three after the first death"], function (x) { return x; })).concat([DOT("shield", "absorbs bolts // refills each level"), DOT("hull", "does not regenerate // repair costs LUX"), DOT("mercy", "when you are dying the game leans helpful")]);
+    },    enemies: function (c) {
+      return lines(compose(c, ["hostile query detected", "enemy query detected", "threat query detected"], ["35 grunt hulls, 11 named generals, 5 bosses", "formations escalate // generals own the field while they live", "bosses are duels // nothing else spawns during one"], function (x) { return x; })).concat([DOT("factions fielded", "2"), META("names and motives are classified"), OPEN("> media/", "media")]);
+    },    levels: function (c) {
+      return lines(compose(c, ["progression query detected", "level query detected", "campaign query detected"], ["the demo has 5 levels", "5 levels, one boss each // the last is a mega boss", "levels 1 and 2 are finished // 3 to 5 are rough and labelled so"], function (x) { return x; })).concat([DOT("structure", "waves, generals, hazards, boss"), DOT("hazards", "asteroid belts / space junk / a minefield"), META("story: classified"), OPEN("> devlog/", "devlog")]);
+    },    modes: function (c) {
       return lines(compose(c, ["difficulty query detected", "mode query detected", "settings of play query detected"], ["difficulty ............. not published // escalation is built in", "modes ................... solo confirmed // others undecided", "easy mode ............... not announced // hard mode: the default"], function (x) { return x; })).concat([OPEN("> devlog/", "devlog")]);
     },
     saves: function (c) {
       return lines(compose(c, ["persistence query detected", "save-data query detected", "checkpoint query detected"], ["save system ............ not published", "saves ................... details arrive with the beta", "progress ................ stored by the game, not by this console"], function (x) { return x; })).concat([OPEN("> devlog/", "devlog")]);
     },
     coop: function (c) {
-      return lines(compose(c, ["multiplayer query detected", "co-op query detected", "social play query detected"], ["multiplayer status ..... not announced", "co-op ................... not announced // asked often, noted", "modes ................... solo confirmed // others undecided"], function (x) { return x; })).concat([LINK("> raise it on discord", DISCORD)]);
-    },
-    board: function (c) {
-      return lines(compose(c, ["ranking query detected", "score query detected", "leaderboard query detected"], ["leaderboards ........... not announced // no scores exist yet", "rank ..................... unassigned // you have not played", "high score ............... 0 // everyone shares it for now"], function (x) { return x; })).concat([META("the only scoreboard open is snake.exe // type snake")]);
-    },
-    price: function (c) {
+      return lines(compose(c, ["multiplayer query detected", "co-op query detected", "social play query detected"], ["co-op exists // two ships, teal and orange", "two pilots // one shared score and a team rank", "no second pad: an AI partner flies the other ship"], function (x) { return x; })).concat([DOT("team power-ups", "death tether / fusion beam / firebomb / more"), DOT("revive", "a downed partner can be brought back"), DOT("online", "not announced")]);
+    },    board: function (c) {
+      return lines(compose(c, ["ranking query detected", "score query detected", "rank query detected"], ["pilot rank is a file permission // safe-mode up to root", "score and rank are recorded // leaderboards are not announced", "every run ends in a recap: score, rating, bonuses, rank"], function (x) { return x; })).concat([DOT("rank ladder", "safe-mode > read-only > user > read/write > sys_admin > root"), META("the only open scoreboard is snake.exe // type snake")]);
+    },    price: function (c) {
       return lines(compose(c, ["pricing query detected", "cost query detected", "store query detected"], ["price .................. not announced", "pricing ................ unpublished // the demo is not out yet", "store page ............. none // no purchase is possible yet"], function (x) { return x; })).concat([META("updates reach you first by email: type email.exe")]);
     },
     platform: function (c, n) {

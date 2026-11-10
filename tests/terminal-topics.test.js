@@ -25,6 +25,15 @@ test("game facts are stated plainly and include linux", () => {
   assert.match(printed(ask("how much does it cost")), /not announced/);
 });
 
+test("real gameplay facts from the design notes are stated", () => {
+  assert.match(printed(ask("what are the powerups")), /berserker/);
+  assert.match(printed(ask("how many lives do i have")), /hull .* does not regenerate/);
+  assert.match(printed(ask("is there co-op")), /team power-ups .* death tether/);
+  assert.match(printed(ask("how many levels are there")), /asteroid belts/);
+  assert.match(printed(ask("what is lux")), /LUX/);
+  assert.match(printed(ask("how do i play")), /secondary fire/);
+});
+
 test("requests are routed to the right place", () => {
   assert.ok(ask("play some music").steps.some((s) => s.type === "goto" && s.section === "soundtrack"));
   assert.ok(ask("show me screenshots").steps.some((s) => s.type === "goto" && s.section === "media"));

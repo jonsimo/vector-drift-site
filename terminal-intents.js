@@ -297,7 +297,7 @@
         "release date", "when is it out", "when does it come out", "when is the demo", "when is the beta",
         "when is it released", "when does the beta start", "is it out", "is it out yet", "when can i play",
         "when can i play it", "can i play it", "can i play", "early access", "beta", "demo", "alpha",
-        "is there a demo", "is there a beta", "how do i get the beta", "how do i play", "how do i play it",
+        "is there a demo", "is there a beta", "how do i get the beta",
         "how do i get it", "where can i get it",
       ],
       build: buildRelease,
