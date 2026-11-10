@@ -521,7 +521,7 @@
   }
   function closeDirectory() {
     document.body.classList.remove("nav-open");
-    document.querySelector(".mobile-toggle").setAttribute("aria-expanded","false");
+    document.getElementById("section-path").setAttribute("aria-expanded","false");
   }
   async function showSection(section, initial=false, source="ui", routeMode="push", view={}) {
     if (!sections.includes(section)) return;
@@ -553,7 +553,18 @@
     e.preventDefault();
     showSection(a.dataset.section);
   }));
-  document.querySelector(".mobile-toggle").addEventListener("click",e=>{
+  // Tapping outside the open directory closes it again (phones).
+  document.addEventListener("click",e=>{
+    if(!document.body.classList.contains("nav-open"))return;
+    if(e.target.closest("#directory,#section-path"))return;
+    closeDirectory();
+  });
+  // The OPEN button is gone, so the console row itself is the way in: a tap anywhere on it opens and focuses the console.
+  document.querySelector(".command-form").addEventListener("click",e=>{
+    if(e.target.closest("button"))return;
+    focusConsole();
+  });
+  document.getElementById("section-path").addEventListener("click",e=>{
     const open=document.body.classList.toggle("nav-open");e.currentTarget.setAttribute("aria-expanded",String(open));
   });
   // Snake and pi run inside the console window itself: the prompt steps aside, the
@@ -735,7 +746,7 @@
     if(e.key === "/" && !editable) {e.preventDefault();closeDirectory();focusConsole();return;}
     if(e.key === "Escape") {
       if (consoleState !== "collapsed" && consoleDock.contains(e.target)) { e.preventDefault();closeConsole(); }
-      else if(document.body.classList.contains("nav-open")){closeDirectory();document.querySelector(".mobile-toggle").focus();}
+      else if(document.body.classList.contains("nav-open")){closeDirectory();document.getElementById("section-path").focus();}
       else if(!editable&&current!=="root")showSection("root");
       return;
     }

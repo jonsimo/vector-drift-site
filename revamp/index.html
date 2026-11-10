@@ -24,7 +24,6 @@
         <a href="https://discord.gg/Z8Kt8cDUX8" target="_blank" rel="noopener noreferrer" aria-label="Discord"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7H8V4.5H10V7H14V4.5H16V7H19.5V17H16.5V19.5H14.5V17H9.5V19.5H7.5V17H4.5Z"/><path class="fill" d="M8 10H10.5V13.5H8ZM13.5 10H16V13.5H13.5Z"/></svg><span class="t">connect:/discord.exe</span></a>
         <a href="mailto:yo@jonsimo.com" aria-label="Email yo@jonsimo.com"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5H20.5V18.5H3.5Z"/><path d="M4 6L12 13L20 6"/></svg><span class="t">connect:/mail -s</span></a>
       </nav>
-      <button class="mobile-toggle" aria-expanded="false" aria-controls="directory">[ /ROOT ]</button>
     </header>
     <section class="console-dock" aria-label="Console" data-expanded="false">
       <div class="console-response sr-only" role="status" aria-atomic="true"></div>
@@ -62,7 +61,7 @@
         <div class="rail-foot"><button type="button" class="sound-toggle" id="sound-toggle" aria-pressed="true" aria-label="Sound is on. Turn sound off"><svg class="sound-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5H7.5L13 5V19L7.5 14.5H3.5Z"/><path class="waves" d="M16 9.5L18 12L16 14.5M19 6.5L22 12L19 17.5"/><path class="mute" d="M16 9.5L21.5 15M21.5 9.5L16 15"/></svg><span class="sound-word">sound</span> <span class="sound-state">[ON]</span></button></div>
       </aside>
       <main class="content-pane" id="terminal-output" tabindex="-1" aria-label="Section content">
-        <div class="content-top"><span id="section-path">/root/media/</span><span id="section-count">06 FILES</span></div>
+        <div class="content-top"><button type="button" id="section-path" class="section-path" aria-expanded="false" aria-controls="directory">/root/media/</button><span id="section-count">06 FILES</span></div>
         <div id="section-content" class="section-content"></div>
       </main>
     </div>
