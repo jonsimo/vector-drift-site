@@ -8,6 +8,7 @@
 /* Top-anchor the terminal (logo near the top of the page) with a bit of padding,
    and let the box hug its content so the prompt sits right under the banner. */
 body.vd-banner-active .terminal-stage { align-items: flex-start; padding-top: 6vh; }
+@media (min-width: 721px) { body.vd-banner-active .terminal-stage { padding-top: 18px; } }
 body.vd-banner-active .terminal-window,
 body.vd-banner-active .terminal-screen,
 body.vd-banner-active .terminal-content { height: auto; }
@@ -19,6 +20,11 @@ body.vd-banner-active .terminal-content { height: auto; }
   height: auto;        /* override the live boot's fixed 29.82em output height */
   max-height: 62vh;    /* cap + scroll once command history fills in */
   overflow: hidden;
+}
+/* desktop: the logo + directory are pinned, so console text gets all the room below them */
+@media (min-width: 721px) {
+  .terminal-content.vd-console .terminal-output { max-height: calc(100dvh - 18px - 100px); }
+  .terminal-content.vd-console .terminal-header { margin-top: 1.2em; }
 }
 .terminal-content.vd-console .terminal-header {
   order: 2;

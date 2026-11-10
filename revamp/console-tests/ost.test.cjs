@@ -48,7 +48,7 @@ test('every track in ost.js has its preview clip and cover on disk, and nothing 
 test('soundtrack/ is its own directory entry that mounts the player in the page (no iframe, no seek/volume/quit buttons)',()=>{
  const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
  const html=read('index.html'),js=read('sections.js'),ost=read('ost.js'),prog=read('console-program.js');
- assert.ok(/data-section="soundtrack"[^>]*>[^<]*<span class="mark"> <\/span>audio\//.test(html));
+ assert.ok(/data-section="soundtrack"[^>]*>[^<]*<span class="mark"> <\/span>soundtrack\//.test(html));
  assert.ok(html.indexOf('ost.js')<html.indexOf('sections.js'),'ost.js loads before sections.js');
  assert.ok(js.includes('"soundtrack"')&&js.includes('VDOst.mount')&&js.includes('ORIGINAL SCORE BY GAME CREATOR JON SIMO')&&ost.includes('45s Preview'));
  assert.ok(!/\bost:\s*\[/.test(prog),'ost no longer runs inside the iframe program frame');

@@ -24,7 +24,7 @@
   const DISCORD_URL = "https://discord.gg/Z8Kt8cDUX8"; // permanent invite (no expiry), supplied by Jon 2026-11-06
   let pendingPrefill = "";
   const sections = ["root", "about", "media", "soundtrack", "devlog", "links", "download", "discord", "email", "contact", "reference"];
-  const paths = { root: "", about: "about.txt", media: "media/", soundtrack: "audio/", devlog: "devlog/", links: "links.lnk", download: "download.exe", discord: "discord", email: "email", contact: "contact", reference: "console/reference" };
+  const paths = { root: "", about: "about.txt", media: "media/", soundtrack: "soundtrack/", devlog: "devlog/", links: "links.lnk", download: "download.exe", discord: "discord", email: "email", contact: "contact", reference: "console/reference" };
   const Routes = window.VDRouteState;
   const parseHash = (hash = location.hash) => Routes.parseHash(hash, sections);
   const routeKey = Routes.routeKey;
@@ -43,7 +43,9 @@
   let activeProgram = null;
   let historyIndex = 0;
   let draft = "";
-  let consoleIntroduced = false;
+  // Up / Down in an empty console cycles through commands that do something fun.
+  const SUGGEST = ["show me the game", "play the ost", "tell me about the game", "what's new", "hello", "play snake", "who made this", "how do i get the beta", "tell me a joke", "join the discord", "status", "whoami"];
+  let suggestIndex = -1;
   let consoleState = "collapsed"; // collapsed -> hover preview -> active input
   let transcriptAnchor = null;
   let pointerInConsole = false;
@@ -100,6 +102,7 @@
   applyPalette();
 
   function updateCaret() {
+    const shell = input.closest(".console-input-shell"); if (shell) shell.classList.toggle("has-text", input.value.length > 0);
     caretMeasure.textContent = input.value.slice(0, input.selectionStart ?? input.value.length);
     const x = caretMeasure.getBoundingClientRect().width - input.scrollLeft;
     caret.style.transform = `translateX(${Math.max(0, x)}px)`;
@@ -135,10 +138,6 @@
     consoleHistory.setAttribute("aria-hidden", String(!open));
     consoleHistory.inert = !open;
     sizeHistory(reopening);
-    if (open && !consoleIntroduced) {
-      consoleIntroduced = true;
-      report("Ask normally or use commands. Both work here.", null, window.VDConsoleLanguage.START);
-    }
   }
   function focusConsole() {
     dismissedWhileHovered = false;
@@ -190,6 +189,7 @@
     showSection("reference", false, "ui", "push", { reader: id });
   }
   function report(text, command, suggestions = []) {
+    suggestions = [];   // no hint buttons under responses: the console only says "input command here" and answers
     const entry = element("div", "console-entry");
     if (command) entry.append(element("div", "console-echo", `console> ${command}`));
     const lines = Array.isArray(text) ? text : [text];
@@ -358,16 +358,7 @@
   }
   function build(section) {
     if (section === "root") {
-      const hero=copy("A RETRO VECTOR SPACE SHOOTER", ["Precision. Momentum. Escalating enemy formations.", "Vector Drift is being built for macOS and Windows. The alpha demo is not available yet."]);
-      hero.classList.add("home-copy");
-      const actions=element("div","home-actions");
-      for (const [label,target] of [["SEE THE GAME","media"],["GET EMAIL UPDATES","email"],["ABOUT VECTOR DRIFT","about"]]) {
-        const button=element("button","vd-quick",`[ ${label} ]`);button.type="button";
-        button.addEventListener("click",()=>showSection(target));actions.append(button);
-      }
-      content.append(actions);
-      const explore=element("button","vd-quick home-explore","[ EXPLORE THE CONSOLE ]");explore.type="button";
-      explore.addEventListener("click",focusConsole);content.append(explore);
+      content.append(buildHome());
       return;
     }
     if (section === "reference") {
@@ -471,6 +462,47 @@
       onward([["SEE THE GAME","media"],["CONTACT","contact"],["HOME","root"]]);
     }
   }
+  let homeTimer = 0;
+  function stopHome() { if (homeTimer) { clearInterval(homeTimer); homeTimer = 0; } }
+  // Home: a slideshow of real gameplay beside the pitch, then four doors into the site.
+  function buildHome() {
+    const page = element("div", "home");
+    const beta = element("div", "home-beta", "EARLY ACCESS BETA ON DISCORD // DEC 2026");
+    const text = element("div", "home-text");
+    text.append(element("h1", "home-title", "A RETRO VECTOR SPACE SHOOTER"), element("p", "home-lede", "Precision. Momentum. Escalating enemy formations."));
+    text.append(element("p", "home-sub", "Built for macOS and Windows. The alpha demo is not out yet."));
+    const actions = element("div", "home-actions");
+    const join = element("a", "vd-quick home-primary", "[ JOIN THE DISCORD ]"); join.href = DISCORD_URL; join.target = "_blank"; join.rel = "noopener noreferrer";
+    const mail = element("button", "vd-quick", "[ GET EMAIL UPDATES ]"); mail.type = "button"; mail.addEventListener("click", () => showSection("email"));
+    actions.append(join, mail);
+    text.append(actions);
+    // slideshow: gameplay first, then the menus
+    const order = [4, 5, 6, 1, 2, 3];
+    const shot = element("button", "home-shot"); shot.type = "button"; shot.setAttribute("aria-label", "Open the media archive");
+    const imgA = element("img", "shot-img on"), imgB = element("img", "shot-img");
+    for (const i of [imgA, imgB]) { i.alt = ""; i.decoding = "async"; }
+    const label = element("span", "shot-label");
+    shot.append(imgA, imgB, label);
+    let at = 0, front = imgA, back = imgB;
+    const set = (img, n) => { img.src = `media/frame_0${n}.jpg`; };
+    set(imgA, order[0]); label.textContent = `FRAME / 0${order[0]}  ${FRAMES[order[0]]}`;
+    const advance = () => {
+      at = (at + 1) % order.length; const n = order[at];
+      set(back, n);
+      back.onload = () => { back.classList.add("on"); front.classList.remove("on"); [front, back] = [back, front]; label.textContent = `FRAME / 0${n}  ${FRAMES[n]}`; back.onload = null; };
+    };
+    shot.addEventListener("click", () => { selectedFile = order[at]; showSection("media"); });
+    if (!reduceMotion.matches) homeTimer = setInterval(advance, 4200);
+    const doors = element("div", "home-doors");
+    for (const [num, name, hint, target] of [["01", "THE GAME", "what it is", "about"], ["02", "STILLS + VIDEO", "framegrabs", "media"], ["03", "SOUNDTRACK", "23 tracks, 45s previews", "soundtrack"], ["04", "DEVLOG", "development updates", "devlog"]]) {
+      const door = element("button", "vd-quick home-door"); door.type = "button";
+      door.append(element("span", "door-n", num), element("span", "door-name", name), element("span", "door-hint", hint));
+      door.addEventListener("click", () => showSection(target));
+      doors.append(door);
+    }
+    page.append(beta, text, shot, doors);
+    return page;
+  }
   let ostPlayer = null;
   function stopOst() { if (ostPlayer) { try { ostPlayer.destroy(); } catch (e) {} ostPlayer = null; } }
   function syncNavigation() {
@@ -497,6 +529,7 @@
     if (section !== "reference") lastSiteSection = section;
     activeProgram = null;
     stopOst();
+    stopHome();
     const id=++generation;
     current=section;
     currentReader=section==="reference"?(view.reader||null):null;
@@ -563,9 +596,12 @@
     input.value = "";
     focusConsole();
     const now = new Date();
+    const logged = window.VDCmdLog ? window.VDCmdLog.command(raw) : null;
+    if (logged) { report(logged, String(raw).trim()); updateCaret(); return; }
     const response = Engine.execute(raw, consoleSession, { section: current === "soundtrack" ? "ost" : current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
     historyIndex = consoleSession.history.length;
     draft = "";
+    if (window.VDCmdLog) window.VDCmdLog.add(raw, /^REQUEST NOT RECOGNIZED/.test(response.lines[0] || "") ? "none" : "ok", "site");
     if (response.lines.length || response.echo || response.suggestions.length) report(response.lines.length ? response.lines : ["CHANNEL READY."], response.echo, response.suggestions);
     updateCaret();
     for (const effect of response.effects) {
@@ -599,6 +635,15 @@
     }
     if (e.ctrlKey && e.key.toLowerCase() === "c" && input.selectionStart === input.selectionEnd) {
       e.preventDefault(); input.value = ""; draft = ""; updateCaret(); report("INPUT CANCELLED. Session retained."); return;
+    }
+    if ((e.key === "ArrowUp" || e.key === "ArrowDown") && (input.value === "" || SUGGEST.includes(input.value))) {
+      e.preventDefault();
+      const down = e.key === "ArrowDown";
+      suggestIndex = input.value === "" ? (down ? 0 : SUGGEST.length - 1) : (SUGGEST.indexOf(input.value) + (down ? 1 : -1) + SUGGEST.length) % SUGGEST.length;
+      input.value = SUGGEST[suggestIndex];
+      input.setSelectionRange(input.value.length, input.value.length);
+      updateCaret();
+      return;
     }
     const commandHistory = consoleSession.history;
     if (!commandHistory.length || !["ArrowUp","ArrowDown"].includes(e.key)) return;

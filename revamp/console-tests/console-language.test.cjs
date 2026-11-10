@@ -38,26 +38,6 @@ test('no dismisses the question and unrelated commands invalidate pending confir
  run('download',s);run('ls -la',s);assert.deepEqual(run('yes',s).effects,[]);
  run('download',s);run('password=hunter2',s);assert.equal(s.followup,null);
 });
-test('bare number is a guess only during a started number game',()=>{
- const s=session();assert.equal(text(run('11',s)),'= 11');run('Guess a number',s);assert.match(text(run('maybe 4',s)),/HIGHER/);assert.equal(s.guess.attempts,1);
- run('guess 900',s);assert.equal(s.guess.attempts,1);assert.match(text(run('11',s)),/LOCK OPEN/);assert.equal(s.guess,null);
-});
-test('rock paper scissors accepts both full syntax and context-only replies',()=>{
- const s=session();assert.match(text(run('Rock paper scissors',s)),/Reply with your choice/);
- assert.match(text(run('rock',s)),/YOU: rock/);assert.match(text(run('rps paper',s)),/YOU: paper/);
- run('help all',s);assert.doesNotMatch(text(run('scissors',s)),/YOU: scissors/);
-});
-test('conversational exploration and technical exploration reach identical discoveries',()=>{
- const a=session(),b=session();
- for(const input of ['Look around','follow it','what does it say?'])run(input,a);
- for(const input of ['scan','trace 1187','cat /root/archive/1187.log'])run(input,b);
- assert.deepEqual(a.discoveries,b.discoveries);assert.deepEqual(a.discoveries,['signal','1187.log']);assert.equal(a.traced,true);
- assert.match(text(run('what have I found?',a)),/1187.log/);
-});
-test('contextual more advances exploration while unbound read-it asks which file',()=>{
- const s=session();assert.match(text(run('read it',s)),/Which file/);assert.equal(s.scanCount,0);
- run('scan',s);run('tell me more',s);assert.equal(s.traced,true);run('more',s);assert.ok(s.discoveries.includes('1187.log'));
-});
 test('next picture respects the currently selected UI frame, with wraparound',()=>{
  const s=session();assert.deepEqual(run('next picture',s).effects,[]);
  assert.deepEqual(run('next picture',s,{section:'media',frame:6}).effects,[{type:'navigate',section:'media'},{type:'frame',number:1}]);

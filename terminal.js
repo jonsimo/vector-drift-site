@@ -1867,7 +1867,7 @@ async function runBoot() {
   // BETA sequence: gauges (end of boot) -> press any key -> logo animates on
   // -> console prompt + beep only after the logo is done.
   if (window.renderBootGauges) await window.renderBootGauges();
-  await waitForContinue();
+  await sleep(500);   // a beat after the last boot message, then straight into the logo
   if (window.renderLogoBanner) await window.renderLogoBanner();
   await activateRootPrompt(startedAt, { keepOutput: true });
 }
@@ -2117,7 +2117,7 @@ async function runBootMobile() {
   // BETA sequence: gauges (end of boot) -> press any key -> logo animates on
   // -> console prompt + beep only after the logo is done.
   if (window.renderBootGauges) await window.renderBootGauges();
-  await waitForContinue();
+  await sleep(500);   // a beat after the last boot message, then straight into the logo
   if (window.renderLogoBanner) await window.renderLogoBanner({ mobile: true });
   await activateRootPrompt(startedAt, { keepOutput: true });
 }
@@ -2926,6 +2926,8 @@ async function runCommand(command, normalized) {
 }
 
 async function runLoreOrUnknown(normalized) {
+  const cmdlogLines = window.VDCmdLog ? window.VDCmdLog.command(normalized) : null;
+  if (cmdlogLines) { responseLines(cmdlogLines); return; }
   if (normalized === "axiom") {
     axiomUseCount += 1;
     const line = appendResponse(axiomUseCount === 1 ? "namespace not found" : "you are not expected to know that identifier", "terminal-error");
@@ -2981,7 +2983,8 @@ async function runLoreOrUnknown(normalized) {
   // Unknown-command bank + the one-per-session "...not designed for
   // conversation" / "yet" beat live in the intent layer (session owns the
   // counters). Lore hits above never reach here, so they never count as unknown.
-  const { steps } = VDI.selectUnknown(session, rng, normalized);
+  const { steps, conversational } = VDI.selectUnknown(session, rng, normalized);
+  if (window.VDCmdLog) { try { window.VDCmdLog.mark(conversational ? "generic" : "none"); } catch (e) {} }
   await runResponse(steps);
 }
 
@@ -3336,6 +3339,7 @@ async function submitCurrentCommand() {
     appendCommandLine(command.trim());
   }
   commandHistory.push(command.trim());
+  if (window.VDCmdLog) { try { window.VDCmdLog.add(command.trim(), "ok", "boot"); } catch (e) {} }
   historyCursor = commandHistory.length;
   session.commandCount += 1;
   session.rawCommandHistory.push(command.trim());
@@ -3536,7 +3540,7 @@ async function runEndSequence() {
   form.classList.add("loading");
   status.hidden = true;
   if (window.renderBootGauges) await window.renderBootGauges();
-  await waitForContinue();
+  await sleep(500);   // a beat after the last boot message, then straight into the logo
   if (window.renderLogoBanner) {
     await window.renderLogoBanner(mobileMode ? { mobile: true } : undefined);
   }

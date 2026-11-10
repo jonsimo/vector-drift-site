@@ -13,7 +13,7 @@
   var OUTLINE = [
     ["about.txt", "about", "ABOUT THE GAME"],
     ["media/", "media", "STILLS + VIDEO"],
-    ["audio/", "soundtrack", "SYNTH SOUNDTRACK"],
+    ["soundtrack/", "soundtrack", "SYNTH SOUNDTRACK"],
     ["devlog/", "devlog", "DEVELOPMENT UPDATES"],
     ["links.lnk", "links", "COMMUNITY + UPDATES"],
     ["download.exe", "download", "DEMO STATUS"],
@@ -33,13 +33,25 @@
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, window.__vdSkip ? 0 : ms); }); }
   function reduced() { return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
 
-  function line(text, cls) {
+  function line(text, cls, parent) {
     var d = document.createElement("div");
     d.className = "output-line" + (cls ? " " + cls : "");
     if (text) d.textContent = text;
-    out().appendChild(d);
+    (parent || out()).appendChild(d);
     out().scrollTop = out().scrollHeight;
     return d;
+  }
+  // The logo and the directory are pinned at the top of the console: they never
+  // scroll away, console text scrolls up and off under the rule below them.
+  function pinEl() {
+    var o = out(), pin = o.querySelector(".vd-pin");
+    if (pin) return pin;
+    pin = document.createElement("div");
+    pin.className = "vd-pin";
+    var banner = o.querySelector(".vd-banner");
+    if (banner) { o.insertBefore(pin, banner); pin.appendChild(banner); } else o.insertBefore(pin, o.firstChild);
+    try { pin.style.background = getComputedStyle(document.body).backgroundColor; } catch (e) {}
+    return pin;
   }
 
   // The outline must never push the big logo off the top. Fit it to the room the
@@ -50,8 +62,13 @@
     if (!o || document.body.classList.contains("mobile")) return;
     var cls = ["hand-snug", "hand-tight", "hand-nointro", "hand-cols"];
     cls.forEach(function (c) { o.classList.remove(c); });
-    for (var i = 0; i < cls.length && o.scrollHeight - o.clientHeight > 1; i++) o.classList.add(cls[i]);
-    if (o.scrollHeight - o.clientHeight > 1) o.scrollTop = 0; else o.scrollTop = o.scrollHeight;
+    o.classList.remove("pin-off");
+    var pin = o.querySelector(".vd-pin");
+    // the pinned block may use at most ~66% of the window's console room; console text needs the rest
+    function tooTall() { return pin ? pin.offsetHeight > (window.innerHeight - 118) * 0.66 : o.scrollHeight - o.clientHeight > 1; }
+    for (var i = 0; i < cls.length && tooTall(); i++) o.classList.add(cls[i]);
+    if (tooTall()) o.classList.add("pin-off");   // a very short window: let everything scroll instead
+    o.scrollTop = o.classList.contains("pin-off") ? 0 : o.scrollHeight;
   }
   var fitTimer = 0;
   window.addEventListener("resize", function () { if (document.querySelector(".hand-outline")) { clearTimeout(fitTimer); fitTimer = setTimeout(fitOutline, 120); } });
@@ -60,9 +77,17 @@
     var o = out();
     if (!o || o.querySelector(".hand-outline")) return;
     prepClick();
-    line("10.0.1.00> click a file to enter", "hand-outline");
-    await sleep(160);
-    var list = document.createElement("div"); list.className = "hand-list"; o.appendChild(list);
+    var pin = pinEl();
+    // first console line is the command that produced the directory: console>root:/ dir
+    var cmd = line("", "hand-outline hand-cmd", pin);
+    var pc = document.createElement("span"); pc.className = "prompt-console"; pc.textContent = "console>";
+    var pp = document.createElement("span"); pp.className = "prompt-path"; pp.textContent = "root:/";
+    var typed = document.createElement("span"); typed.className = "hand-typed";
+    cmd.append(pc, pp, document.createTextNode(" "), typed);
+    await sleep(220);
+    for (var ci = 0; ci < 3; ci++) { typed.textContent += "dir".charAt(ci); await sleep(110); }
+    await sleep(180);
+    var list = document.createElement("div"); list.className = "hand-list"; pin.appendChild(list);
     for (var i = 0; i < OUTLINE.length; i++) {
       var f = OUTLINE[i];
       var row = document.createElement("div"); row.className = "output-line hand-line"; row.dataset.go = f[1];

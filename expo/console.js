@@ -79,9 +79,12 @@
   function run(raw) {
     raw = String(raw || "").trim();
     if (!raw || leaving) return;
+    var cl = window.VDCmdLog ? window.VDCmdLog.command(raw) : null;
+    if (cl) { render({ lines: cl, effects: [], suggestions: [] }, raw); return; }
     var now = new Date();
     var res = Engine.execute(raw, session, { section: "root", frame: 0, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
     history = session.history.slice(); hi = history.length; draft = "";
+    if (window.VDCmdLog) window.VDCmdLog.add(raw, /^REQUEST NOT RECOGNIZED/.test(res.lines[0] || "") ? "none" : "ok", "go");
     var clear = res.effects.some(function (e) { return e.type === "clear"; });
     if (clear) log.replaceChildren(); else render(res, raw);
     var dest = null;

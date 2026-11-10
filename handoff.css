@@ -25,3 +25,8 @@ body.vd-leaving .terminal-header { opacity: 0; transition: opacity 200ms linear;
 .terminal-home .terminal-output.hand-cols .hand-line { grid-template-columns: 17ch 1fr; }
 .resp-link { color: #aef9e2; }
 .resp-link .hand-mark { display: none; }
+
+/* pinned logo + directory (handoff.js pinEl): console text scrolls under the rule */
+.vd-pin { margin: 0 -8px 8px; padding: 0 8px 10px; border-bottom: 1px solid rgba(17, 202, 180, .38); }
+body:not(.mobile) .terminal-output:not(.pin-off) .vd-pin { position: sticky; top: 0; z-index: 4; }
+.hand-cmd .hand-typed { color: #aef9e2; }

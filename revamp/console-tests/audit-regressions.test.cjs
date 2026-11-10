@@ -25,26 +25,3 @@ test('ordinary frame selection reaches the same effects as its CLI equivalent',(
  assert.deepEqual(run('show me frame 3').effects,run('frame 3').effects);
  assert.deepEqual(run('show me frame 99').effects,[]);
 });
-test('full sentences never receive unrelated single-word typo guesses',()=>{
- for(const input of ['what commands are possible around here','show me a banana','can you tell me something entirely unknown'])assert.doesNotMatch(text(run(input)),/Did you mean (?:cat|glow|man)/);
- assert.ok(run('scna').suggestions.includes('scan'));
-});
-test('stop ends the active flight and allows a clean new run',()=>{
- for(const stop of ['stop the game','stop','quit','exit','quit playing']){
-  const s=fresh();run('simulate',s);run('collect',s);assert.match(text(run(stop,s)),/TRIAL ENDED/);assert.equal(s.flight,null);assert.equal(s.lastFlight.lux,2);
-  run('simulate',s);assert.equal(s.flight.lux,0);assert.equal(s.flight.hull,5);
- }
-});
-test('fold and close-console retain a game while stop ends number games',()=>{
- const s=fresh();run('simulate',s);run('collect',s);
- for(const input of ['fold','close the console']){assert.deepEqual(run(input,s).effects,[{type:'collapse'}]);assert.equal(s.flight.lux,2);}
- run('stop',s);run('guess',s);assert.match(text(run('stop the game',s)),/NUMBER GAME ENDED/);assert.equal(s.guess,null);
-});
-test('rock paper scissors buttons are standalone commands across unrelated turns',()=>{
- const s=fresh(),r=run('rps',s);assert.deepEqual(r.suggestions,['rps rock','rps paper','rps scissors']);
- run('echo ready',s);assert.match(text(run(r.suggestions[0],s)),/YOU: rock/);
-});
-test('starting another sustained game does not silently abandon an active one',()=>{
- const s=fresh();run('simulate',s);run('guess',s);assert.equal(s.guess,null);assert.ok(s.flight);
- run('stop',s);run('guess',s);run('simulate',s);assert.ok(s.guess);assert.equal(s.flight,null);
-});

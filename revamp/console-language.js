@@ -4,12 +4,13 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.VDConsoleLanguage=api;})(typeof self!=='undefined'?self:this,function(){
   'use strict';
   const START=['Show me the game','Tell me about the game','Look around','Play something'];
-  const GAMES=['Fly a practice run','Play snake','Guess a number','Rock paper scissors'];
+  const GAMES=['Play snake','Play the OST'];
   const yes=/^(?:yes|yep|yeah|yea|yup|sure|ok|okay|absolutely|yes please|please do|go ahead|do it|sounds good|yes keep me updated)$/;
   const no=/^(?:no|nope|nah|no thanks|not now|maybe later|no thank you)$/;
   function normal(text){return String(text).replace(/[’‘]/g,"'").toLowerCase().trim().replace(/\s+/g,' ').replace(/[.!?,]+$/,'').replace(/\bu\b/g,'you').replace(/\bpls\b/g,'please');}
   const reply=(lines,suggestions=START,followup=null,topic=null)=>({reply:Array.isArray(lines)?lines:[lines],suggestions,followup,topic});
-  const command=(value,topic=null,opening=null,suggestions=null)=>({command:value,topic,opening,suggestions,followup:null});
+  const CUT=new Set(['map','scan','trace','decode','archive','journal','profile','lux','factions','dossier','mission','hint','inventory','guess','rps','roll','flip','simulate','fire','evade','collect','upgrade','dock']);
+  const command=(value,topic=null,opening=null,suggestions=null)=>CUT.has(String(value).split(' ')[0])?null:({command:value,topic,opening,suggestions,followup:null});
   function interpret(raw,context={}){
     const t=normal(raw),s=context.session||{},pending=s.followup;
     if(!t)return null;

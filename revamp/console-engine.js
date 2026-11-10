@@ -90,6 +90,10 @@
     C('privacy','system','privacy','Explain local state and the absence of tracking.',['telemetry','tracking']),
   ];
   const PROGRAMS=['snake','pi','ost'];
+  // Cut 2026-11-10 (Jon: "all this nonsense"): the relay story, faction/lux lore, the text flight
+  // trial and the little games. The console answers real questions and runs real programs only.
+  const CUT=new Set(['map','scan','trace','decode','archive','journal','profile','lux','factions','dossier','mission','hint','inventory','guess','rps','roll','flip','simulate','fire','evade','collect','upgrade','dock']);
+  for(let i=COMMANDS.length-1;i>=0;i--)if(CUT.has(COMMANDS[i].id))COMMANDS.splice(i,1);
   const BY_ID=Object.assign(Object.create(null),Object.fromEntries(COMMANDS.map(c=>[c.id,c])));
   const ALIASES=new Map();
   for(const c of COMMANDS)for(const alias of c.aliases){if(ALIASES.has(alias))throw Error('Duplicate command alias: '+alias);ALIASES.set(alias,c.id);}
@@ -142,7 +146,7 @@
     return result([`FILE NOT FOUND: ${name||'(no file supplied)'}`,'This is a virtual archive, not access to your device files.'],[],['ls','find readme']);
   }
   function distance(a,b){const row=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){let prev=row[0];row[0]=i;for(let j=1;j<=b.length;j++){const old=row[j];row[j]=Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=old;}}return row[b.length];}
-  function nextSteps(s){if(!s.scanCount)return ['scan','simulate','help games'];if(!s.traced)return ['trace 1187','profile','help tools'];if(!s.discoveries.includes('1187.log'))return ['cat /root/archive/1187.log','journal','hint'];return ['profile','factions','simulate'];}
+  function nextSteps(s){return ['media','ost','contact'];}
   function calculate(source){
     let rest=source.trim(),tokens=[];
     while(rest){const match=rest.match(/^(\d+(?:\.\d*)?(?:e[+-]?\d+)?|\.\d+|[()+\-*/%^])/i);if(!match)throw Error('Use numbers, parentheses and + - * / % ^ only.');tokens.push(match[0]);rest=rest.slice(match[0].length).trim();}
@@ -226,7 +230,7 @@
     if(!id&&/^(?:thanks|thank you|cheers)$/.test(n))return finish(result(rotate(s,'thanks',['Acknowledged.','Courtesy recorded. No surcharge.','You are welcome. The channel remains open.'])));
     if(!id&&/^(?:how are you|how's it going|what's up|sup|greetings)$/.test(n))return finish(result(rotate(s,'smalltalk',['Interface stable. No complaints logged.','The channel is clear. That is as close as I get to fine.','Operational. The rest is above my clearance.']),[],['suggest']));
     if(!id&&/\b(?:ai|chatgpt|chatbot|llm)\b/.test(n))return finish(result(['This is a scripted, stateful terminal.','No remote AI service interprets your commands.'],[],['help','privacy']));
-    if(!id&&/\b(?:secret|mystery|hidden)\b/.test(n))return finish(result(['The directory is not a complete inventory.','A relay survey may find what the listing omits.'],[],nextSteps(s)));
+    if(!id&&/\b(?:secret|mystery|hidden)\b/.test(n))return finish(result(['The directory is a complete inventory.','Nothing is hidden here.'],[],nextSteps(s)));
     if(!id&&/\b(?:download|install)\b/.test(n))return finish(result(['LOOKING FOR THE DEMO?','ALPHA DEMO IS NOT YET AVAILABLE.'],[],['email','download']));
     if(!id&&/\b(?:mac|macos|windows|linux|steam deck|iphone|android|mobile)\b/.test(n))return finish(result(['The currently listed game platforms are macOS and Windows.','Other platforms have not been confirmed.'],[],['about','email']));
     if(!id&&/\b(?:play a game|play something|mini games|minigames)\b/.test(n))return finish(result(['AVAILABLE DIVERSIONS','A text flight trial, number lock, rock-paper-scissors, dice, and ASCII Snake.'],[],['simulate','guess','rps rock','snake']));
@@ -257,6 +261,7 @@
         'The relay could not match that request. Try asking another way.',
       ])],[],hooks));
     }
+    if(!BY_ID[id])return finish(result(['REQUEST NOT RECOGNIZED. Try one of the requests below.'],[],Language.START));
     s.counts[id]=(s.counts[id]||0)+1;s.categories[BY_ID[id].category]=(s.categories[BY_ID[id].category]||0)+1;
     if(!language?.topic)s.conversationTopic=({scan:'explore',trace:'explore',journal:'explore',media:'media',frame:'media',trailer:'media',about:'about',simulate:'flight',guess:'guess',rps:'rps'})[id]||null;
     if(id==='cat'&&/(?:^|\/)1187\.log$/.test(args)||['open','cd'].includes(id)&&args==='archive')s.conversationTopic='explore';

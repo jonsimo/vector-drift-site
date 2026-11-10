@@ -42,8 +42,25 @@
   var pts = dots.map(function () { return { x: mx, y: my }; });
   var target = { x: mx - 11, y: my - 11, w: 22, h: 22 };
 
+  // Moving between neighbouring targets must not drop the reticle back to its small
+  // pointer size in the gap between them: a pointer within MAG px of a target counts
+  // as on it, so the box glides from one target straight to the next.
+  var MAG = 28;
+  function magnet() {
+    var best = null, bestD = Infinity, list = document.querySelectorAll(CLICKABLE);
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i].getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      var dx = mx < r.left ? r.left - mx : mx > r.right ? mx - r.right : 0;
+      var dy = my < r.top ? r.top - my : my > r.bottom ? my - r.bottom : 0;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d <= MAG && d < bestD) { best = list[i]; bestD = d; }
+    }
+    return best;
+  }
   function aim(el) {
     var t = el && el.closest && el.closest(CLICKABLE);
+    if (!t) t = magnet();
     rets[rets.length - 1].classList.toggle("lock", !!t);
     if (t) {
       var r = t.getBoundingClientRect(), pad = 5;

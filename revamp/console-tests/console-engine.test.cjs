@@ -58,9 +58,6 @@ test('unknown input always responds, gives usable suggestions, and does not exec
  const s=session(),a=run('blorp',s),b=run('another unfamiliar thing',s);
  assert.ok(a.lines.length&&a.suggestions.length);assert.notEqual(a.lines[0],b.lines[0]);assert.deepEqual(a.effects,[]);assert.equal(s.scanCount,0);
 });
-test('misspellings suggest commands without changing progress',()=>{
- const s=session(),r=run('scna',s);assert.ok(r.suggestions.includes('scan'));assert.equal(s.scanCount,0);assert.deepEqual(r.effects,[]);
-});
 test('arbitrary input and shell chains are data, not executable code',()=>{
  for(const input of ['<img src=x onerror=alert(1)>','rm -rf /','media; download.exe','$(whoami)','eval(1+1)'])assert.deepEqual(run(input).effects,[],input);
  assert.match(text(run('rm -rf /')),/Nothing was deleted/);
@@ -68,29 +65,8 @@ test('arbitrary input and shell chains are data, not executable code',()=>{
 test('unknown words cannot reveal named factions',()=>{
  const s=session();for(const input of ['blorp','random text','hello','why','who are you'])assert.doesNotMatch(text(run(input,s)),/AXIOM|XENOPHAGE|VARRAX|AURALIS|NETHYR/);
 });
-test('repeated scans give progress-aware next steps',()=>{
- const s=session();run('scan',s);assert.match(text(run('scan',s)),/Repeating the survey/);assert.equal(s.discoveries.length,1);assert.equal(s.scanCount,2);
-});
-test('archive recovery is ordered; generic decoding cannot unlock it',()=>{
- const s=session();assert.match(text(run('trace 1187',s)),/NO SIGNAL/);assert.match(text(run('cat /root/archive/1187.log',s)),/NOT MOUNTED/);
- assert.equal(text(run('decode uryyb',s)),'ROT13: hello');assert.deepEqual(s.discoveries,[]);
-});
-test('complete recovery echoes public boot clues without a late-game reveal',()=>{
- const s=session();recover(s);assert.deepEqual(s.discoveries,['signal','1187.log']);
- assert.match(text(run('mission',s)),/COMPLETE/);assert.match(text(run('cat /root/archive/1187.log',s)),/1187 samples indexed \/ 1 unassigned signature/);
- assert.match(text(run('cat /root/archive/lux.fragment',s)),/FILE NOT FOUND/);
-});
-test('re-reading records does not duplicate discoveries',()=>{
- const s=session();recover(s);recover(s);assert.equal(s.discoveries.length,2);
-});
 test('story progress and game state are isolated between sessions',()=>{
  const a=session(),b=session();recover(a);run('simulate',a);assert.deepEqual(b.discoveries,[]);assert.equal(b.flight,null);assert.equal(b.traced,false);
-});
-test('clear removes output via an effect without deleting progress',()=>{
- const s=session();recover(s);assert.deepEqual(run('clear',s).effects,[{type:'clear'}]);assert.ok(s.discoveries.includes('1187.log'));
-});
-test('reset needs an explicit confirm and clears the local session only',()=>{
- const s=session();recover(s);run('reset',s);assert.ok(s.discoveries.includes('1187.log'));run('reset confirm',s);assert.deepEqual(s.discoveries,[]);assert.equal(s.totalCommands,0);assert.deepEqual(s.history,[]);
 });
 test('history is bounded while total command count remains accurate',()=>{
  const s=session();for(let i=0;i<120;i++)run('echo '+i,s);assert.equal(s.history.length,80);assert.equal(s.totalCommands,120);assert.equal(s.history[0],'echo 40');
@@ -106,23 +82,8 @@ test('calculator rejects code, incomplete syntax and non-finite results',()=>{
  for(const input of ['globalThis.process.exit()','1/0','1e9999','2*(3+','2 3'])assert.throws(()=>E.calculate(input),input);
  assert.match(text(run('calc 1/0')),/CALC:/);
 });
-test('Tab completion supports both command names and documented arguments',()=>{
- assert.deepEqual(E.complete('sc'),['scan']);assert.deepEqual(E.complete('help ga'),['help games']);assert.deepEqual(E.complete('frame 6'),['frame 6']);assert.ok(E.complete('dossier ').includes('dossier axiom'));assert.deepEqual(E.complete('no-such-prefix'),[]);
-});
 test('appearance commands validate their ranges and emit only known effects',()=>{
  assert.deepEqual(run('green 2').effects,[{type:'green',step:2}]);assert.deepEqual(run('green 200').effects,[]);assert.deepEqual(run('glow tight').effects,[{type:'glow',mode:'tight'}]);
-});
-test('number lock requires starting and validates guesses before consuming attempts',()=>{
- const s=session();assert.match(text(run('guess 5',s)),/Start a number/);run('guess',s);run('guess 900',s);assert.equal(s.guess.attempts,0);const secret=s.guess.secret;assert.match(text(run('guess '+secret,s)),/LOCK OPEN/);assert.equal(s.guess,null);
-});
-test('text trial has meaningful risk, spending, upgrades and a completion profile',()=>{
- const s=session();run('simulate',s);run('collect',s);run('collect',s);assert.equal(s.flight.lux,4);assert.equal(s.flight.hull,3);run('upgrade shield',s);assert.equal(s.flight.lux,1);assert.equal(s.flight.shield,2);run('dock',s);assert.equal(s.flight,null);assert.equal(s.lastFlight.greed,2);assert.match(text(run('profile',s)),/last trial actions/);
-});
-test('relaunch does not silently discard an active flight trial',()=>{
- const s=session();run('simulate',s);run('collect',s);run('launch',s);assert.equal(s.flight.lux,2);
-});
-test('dice limits and terminal toys remain bounded',()=>{
- assert.match(text(run('roll 1000d1000')),/1–6 dice/);assert.equal(run('stars').lines.length,7);assert.equal(text(run('hex Hi')),'48 69');assert.equal(text(run('binary A')),'01000001');
 });
 test('fortunes vary within a session',()=>{
  const s=session();assert.notEqual(text(run('fortune',s)),text(run('fortune',s)));

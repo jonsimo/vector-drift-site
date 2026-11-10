@@ -15,23 +15,6 @@ test('play snake, politely or not, reaches snake and never the flight trial',()=
   assert.deepEqual(r.effects,[{type:'program',name:'snake'}],input);assert.equal(s.flight,null,input);
  }
 });
-test('number game wording starts number guessing, also after another game ended',()=>{
- for(const input of ['guess','guess a number','play the number game','play the number game please','please start a guessing game','let\'s play the number game']){
-  const s=fresh();run('simulate',s);run('stop',s);const r=run(input,s);
-  assert.ok(s.guess,input);assert.equal(s.flight,null,input);assert.match(text(r),/NUMBER LOCK/,input);
- }
-});
-test('flight trial, rps and snake each answer only their own wording',()=>{
- for(const input of ['simulate','play','launch','fly a practice run','start the flight trial please']){const s=fresh();run(input,s);assert.ok(s.flight,input);}
- const s=fresh();run('play rock paper scissors',s);assert.equal(s.followup.kind,'rps');assert.equal(s.flight,null);
-});
-test('unsupported arguments never start anything or run a guessed command',()=>{
- for(const input of ['play a banana','play banana please','launch the missiles','simulate everything','fire at will','scan banana','dock the ship','status report now please']){
-  const s=fresh(),before=snapshot(s),r=run(input,s);
-  assert.deepEqual(r.effects,[],input);assert.equal(snapshot(s),before,input);
- }
- assert.match(text(run('play a banana')),/PLAY WHAT/);
-});
 test('commands without arguments tolerate only polite filler',()=>{
  for(const input of ['scan please','scan now','status thanks','simulate again']){const r=run(input);assert.doesNotMatch(text(r),/UNRESOLVED|PLAY WHAT/,input);}
  for(const c of E.COMMANDS.filter(c=>c.usage===c.id&&!['clear','exit','fold','cancel','lux'].includes(c.id))){ // lux: a mention of the word anywhere is answered by design (read-only lore line)
@@ -61,20 +44,10 @@ test('cancel drops a pending question without opening signup',()=>{
  const r=run('cancel',s);assert.deepEqual(r.effects,[]);assert.equal(s.followup,null);assert.match(text(r),/CANCELLED/);
  const yes=run('yes please',s);assert.deepEqual(yes.effects,[]);assert.doesNotMatch(text(yes),/signup/i);
 });
-test('cancel ends an active flight or number game and keeps discoveries',()=>{
- const f=fresh();run('scan',f);run('simulate',f);for(const input of ['cancel','never mind','cancel that']){const s=fresh();s.scanCount=1;run('simulate',s);const r=run(input,s);assert.equal(s.flight,null,input);assert.match(text(r),/TRIAL ENDED/,input);assert.equal(s.scanCount,1);}
- const g=fresh();run('guess',g);assert.match(text(run('cancel',g)),/NUMBER GAME ENDED/);assert.equal(g.guess,null);
-});
 test('cancel inside a program closes it; idle cancel changes nothing',()=>{
  assert.deepEqual(run('cancel',fresh(),{section:'snake'}).effects,[{type:'navigate',section:'root'}]);
  const s=fresh(),before=snapshot(s),r=run('cancel',s);assert.match(text(r),/NOTHING TO CANCEL/);assert.deepEqual(r.effects,[]);assert.equal(snapshot(s).replace(/"counts":\{[^}]*\},?/,''),before.replace(/"counts":\{[^}]*\},?/,''));
  assert.equal(s.discoveries.length,0);
-});
-test('pause is explained honestly and never changes a game',()=>{
- const s=fresh();run('simulate',s);const hull=s.flight.hull;
- for(const input of ['pause','pause the game','hold on']){const r=run(input,s);assert.match(text(r),/turn-based/,input);assert.equal(s.flight.hull,hull);assert.equal(s.flight.turn,0);}
- assert.match(text(run('pause')),/nothing to pause/i);
- const q=fresh();run('download',q);run('wait',q);assert.equal(q.followup.kind,'updates');
 });
 
 // B. route and response identity ----------------------------------------------
