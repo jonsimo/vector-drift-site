@@ -721,13 +721,11 @@ function appendCommandLine(command, prefixText) {
     line.append(p, commandPart);
     return line;
   }
-  const consolePart = document.createElement("span");
-  consolePart.className = "prompt-console";
-  consolePart.textContent = "console>";
+  // the first console> input is the directory listing; every input after it reads root:/
   const pathPart = document.createElement("span");
-  pathPart.className = "prompt-path";
+  pathPart.className = "prompt-console";
   pathPart.textContent = "root:/";
-  line.append(consolePart, pathPart, commandPart);
+  line.append(pathPart, commandPart);
   return line;
 }
 
@@ -867,13 +865,10 @@ function freezeMobilePrompt(commandValue) {
 
 function setPromptPrefix() {
   promptPrefix.replaceChildren();
-  const consolePart = document.createElement("span");
-  consolePart.className = "prompt-console";
-  consolePart.textContent = "console>";
   const pathPart = document.createElement("span");
-  pathPart.className = "prompt-path";
+  pathPart.className = "prompt-console";
   pathPart.textContent = "root:/";
-  promptPrefix.append(consolePart, pathPart);
+  promptPrefix.append(pathPart);
 }
 
 // Desktop prompt switch for the operator channel. Reuses the same renderer/DOM;

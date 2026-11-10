@@ -187,12 +187,16 @@
     const id = readers.add({ title, lines: text, from: current === "reference" ? lastSiteSection : current });
     showSection("reference", false, "ui", "push", { reader: id });
   }
+  // The first line reads console>; once something has been entered the prompt is just the path (root:/ ...).
+  let consoleUsed = false;
+  function promptLabel() { return consoleUsed ? (document.getElementById("prompt-path").textContent || "root:/") : "console>"; }
+  function markUsed() { if (!consoleUsed) { consoleUsed = true; document.body.classList.add("console-used"); } }
   function report(text, command, suggestions = []) {
     suggestions = [];   // no hint buttons under responses: the console only says "input command here" and answers
     const entry = element("div", "console-entry");
-    if (command) entry.append(element("div", "console-echo", `console> ${command}`));
+    if (command) entry.append(element("div", "console-echo", `${promptLabel()} ${command}`));
     const lines = Array.isArray(text) ? text : [text];
-    const lengthy = lines.length > 5 || lines.join(" ").length > 400;
+    const lengthy = false;   // long answers print in full, inline: the console scrolls instead of opening a reader page
     if (lengthy) {
       const read = element("button", "vd-quick read-response", `[ READ ALL ${lines.length} LINES ]`);
       read.type = "button";
@@ -619,6 +623,21 @@
     }
     return lines.length ? { lines, effects } : null;
   }
+  // Text pages open inline, the way a command line opens a file: "load about.txt", then its text.
+  // Media, soundtrack and the forms are not text, so those still take you to the page.
+  const FILE_TEXT = {
+    about: ["about.txt", ["VECTOR DRIFT", "A retro vector space shooter.", "Precision. Momentum. Escalating enemy formations.", "Built for macOS, Windows and Linux. The alpha demo is not available yet.", "", "platforms ........ macOS / windows / linux", "download ......... not yet available"]],
+    devlog: ["devlog/", ["TRANSMISSION LOG", "Development updates.", "Nothing has been posted yet. Sign up for email updates and the first post will reach you when it is out."]],
+    download: ["download.exe", ["DOWNLOAD", "ALPHA DEMO IS NOT YET AVAILABLE.", "Email updates will tell you the moment it is."]],
+    links: ["links.lnk", ["LINKS", "", "discord ......... " + DISCORD_URL.replace("https://", ""), "website ......... jonsimo.com", "instagram ....... @jonsimo", "email updates ... type: email"]],
+    contact: ["contact", ["CONTACT", "Questions, press, or just saying hello.", "Vector Drift is made by Jon Simo.", "", "mail ............ " + CONTACT.email, "website ......... jonsimo.com", "instagram ....... @jonsimo", "discord ......... " + DISCORD_URL.replace("https://", "")]],
+  };
+  function openInline(response) {
+    const nav = response.effects.find(e => e.type === "navigate" && FILE_TEXT[e.section]);
+    if (!nav) return response;
+    const [name, text] = FILE_TEXT[nav.section];
+    return { ...response, lines: ["load " + name, ...text], suggestions: [], effects: response.effects.filter(e => e !== nav) };
+  }
   async function executeConsole(raw) {
     expireChoices();
     const epoch = ++commandEpoch;
@@ -626,17 +645,19 @@
     focusConsole();
     const now = new Date();
     const logged = window.VDCmdLog ? window.VDCmdLog.command(raw) : null;
-    if (logged) { report(logged, String(raw).trim()); updateCaret(); return; }
+    if (logged) { report(logged, String(raw).trim()); markUsed(); updateCaret(); return; }
     let response = Engine.execute(raw, consoleSession, { section: current === "soundtrack" ? "ost" : current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
     // anything the site's own commands do not know is answered by the shared topics layer
     if (/^REQUEST NOT RECOGNIZED/.test(response.lines[0] || "")) {
       const extra = topicAnswer(raw);
       if (extra) response = { lines: extra.lines, echo: response.echo, suggestions: [], effects: extra.effects };
     }
+    response = openInline(response);
     historyIndex = consoleSession.history.length;
     draft = "";
     if (window.VDCmdLog) window.VDCmdLog.add(raw, /^REQUEST NOT RECOGNIZED/.test(response.lines[0] || "") ? "none" : "ok", "site");
     if (response.lines.length || response.echo || response.suggestions.length) report(response.lines.length ? response.lines : ["CHANNEL READY."], response.echo, response.suggestions);
+    markUsed();
     updateCaret();
     for (const effect of response.effects) {
       if (epoch !== commandEpoch) return;

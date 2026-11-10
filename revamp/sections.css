@@ -584,3 +584,7 @@ body[data-bloom="on"] { --glow: 0 0 2px rgba(var(--phos-rgb),.72), 0 0 13px rgba
 body::after { content: ""; position: fixed; inset: 0; z-index: 65; background: rgba(0, 3, 2, .5); opacity: 0; pointer-events: none; transition: opacity 260ms ease; }
 body.console-open::after { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { body::after { transition: none; } }
+
+/* prompt: "console>" on the first line, then just the path (root:/ ...) */
+body:not(.console-used) #prompt-path { display: none; }
+body.console-used .command-form label > span:first-child { display: none; }

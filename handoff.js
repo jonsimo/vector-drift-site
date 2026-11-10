@@ -80,9 +80,8 @@
     // first console line is the command that produced the directory: console>root:/ dir
     var cmd = line("", "hand-outline hand-cmd", pin);
     var pc = document.createElement("span"); pc.className = "prompt-console"; pc.textContent = "console>";
-    var pp = document.createElement("span"); pp.className = "prompt-path"; pp.textContent = "root:/";
     var typed = document.createElement("span"); typed.className = "hand-typed";
-    cmd.append(pc, pp, document.createTextNode(" "), typed);
+    cmd.append(pc, document.createTextNode(" "), typed);
     await sleep(220);
     for (var ci = 0; ci < 3; ci++) { typed.textContent += "dir".charAt(ci); await sleep(110); }
     await sleep(180);
