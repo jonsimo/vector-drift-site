@@ -63,21 +63,8 @@
     init(); wake(); try { if (ctx) ctx.resume(); } catch (e) {}
     play(); ramp(level(), 0.8);
   }
-  var lastBeep = 0, clickA = null;
-  try { clickA = new Audio("../assets/console_click_v1.mp3"); clickA.preload = "auto"; clickA.volume = BEEP; clickA.load(); } catch (e) {}
-  function beep() {
-    if (off) return;
-    var now = Date.now(); if (now - lastBeep < 90) return; lastBeep = now;
-    try {
-      if (!clickA) { clickA = new Audio("../assets/console_click_v1.mp3"); clickA.preload = "auto"; clickA.volume = BEEP; }
-      clickA.currentTime = 0; clickA.play().catch(function () {});
-    } catch (e) {}
-  }
-  document.addEventListener("click", function (e) {
-    var el = e.target && e.target.closest && e.target.closest("a[href], button, summary, .vd-row, .vd-quick, .thumb");
-    if (!el || el.id === "sound-toggle" || el.closest(".console-dock")) return;
-    beep();
-  }, true);
+  // no click beep: links and buttons are silent (Jon 2026-11-10); beep() kept as a no-op for callers
+  function beep() {}
   document.addEventListener("DOMContentLoaded", function () {
     paint();
     var btn = document.getElementById("sound-toggle");

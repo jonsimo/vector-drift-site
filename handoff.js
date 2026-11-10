@@ -76,7 +76,6 @@
   api.printOutline = async function () {
     var o = out();
     if (!o || o.querySelector(".hand-outline")) return;
-    prepClick();
     var pin = pinEl();
     // first console line is the command that produced the directory: console>root:/ dir
     var cmd = line("", "hand-outline hand-cmd", pin);
@@ -116,22 +115,6 @@
 
   // Departure: console lines clear away bottom-up, the logo stays put, and the
   // logo's on-screen box travels with us so the site can pick it up from there.
-  // Quiet confirmation beep on a click, unless the visitor turned sound off.
-  // A short, trimmed click (the old beep file had ~0.33 s of near-silence before
-  // the tone, which read as lag) kept loaded so a tap sounds immediately.
-  var clickAudio = null;
-  function prepClick() {
-    if (clickAudio) return;
-    try { clickAudio = new Audio("assets/console_click_v1.mp3"); clickAudio.preload = "auto"; clickAudio.volume = 0.2; clickAudio.load(); } catch (e) {}
-  }
-  function clickBeep() {
-    try {
-      if (localStorage.getItem("vd_sound") === "off") return;
-      prepClick();
-      clickAudio.currentTime = 0;
-      clickAudio.play().catch(function () {});
-    } catch (e) {}
-  }
   // Back/forward can restore this page frozen mid-departure (bfcache), and a slow
   // connection can leave it half faded: put the outline back so it is usable.
   var resetTimer = 0;
@@ -155,7 +138,6 @@
   api.go = async function (section, rowEl) {
     if (leaving) return;
     leaving = true;
-    clickBeep();
     var o = out();
     var logo = o && (o.querySelector(".vd-banner #logo") || o.querySelector(".vd-banner"));
     var now = Date.now();
