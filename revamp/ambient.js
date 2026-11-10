@@ -54,6 +54,8 @@
     btn.setAttribute("aria-label", off ? "Sound is off. Turn sound on" : "Sound is on. Turn sound off");
     var st = btn.querySelector(".sound-state");
     if (st) st.textContent = off ? "[OFF]" : "[ON]";
+    var ico = btn.querySelector(".sound-ico");
+    if (ico) ico.textContent = off ? "<|x " : "<|))";
   }
   function set(on) {
     off = !on;
