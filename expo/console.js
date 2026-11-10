@@ -53,12 +53,13 @@
   }
   if (!Engine || !form) return;
   var session = Engine.createSession(), history = [], hi = 0, draft = "", leaving = false;
+  var topicSession = window.VDIntents ? window.VDIntents.createSession() : null;
   var SITE = "/revamp/?ref=expo#";
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function render(res, raw) {
     var ent = el("div", "ent");
     if (res.echo || raw) ent.appendChild(el("div", "echo", "console> " + (res.echo || raw)));
-    (res.lines.length ? res.lines : ["CHANNEL READY."]).forEach(function (l) { ent.appendChild(el("div", "", l || " ")); });
+    (res.lines.length ? res.lines : ["ready"]).forEach(function (l) { ent.appendChild(el("div", "", l || " ")); });
     if (res.suggestions && res.suggestions.length) {
       var s = el("div", "sug");
       res.suggestions.slice(0, 4).forEach(function (c) {
@@ -83,8 +84,30 @@
     if (cl) { render({ lines: cl, effects: [], suggestions: [] }, raw); return; }
     var now = new Date();
     var res = Engine.execute(raw, session, { section: "root", frame: 0, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
+    var miss = /^REQUEST NOT RECOGNIZED/.test(res.lines[0] || "");
+    var unrecognised = miss;
+    // at a booth, "controls" and "how do i play" mean the game, not the console
+    if ((/\b(controls?|keybinds?|key bindings|gamepad|controller)\b/i.test(raw) && !/console|website|site/i.test(raw)) || /\bhow (do i|to|can i) (play|fly|steer|control)\b/i.test(raw)) miss = true;
+    var fromTopics = false;
+    // anything the engine does not know goes to the shared topics layer, same as the site console
+    if (miss && window.VDIntents && window.VDIntents.selectUnknown) {
+      var norm = window.VDIntents.normalizeTerminalInput(raw).normalized, extra = null;
+      if (norm) {
+        var sel = window.VDIntents.selectUnknown(topicSession, Math.random, norm, raw), lines = [], fx = [];
+        sel.steps.forEach(function (st) {
+          if (st.type === "print" || st.type === "typed" || st.type === "link" || st.type === "open") lines.push(st.text || "");
+          else if (st.type === "goto") fx.push({ type: "navigate", section: st.section });
+          else if (st.type === "run" && (st.command === "snake" || st.command === "pi")) fx.push({ type: "program", name: st.command });
+          else if (st.type === "run" && st.command === "email.exe") fx.push({ type: "navigate", section: "email" });
+        });
+        if (lines.length) extra = { lines: lines, effects: fx };
+      }
+      if (extra) { res = { lines: extra.lines, echo: res.echo, suggestions: res.suggestions, effects: extra.effects }; fromTopics = true; }
+    }
+    // bare-bones terminal voice for the engine's own sentences
+    if (!fromTopics && window.VDConsoleVoice) res = { lines: window.VDConsoleVoice.apply(res.lines, raw), echo: res.echo, suggestions: res.suggestions, effects: res.effects };
     history = session.history.slice(); hi = history.length; draft = "";
-    if (window.VDCmdLog) window.VDCmdLog.add(raw, /^REQUEST NOT RECOGNIZED/.test(res.lines[0] || "") ? "none" : "ok", "go");
+    if (window.VDCmdLog) window.VDCmdLog.add(raw, unrecognised && !fromTopics ? "none" : "ok", "go");
     var clear = res.effects.some(function (e) { return e.type === "clear"; });
     if (clear) log.replaceChildren(); else render(res, raw);
     var dest = null;
@@ -92,7 +115,7 @@
       if (e.type === "navigate") dest = e.section === "root" ? null : e.section === "reference" ? "reference" : e.section;
       else if (e.type === "program") dest = e.name;
     });
-    if (dest) { log.lastChild && log.lastChild.appendChild(el("div", "echo", "opening the site ...")); go(SITE + dest); }
+    if (dest) { log.lastChild && log.lastChild.appendChild(el("div", "echo", "load site")); go(SITE + dest); }
   }
   form.addEventListener("submit", function (e) { e.preventDefault(); var v = input.value; input.value = ""; mirror(); run(v); });
   input.addEventListener("keydown", function (e) {
