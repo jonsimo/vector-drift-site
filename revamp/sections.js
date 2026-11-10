@@ -10,8 +10,6 @@
   const input = document.getElementById("section-command");
   const consoleHistory = document.getElementById("console-history");
   const consoleResponse = document.querySelector(".console-response");
-  const consoleToggle = document.querySelector(".console-toggle");
-  const consoleRun = document.querySelector(".console-run");
   const consoleDock = document.querySelector(".console-dock");
   const consoleLines = document.querySelector(".console-lines");
   const commandForm = document.querySelector(".command-form");
@@ -136,10 +134,6 @@
     consoleState = !open ? "collapsed" : engage || consoleState === "active" ? "active" : "preview";
     consoleDock.dataset.expanded = String(open);
     consoleDock.dataset.mode = consoleState;
-    consoleRun.disabled = !open;
-    consoleToggle.setAttribute("aria-expanded", String(open));
-    consoleToggle.setAttribute("aria-label", !open ? "Open console" : consoleState === "active" ? "Close console" : "Use console");
-    consoleToggle.textContent = !open ? "[ OPEN ]" : consoleState === "active" ? "[ CLOSE ]" : "[ TYPE ]";
     consoleHistory.setAttribute("aria-hidden", String(!open));
     consoleHistory.inert = !open;
     sizeHistory(reopening);
@@ -226,9 +220,6 @@
     sizeHistory(false, true);
     consoleResponse.textContent = lengthy ? lines.slice(0,2).join("\n")+" Full response available with Read all." : lines.join("\n");
   }
-  consoleToggle.addEventListener("click", () => {
-    if (consoleState === "active") closeConsole(); else focusConsole();
-  });
 
   const V = ["██╗   ██╗███████╗ ██████╗████████╗ ██████╗ ██████╗ ", "██║   ██║██╔════╝██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗", "██║   ██║█████╗  ██║        ██║   ██║   ██║██████╔╝", "╚██╗ ██╔╝██╔══╝  ██║        ██║   ██║   ██║██╔══██╗", " ╚████╔╝ ███████╗╚██████╗   ██║   ╚██████╔╝██║  ██║", "  ╚═══╝  ╚══════╝ ╚═════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝"];
   const D = ["██████╗ ██████╗ ██╗███████╗████████╗", "██╔══██╗██╔══██╗██║██╔════╝╚══██╔══╝", "██║  ██║██████╔╝██║█████╗     ██║   ", "██║  ██║██╔══██╗██║██╔══╝     ██║   ", "██████╔╝██║  ██║██║██║        ██║   ", "╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝        ╚═╝   "];
