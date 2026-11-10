@@ -240,7 +240,7 @@
   var GAME = [
     [/\b(vector drift|the game)\b.*\b(about|is|what)\b|\bwhat (is|s) (vector drift|this game|the game)\b|\btell me about (vector drift|the game|it)\b|\bwhat('s| is) it about\b|\bwhat kind of game\b|\bwhat genre\b|\bgame (genre|type)\b|^(vector drift|the game)$/, "about"],
     [/\b(release|come out|comes out|coming out|launch|launches|out yet|available yet|available|when is|when does|when will|when can|eta|date)\b.*\b(game|demo|beta|vector drift|it|play|alpha)\b|\bwhen can i play\b|\brelease date\b/, "release"],
-    [/\b(how|where)\b.*\b(download|get|install|play|try|buy|obtain)\b|\b(download|install|beta|alpha|demo|early access|playtest)\b|\b(can i|could i|may i)\b.*\b(play|try)\b|\bhow (do|can) i play\b/, "demo"],
+    [/\b(how|where)\b.*\b(download|get|install|try|buy|obtain)\b|\b(download|install|beta|alpha|demo|early access|playtest)\b|\b(can i|could i|may i)\b.*\b(play|try)\b/, "demo"],
     [/\b(control|controls|keybind|keybinds|key bindings|buttons|keyboard|gamepad|controller|joystick|how to play|how do i play|how to fly|steer|steering|aim)\b/, "controls"],
     [/\b(upgrade bay|the bay|bay|lux|currency|coins?|shop|store upgrades|upgrades?|buy upgrades|spend)\b/, "bay"],
     [/\b(lives|health|hp|hull|shield|armou?r|extra lives?|continues?|die|dying|respawn|game over|damage)\b/, "survive"],
