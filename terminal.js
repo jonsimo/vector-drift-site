@@ -1336,12 +1336,12 @@ async function runAxiomReveal(observerLine, cortexLine, resolvingLine, reveal = 
   const wordOrder = [...embeds.entries()];
   for (const [line, embed] of wordOrder) {
     activeWords.set(line, embed);
-    await liveSleep(randomBetween(230, 290));      // each word lands slowly enough to be read
+    await liveSleep(randomBetween(220, 300));      // 2x the original 110-150 ms per word
   }
-  await liveSleep(randomBetween(1000, 1250));       // all four held on screen together (was ~0.2 s)
+  await liveSleep(randomBetween(320, 440));       // 2x the original 160-220 ms hold, all four together
   for (const [line] of wordOrder) {
     activeWords.delete(line);
-    await liveSleep(randomBetween(150, 200));
+    await liveSleep(randomBetween(200, 280));      // 2x the original 100-140 ms per word
   }
   await liveSleep(150);
 
