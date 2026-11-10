@@ -9,8 +9,10 @@ const commandText = document.getElementById("terminal-command");
 const inputShell = document.querySelector(".input-shell");
 
 let bootStarted = false;
-let bootActive = false;   // true during the boot; gates the 3-Enter skip
+let bootActive = false;   // true during the boot; gates the 3-Enter skip and the any-key rush
 let bootSkip = false;     // 3 quick Enters -> fast-cut to logo + prompt
+let rushToLogo = false;   // any key (desktop) / one tap (phone) -> fast-forward the boot, then draw the logo on
+let logoStarted = false;  // the logo draw-on has begun: the rush no longer applies
 let mobileLive = null;
 let terminalState = "booting";
 let activeTransfer = null;
@@ -198,13 +200,35 @@ function endBootSkip() {
 }
 
 function bootEnterWatch(e) {
-  if (!bootActive || bootSkip || e.key !== "Enter") return;
+  if (!bootActive || (bootSkip && !rushToLogo) || logoStarted || e.key !== "Enter") return;
   const now = performance.now();
   bootEnterStamps.push(now);
   bootEnterStamps = bootEnterStamps.filter((t) => now - t < 900);
-  if (bootEnterStamps.length >= 3) triggerBootSkip();
+  if (bootEnterStamps.length >= 3) {
+    if (rushToLogo) rushToLogo = false;   // already rushing: upgrade to the instant cut
+    else triggerBootSkip();
+  }
 }
 window.addEventListener("keydown", bootEnterWatch, true);
+
+// One tap (phone) or any key (desktop) after the link is made fast-forwards the boot
+// text and lands on the logo being drawn on. bootAudioT0 is only set once the connect
+// gate has been answered, so the press that opens the gate never counts.
+function triggerBootRush() {
+  if (!bootActive || bootSkip || logoStarted || !bootAudioT0) return;
+  rushToLogo = true;
+  triggerBootSkip();
+}
+// Called right before the logo draws: the rush ends here and normal pacing resumes.
+function beginLogoDraw() {
+  logoStarted = true;
+  if (rushToLogo) { rushToLogo = false; endBootSkip(); }
+}
+window.addEventListener("keydown", (e) => {
+  if (mobileMode || e.repeat || ["Shift", "Alt", "Control", "Meta", "CapsLock"].includes(e.key)) return;
+  triggerBootRush();
+}, true);
+window.addEventListener("pointerdown", () => { if (mobileMode) triggerBootRush(); }, true);
 // Dev: ?bootskip triggers the skip shortly after load (headless test of the path).
 if (bootParams.has("bootskip")) {
   window.addEventListener("load", function () { setTimeout(triggerBootSkip, 150); });
@@ -1863,6 +1887,7 @@ async function runBoot() {
   // -> console prompt + beep only after the logo is done.
   if (window.renderBootGauges) await window.renderBootGauges();
   await sleep(500);   // a beat after the last boot message, then straight into the logo
+  beginLogoDraw();
   if (window.renderLogoBanner) await window.renderLogoBanner();
   await activateRootPrompt(startedAt, { keepOutput: true });
 }
@@ -2113,6 +2138,7 @@ async function runBootMobile() {
   // -> console prompt + beep only after the logo is done.
   if (window.renderBootGauges) await window.renderBootGauges();
   await sleep(500);   // a beat after the last boot message, then straight into the logo
+  beginLogoDraw();
   if (window.renderLogoBanner) await window.renderLogoBanner({ mobile: true });
   await activateRootPrompt(startedAt, { keepOutput: true });
 }
