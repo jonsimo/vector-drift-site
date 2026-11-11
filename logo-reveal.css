@@ -293,3 +293,14 @@ body.mobile .vd-banner .vd-sound {
 .vd-banner .vd-sound[aria-pressed="false"] { color: rgba(17, 202, 184, .6); text-shadow: none; }
 .vd-banner .vd-sound[aria-pressed="false"] .sound-ico .waves { display: none; }
 .vd-banner .vd-sound[aria-pressed="false"] .sound-ico .mute { display: block; }
+
+/* Boot -> site handoff as a cross-page view transition: the old page stays on screen and the big logo
+   morphs into the masthead logo while everything else cross-fades. No black gap, no staged fade-ins.
+   Browsers without it keep the older fly-in (handoff.js / arrive.js). Same rules live in revamp/sections.css. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  .vd-banner #logo { view-transition-name: vd-logo; }
+  ::view-transition-group(vd-logo) { animation-duration: 760ms; animation-timing-function: cubic-bezier(.22, .8, .2, 1); }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 420ms; }
+  ::view-transition-old(vd-logo), ::view-transition-new(vd-logo) { height: 100%; width: 100%; object-fit: contain; object-position: left top; }
+}

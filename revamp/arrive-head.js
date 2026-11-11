@@ -5,6 +5,8 @@
   try { sessionStorage.setItem("vd_site_entered", "1"); } catch (e) {}
   try {
     if (!new URLSearchParams(location.search).has("from")) return;
+    // the browser's view transition does the handoff when it can (see handoff.js); the manual fly-in is the fallback
+    if (typeof window.onpagereveal !== "undefined" && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) { sessionStorage.removeItem("vd_handoff"); return; }
     var raw = sessionStorage.getItem("vd_handoff");
     if (!raw) return;
     sessionStorage.removeItem("vd_handoff");

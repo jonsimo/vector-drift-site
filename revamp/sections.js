@@ -384,9 +384,9 @@
       [["PLATFORMS", "macOS / WINDOWS / LINUX"], ["DOWNLOAD", "NOT YET AVAILABLE"]].forEach(([a,b])=>{
         const row = element("div", "fact-row"); row.append(element("span","",a),element("span","",b)); page.append(row);
       });
-      // Three gameplay clips. Placeholder slots until clip_0N.gif are dropped into revamp/media/ (Jon 2026-11-10).
+      // Three gameplay clips. Temp clips cut from test2.mov / vd_viz.mov; replace revamp/media/clip_0N.gif (Jon 2026-11-10).
       const clips = element("div", "about-clips");
-      [["01","DRIFT + DODGE"],["02","FORMATION BREAK"],["03","BOSS RUN"]].forEach(([n,cap])=>{
+      [["01","DRIFT + DODGE"],["02","VECTOR BURST"],["03","MUSIC VISUALIZER"]].forEach(([n,cap])=>{
         const fig = element("figure", "about-clip missing");
         const img = element("img", "clip-gif"); img.loading = "lazy"; img.decoding = "async"; img.alt = cap;
         img.addEventListener("load", ()=>fig.classList.remove("missing"));

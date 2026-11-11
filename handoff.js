@@ -149,6 +149,13 @@
     if (input) { input.disabled = true; input.blur(); }
     document.body.classList.add("vd-leaving");
     if (window.VDFadeOutAudio) window.VDFadeOutAudio(520);
+    // Cross-page view transitions: the browser holds this page and morphs the logo, so leave straight away.
+    if (typeof window.onpageswap !== "undefined" && !reduced()) {
+      await new Promise(function (r) { setTimeout(r, 90); });
+      location.assign(urlFor(section));
+      resetTimer = setTimeout(resetDeparture, 6000);
+      return;
+    }
     var lines = reduced() ? [] : Array.prototype.filter.call(o.querySelectorAll(".output-line, .mobile-prompt"), function (n) { return !n.closest(".vd-banner") && !(rowEl && n.contains(rowEl)); }).reverse();
     var step = Math.min(26, 420 / Math.max(1, lines.length));
     lines.forEach(function (n, i) { n.style.transitionDelay = Math.round(i * step) + "ms"; n.classList.add("vd-line-out"); });
