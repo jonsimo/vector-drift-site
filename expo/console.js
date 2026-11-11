@@ -83,12 +83,14 @@
     var cl = window.VDCmdLog ? window.VDCmdLog.command(raw) : null;
     if (cl) { render({ lines: cl, effects: [], suggestions: [] }, raw); return; }
     var now = new Date();
-    var res = Engine.execute(raw, session, { section: "root", frame: 0, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
+    // small talk is answered in the same voice as the boot console and the site console
+    var chat = (window.VDIntents && window.VDIntents.chat && !session.followup && !session.flight && !session.guess) ? window.VDIntents.chat(topicSession, Math.random, raw) : null;
+    var res = chat ? (session.history.push(raw), session.totalCommands++, { lines: chat.lines, echo: raw, suggestions: [], effects: [] }) : Engine.execute(raw, session, { section: "root", frame: 0, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
     var miss = /^REQUEST NOT RECOGNIZED/.test(res.lines[0] || "");
     var unrecognised = miss;
     // at a booth, "controls" and "how do i play" mean the game, not the console
     if ((/\b(controls?|keybinds?|key bindings|gamepad|controller)\b/i.test(raw) && !/console|website|site/i.test(raw)) || /\bhow (do i|to|can i) (play|fly|steer|control)\b/i.test(raw)) miss = true;
-    var fromTopics = false;
+    var fromTopics = !!chat;
     // anything the engine does not know goes to the shared topics layer, same as the site console
     if (miss && window.VDIntents && window.VDIntents.selectUnknown) {
       var norm = window.VDIntents.normalizeTerminalInput(raw).normalized, extra = null;

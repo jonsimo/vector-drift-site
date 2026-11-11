@@ -103,3 +103,16 @@ test("simulation: thousands of human-looking inputs, no crash, no empty reply, n
   assert.deepEqual(st.dups, []);
   assert.ok(st.actions > 500, "a good share of replies carry an action (route, link, program)");
 });
+
+test("chat(): small talk uses the AXIOM voice and leaves navigation to each console", () => {
+  const VDI = require("../terminal-intents.js");
+  const s = VDI.createSession();
+  const hello = VDI.chat(s, () => 0.3, "hello");
+  assert.ok(hello && hello.id === "greeting" && hello.lines.join(" ").includes("greetings human"));
+  assert.ok(VDI.chat(s, () => 0.3, "thanks"));
+  assert.ok(VDI.chat(s, () => 0.3, "who are you"));
+  // these belong to each console's own commands, so chat() must not take them
+  for (const c of ["help", "about", "ls", "discord", "download", "history", "snake", "when is it out"]) {
+    assert.equal(VDI.chat(VDI.createSession(), () => 0.3, c), null, c);
+  }
+});

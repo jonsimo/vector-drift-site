@@ -689,9 +689,17 @@
     if (logged) { report(logged, String(raw).trim()); markUsed(); updateCaret(); return; }
     // a bare Enter does what a shell does: a fresh prompt line, nothing printed
     if (!String(raw).trim()) { report([], " "); markUsed(); updateCaret(); return; }
-    let response = Engine.execute(raw, consoleSession, { section: current === "soundtrack" ? "ost" : current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
+    // small talk (hello, thanks, joke, who are you ...) is answered in the same voice as the boot console
+    let chatted = null;
+    if (window.VDIntents && !consoleSession.followup && !consoleSession.flight && !consoleSession.guess && !PROGRAMS.includes(current)) {
+      const c = window.VDIntents.chat(topicSession, Math.random, raw);
+      if (c) chatted = c;
+    }
+    let response = chatted
+      ? (() => { consoleSession.history.push(String(raw).trim()); consoleSession.totalCommands++; return { lines: chatted.lines, echo: String(raw).trim(), suggestions: [], effects: [] }; })()
+      : Engine.execute(raw, consoleSession, { section: current === "soundtrack" ? "ost" : current, frame: selectedFile, now: now.getTime(), date: now.toLocaleDateString(), time: now.toLocaleTimeString() });
     // anything the site's own commands do not know is answered by the shared topics layer
-    let fromTopics = false;
+    let fromTopics = !!chatted;   // chat lines are already in the console voice
     if (/^REQUEST NOT RECOGNIZED/.test(response.lines[0] || "")) {
       const extra = topicAnswer(raw);
       if (extra) { response = { lines: extra.lines, echo: response.echo, suggestions: [], effects: extra.effects }; fromTopics = true; }

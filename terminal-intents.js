@@ -933,6 +933,21 @@
   // Everything the registry does not recognize. Short junk keeps the terse unknown
   // bank; sentences and questions get an AXIOM-style deflection instead of an error.
   const QUESTION_START = /^(what|why|how|who|whom|whose|when|where|which|can|could|do|does|did|is|are|am|will|would|should|have|has|tell|show|explain|give|let|may|shall|wanna)\b/;
+  // One voice for small talk across the boot console, the site console and the booth console.
+  // Only the purely conversational intents come through here; anything that navigates or reports
+  // site state (help, about, release, discord, ls, history, ...) stays with each console's own commands.
+  var CHAT_IDS = ["greeting", "thanks", "kindness", "insult", "laughter", "joke", "wellbeing", "meaning", "recreation", "identity", "humanity", "ping"];
+  function chat(session, rng, raw) {
+    var normalized = normalizeTerminalInput(raw).normalized;
+    if (!normalized) return null;
+    var resolution = resolveCommand(normalized);
+    if (resolution.kind !== "intent" || CHAT_IDS.indexOf(resolution.id) < 0) return null;
+    var steps = selectResponse(resolution, session, rng).steps, lines = [];
+    steps.forEach(function (st) {
+      if (st.type === "print" || st.type === "typed" || st.type === "link" || st.type === "open") lines.push(st.text || "");
+    });
+    return lines.length ? { id: resolution.id, lines: lines } : null;
+  }
   function isConversational(normalized) {
     const words = normalized.split(" ").filter(Boolean);
     return words.length >= 3 || (words.length === 2 && QUESTION_START.test(normalized));
@@ -979,6 +994,8 @@
     createSession,
     selectResponse,
     selectUnknown,
+    chat,
+    CHAT_IDS,
     isConversational,
     downloadHintSteps,
     insertFictionalHistory,
