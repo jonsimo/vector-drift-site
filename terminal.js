@@ -421,6 +421,23 @@ function soundOff() {
   } catch (e) {}
   return mobileMode || isMobileDevice();
 }
+// Sound toggle (the phone toggle beside the version line under the big logo).
+window.VDGetSound = function () { return !soundOff(); };
+window.VDSetSound = function (on) {
+  try { localStorage.setItem("vd_sound", on ? "on" : "off"); } catch (e) {}
+  if (!on) {
+    try {
+      if (audioCtx && humGain) { const t = audioCtx.currentTime; humGain.gain.cancelScheduledValues(t); humGain.gain.setValueAtTime(humGain.gain.value, t); humGain.gain.linearRampToValueAtTime(0.0001, t + 0.25); }
+      if (bootAudio) { try { bootAudio.main.pause(); bootAudio.initial.pause(); } catch (e) {} }
+    } catch (e) {}
+    setTimeout(stopHum, 300);
+    return;
+  }
+  try { setupBootAudio(); initAudio(); resumeAudio(); } catch (e) { return; }
+  humBedStarted = true;
+  startHum(0);
+  try { if (audioCtx && humGain) { const now = audioCtx.currentTime; humGain.gain.setValueAtTime(0.0001, now); humGain.gain.linearRampToValueAtTime(HUM_VOLUME, now + 0.8); } } catch (e) {}
+};
 // Console beep only honours an explicit off.
 function soundPrefOff() { try { return localStorage.getItem("vd_sound") === "off"; } catch (e) { return false; } }
 

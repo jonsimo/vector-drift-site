@@ -651,3 +651,14 @@ body.console-used .command-form label > span:first-child { display: none; }
 .about-clip.missing .clip-slot { display: flex; }
 .about-clip .clip-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 8px; font-size: 12px; letter-spacing: .1em; color: var(--hot); background: linear-gradient(transparent, rgba(0,0,0,.72)); }
 @media (max-width: 680px) { .about-clips { grid-template-columns: 1fr; gap: 12px; } }
+
+/* desktop: the /root/<page> label is a button back up to /root, so it reads as one */
+@media (min-width: 681px) {
+  #section-path { cursor: pointer; font-size: 26px; min-height: 40px; display: inline-flex; align-items: center; color: var(--hot); text-shadow: 0 0 4px rgba(var(--hot-rgb),.8), 0 0 14px rgba(var(--phos-rgb),.55); border-bottom: 1px solid rgba(var(--hot-rgb),.6); padding-bottom: 2px; }
+  #section-path::after { content: "[ HOME ]"; margin-left: 1em; font-size: .6em; letter-spacing: .12em; color: var(--phos); text-shadow: none; }
+  #section-path:hover, #section-path:focus-visible { background: var(--phos); color: var(--bg); text-shadow: none; outline: 0; }
+  #section-path:hover::after, #section-path:focus-visible::after { color: var(--bg); }
+  #section-path.at-root { cursor: default; border-bottom-color: transparent; }
+  #section-path.at-root::after { content: ""; }
+  #section-path.at-root:hover { background: none; color: var(--hot); text-shadow: 0 0 4px rgba(var(--hot-rgb),.8), 0 0 14px rgba(var(--phos-rgb),.55); }
+}

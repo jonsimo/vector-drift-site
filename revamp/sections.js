@@ -521,6 +521,7 @@
       const mark=a.querySelector(".mark"); if(mark)mark.textContent=active?">":" ";
     });
     document.getElementById("section-path").textContent="/root/"+(PROGRAMS.includes(current)?current+".exe":paths[current]);
+    document.getElementById("section-path").classList.toggle("at-root",current==="root");
     // the prompt shows the directory you are in: a file (about.txt, links.lnk, download.exe ...) leaves you in root:/
     { const p = paths[current] || "", dir = current === "root" || PROGRAMS.includes(current) ? "" : p.endsWith("/") ? p.slice(0, -1) : p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
       document.getElementById("prompt-path").textContent = "root:/" + dir; }
@@ -576,6 +577,8 @@
     focusConsole();
   });
   document.getElementById("section-path").addEventListener("click",e=>{
+    // desktop: the directory is already on screen, so the path label steps back up to /root (Home)
+    if(matchMedia("(min-width: 681px)").matches){ if(current!=="root") showSection("root"); return; }
     const open=document.body.classList.toggle("nav-open");e.currentTarget.setAttribute("aria-expanded",String(open));
   });
   // Snake and pi run inside the console window itself: the prompt steps aside, the

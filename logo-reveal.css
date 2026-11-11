@@ -171,6 +171,8 @@ body.vd-banner-active .terminal-content { height: auto; }
      padding so the logo (which fills ~97% of its container) reaches near the
      screen edges. Safe: the boot text is cleared before banner mode, so this
      only affects the logo + the console prompt beneath it. */
+  /* the stage keeps 30px side padding, so a 100vw window started 30px in and ran 30px off the right edge */
+  body.vd-banner-active .terminal-stage { padding-left: 0; padding-right: 0; }
   body.vd-banner-active .terminal-window { width: 100vw; max-width: 100vw; }
   body.vd-banner-active .terminal-screen { padding-left: 10px; padding-right: 10px; }
 }
@@ -276,3 +278,18 @@ body.vd-banner-active .terminal-content { height: auto; }
 }
 @keyframes vd404blink { to { visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) { #vd404 .cur { animation: none; } }
+
+/* phones: sound toggle on the right of the version line under the big logo */
+.vd-banner .vd-meta { position: relative; }
+.vd-banner .vd-sound { display: none; }
+body.mobile .vd-banner .vd-sound {
+  display: inline-flex; align-items: center; gap: .45em; position: absolute; right: 0; top: -.7em;
+  min-height: 44px; min-width: 44px; padding: 0 2px 0 8px; background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: 1.05em; letter-spacing: .08em; color: var(--hot); -webkit-tap-highlight-color: transparent;
+  text-shadow: 0 0 3px rgba(174, 249, 226, .6);
+}
+.vd-banner .vd-sound .sound-ico { width: 1.25em; height: 1.25em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: miter; stroke-linecap: square; shape-rendering: crispEdges; }
+.vd-banner .vd-sound .sound-ico .mute { display: none; }
+.vd-banner .vd-sound[aria-pressed="false"] { color: rgba(17, 202, 184, .6); text-shadow: none; }
+.vd-banner .vd-sound[aria-pressed="false"] .sound-ico .waves { display: none; }
+.vd-banner .vd-sound[aria-pressed="false"] .sound-ico .mute { display: block; }

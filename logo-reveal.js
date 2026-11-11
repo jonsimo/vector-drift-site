@@ -140,7 +140,7 @@ function buildBanner(driftMode) {
     '<div id="stage"><div id="logo"><pre id="vec"></pre>' +
     '<div id="driftrow"><div id="speed"><i></i><i></i><i></i><i></i></div>' +
     '<pre id="dft"></pre></div></div></div>' +
-    '<div class="vd-meta"><span class="vd-version"></span><hr class="vd-divider"></div>';
+    '<div class="vd-meta"><span class="vd-version"></span><button type="button" class="vd-sound" aria-pressed="false" aria-label="Sound is off. Turn sound on">'+'<svg class="sound-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5H7.5L13 5V19L7.5 14.5H3.5Z"/><path class="waves" d="M16 9.5L18 12L16 14.5M19 6.5L22 12L19 17.5"/><path class="mute" d="M16 9.5L21.5 15M21.5 9.5L16 15"/></svg>'+'<span class="vd-sound-state">[OFF]</span></button><hr class="vd-divider"></div>';
   return b;
 }
 
@@ -228,6 +228,18 @@ window.renderLogoBanner = async function (opts) {
   vec = banner.querySelector("#vec");
   dft = banner.querySelector("#dft");
   const metaEl = banner.querySelector(".vd-meta");
+  // phones: a sound on/off toggle on the right of the version line (terminal.js owns the audio)
+  const soundBtn = banner.querySelector(".vd-sound");
+  if (soundBtn) {
+    const paintSound = function () {
+      const on = window.VDGetSound ? window.VDGetSound() : false;
+      soundBtn.setAttribute("aria-pressed", String(on));
+      soundBtn.setAttribute("aria-label", on ? "Sound is on. Turn sound off" : "Sound is off. Turn sound on");
+      soundBtn.querySelector(".vd-sound-state").textContent = on ? "[ON]" : "[OFF]";
+    };
+    soundBtn.addEventListener("click", function () { if (window.VDSetSound) window.VDSetSound(!(window.VDGetSound && window.VDGetSound())); paintSound(); });
+    paintSound();
+  }
 
   // Wait for the logo's display font — TIMEOUT-GUARDED so a slow/stuck font load
   // can never hang the banner (that was the "cuts to blank prompt" bug).
@@ -281,7 +293,7 @@ window.renderLogoBanner = async function (opts) {
   await sleep(300);
   if (metaEl) metaEl.classList.add("show");
   const verEl = banner.querySelector(".vd-version");
-  if (verEl) await glitchText(verEl, "vector_drift.sim v0.9.3 alpha build", { noAnim, perChar: 24, scramble: 320 });
+  if (verEl) await glitchText(verEl, "vector_drift.sim v0.9.3", { noAnim, perChar: 24, scramble: 320 });
   const out2 = OUT(); if (out2) out2.scrollTop = out2.scrollHeight;
   if (params.has("logohold")) { await sleep(3600000); }   // dev: freeze on the logo
 };
