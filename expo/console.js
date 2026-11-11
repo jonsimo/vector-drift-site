@@ -82,6 +82,13 @@
     if (!raw || leaving) return;
     var cl = window.VDCmdLog ? window.VDCmdLog.command(raw) : null;
     if (cl) { render({ lines: cl, effects: [], suggestions: [] }, raw); return; }
+    // the booth is about the game, not the site's file tree: help lists things to ask, nothing else
+    if (/^(help|\?|commands?|menu|options|what can (i|you) (do|say|ask)|what do i (do|type))\W*( all)?$/i.test(raw)) {
+      session.history.push(raw); session.totalCommands++;
+      history = session.history.slice(); hi = history.length; draft = "";
+      render({ lines: ["ask about the game, type any of these:", "what is vector drift", "controls", "when is it out", "email  // get release news", "discord"], echo: raw, suggestions: [], effects: [] }, raw);
+      return;
+    }
     var now = new Date();
     // small talk is answered in the same voice as the boot console and the site console
     var chat = (window.VDIntents && window.VDIntents.chat && !session.followup && !session.flight && !session.guess) ? window.VDIntents.chat(topicSession, Math.random, raw) : null;
