@@ -304,3 +304,12 @@ body.mobile .vd-banner .vd-sound {
   ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 420ms; }
   ::view-transition-old(vd-logo), ::view-transition-new(vd-logo) { height: 100%; width: 100%; object-fit: contain; object-position: left top; }
 }
+
+/* constant logo flicker (Jon 2026-11-11): irregular, never settles into a visible loop */
+@keyframes vdLogoFlicker {
+  0% { opacity: 1; } 6% { opacity: .86; } 11% { opacity: .97; } 17% { opacity: .78; } 22% { opacity: 1; } 29% { opacity: .9; }
+  34% { opacity: .82; } 41% { opacity: 1; } 47% { opacity: .93; } 53% { opacity: .76; } 58% { opacity: .98; } 66% { opacity: .88; }
+  71% { opacity: 1; } 79% { opacity: .8; } 85% { opacity: .95; } 92% { opacity: .84; } 100% { opacity: 1; }
+}
+.vd-banner #stage { animation: vdLogoFlicker 2.3s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .vd-banner #stage { animation: none; } }

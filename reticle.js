@@ -59,11 +59,11 @@
     return best;
   }
   // Rows have a tall hit-area (easy to press); the reticle frames just their text, without the marker glyph.
-  var SNUG = ".vd-row, .hand-row, .file-link";
+  var SNUG = ".vd-row, .hand-row, .file-link, .ost-row";
   function snug(t) {
     if (t.matches && t.matches(SNUG)) {
       var w = document.createTreeWalker(t, NodeFilter.SHOW_TEXT, { acceptNode: function (n) {
-        return /\S/.test(n.nodeValue) && !(n.parentElement && n.parentElement.closest(".mark, .hand-mark")) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
+        return /\S/.test(n.nodeValue) && !(n.parentElement && n.parentElement.closest(".mark, .hand-mark, .ost-mark")) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
       var first = w.nextNode(), last = first, n;
       while ((n = w.nextNode())) last = n;
       if (first) {
@@ -79,7 +79,7 @@
     if (!t) t = magnet();
     rets[rets.length - 1].classList.toggle("lock", !!t);
     if (t) {
-      var r = snug(t), pad = 4;
+      var r = snug(t), pad = t.matches && t.matches(".ost-row") ? 8 : 4;
       target = { x: r.left - pad, y: r.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 };
     } else target = { x: mx - 11, y: my - 11, w: 22, h: 22 };
   }
